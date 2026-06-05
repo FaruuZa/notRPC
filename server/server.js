@@ -1,0 +1,72 @@
+const express = require('express');
+  const path = require('path');
+  const { PORT } = require('./constants');
+  const matchmaking = require('./matchmaking');
+  const roomManager = require('./roomManager');
+  
+  const app = express();
+  
+  // Serve static files from the public directory
+  app.use(express.static(path.join(__dirname, '../public')));
+  
+  // Redirect root to index.html
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  });
+  
+  // Start server on port 8000 (specified in constants and required)
+  const server = app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`Server is running at http://localhost:${PORT}`);
+    console.log(`====================================================`);
+  });
+  
+  // Attach Socket.IO to the Express server
+  const io = require('socket.io')(server);
+  
+  // Handle new Socket.IO connections
+  io.on('connection', (socket) => {
+    console.log(`[Socket] Client connected: ${socket.id}`);
+  
+    // Emit initial queue count to the newly connected player
+    socket.emit('queueCountUpdate', matchmaking.getQueueCount());
+    
+    // Broadcast updated online count to all clients
+    io.emit('onlineCountUpdate', io.engine.clientsCount);
+  
+    // Player joins the matchmaking queue
+    socket.on('joinQueue', (username) => {
+      matchmaking.join(socket, username, io, roomManager);
+    });
+  
+    // Player manually leaves the matchmaking queue
+    socket.on('leaveQueue', () => {
+      matchmaking.leave(socket.id, io);
+    });
+  
+    // Player locks their chosen deck in draft phase
+    socket.on('lockDraft', (selectedInstanceIds) => {
+      roomManager.handleLockDraft(socket, selectedInstanceIds, io);
+    });
+  
+    // Player selects a card in battle
+    socket.on('selectCard', (cardInstanceId) => {
+      roomManager.handleSelectCard(socket, cardInstanceId, io);
+    });
+  
+    // Player locks their selection in battle
+    socket.on('lockSelection', () => {
+      roomManager.handleLockSelection(socket, io);
+    });
+  
+    // Player disconnects (tab closed, internet drop, etc.)
+    socket.on('disconnect', () => {
+      console.log(`[Socket] Client disconnected: ${socket.id}`);
+      matchmaking.leave(socket.id, io);
+      roomManager.handleDisconnect(socket, io);
+      
+      // Broadcast updated online count to all clients
+      io.emit('onlineCountUpdate', io.engine.clientsCount);
+    });
+  });
+  

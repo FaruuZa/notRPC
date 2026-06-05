@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Element Clash: Realtime Multiplayer Card Game</title>
+  <!-- Google Fonts for premium appearance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Orientation Overlay: Forces Landscape Mode on Mobile -->
+  <div id="orientation-overlay" class="overlay">
+    <div class="overlay-content">
+      <i class="fa-solid fa-rotate"></i>
+      <h2>Landscape Mode Required</h2>
+      <p>Please rotate your device to landscape to play Element Clash.</p>
+    </div>
+  </div>
+
+  <!-- Screen 1: Matchmaking Screen -->
+  <div id="matchmaking-screen" class="screen active">
+    <div class="stars-bg"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    
+    <div class="lobby-container">
+      <header class="logo-area animate-logo">
+        <span class="logo-sub">REALTIME MULTIPLAYER</span>
+        <h1 class="logo-main">ELEMENT <span class="accent-text">CLASH</span></h1>
+      </header>
+      
+      <div class="lobby-card glass">
+        <div class="input-group">
+          <label for="username-input">Enter Battle Name</label>
+          <input type="text" id="username-input" placeholder="e.g. ShadowBlade" maxlength="15">
+        </div>
+        
+        <div class="matchmaking-status-box">
+          <div id="status-text">Ready to enter the arena...</div>
+          <div id="queue-status-sub" class="hidden">
+            <span class="loader"></span>
+            Searching for opponent...
+          </div>
+        </div>
+
+        <button id="play-btn" class="btn btn-primary">
+          <span class="btn-text">FIND MATCH</span>
+          <span class="btn-glow"></span>
+        </button>
+
+        <button id="leave-queue-btn" class="btn btn-secondary hidden">
+          LEAVE QUEUE
+        </button>
+      </div>
+
+      <!-- Element Matchup Legend on Lobby Screen -->
+      <div class="lobby-legend glass">
+        <div class="legend-title"><i class="fa-solid fa-circle-nodes"></i> Element Matchups</div>
+        <div class="legend-rows">
+          <div class="legend-row"><span class="el-tag fire">FIRE</span> <span class="arrow">›</span> <span class="el-tag nature">NATURE</span> <span class="arrow">›</span> <span class="el-tag water">WATER</span> <span class="arrow">›</span> <span class="el-tag fire">FIRE</span></div>
+          <div class="legend-row"><span class="el-tag neutral">NEUTRAL</span> <span class="arrow">›</span> <span class="el-tag chaos">CHAOS</span> <span class="arrow">›</span> <span class="el-tag elem">FIRE / WATER / NATURE</span></div>
+          <div class="legend-row legend-note">Same element = TIE &nbsp;|&nbsp; NEUTRAL ties all elements</div>
+        </div>
+      </div>
+
+      <footer class="lobby-footer">
+        <div class="queue-counter glass">
+          <i class="fa-solid fa-circle" style="color: #2ecc71; font-size: 0.5rem; vertical-align: middle; margin-right: 0.1rem; filter: drop-shadow(0 0 2px #2ecc71);"></i>
+          <span>Online: <strong id="online-count-display">1</strong></span>
+        </div>
+        <div class="queue-counter glass">
+          <i class="fa-solid fa-users"></i>
+          <span>Queue: <strong id="queue-count-display">0</strong></span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Screen 1.5: Draft Screen (Secret Draft Mode) -->
+  <div id="draft-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub">PREPARE FOR BATTLE</span>
+        <h2 class="draft-title">DECK <span class="accent-text">DRAFT</span></h2>
+        <p class="draft-subtitle">Select exactly <strong>5 cards</strong> to form your battle deck</p>
+        
+        <div class="draft-meta-row">
+          <div class="draft-meta-badge glass" id="draft-timer-box">
+            <i class="fa-solid fa-clock"></i>
+            <span>TIME LEFT: <strong id="draft-timer-val">20</strong>s</span>
+          </div>
+          <div class="draft-meta-badge glass" id="draft-counter-box">
+            <i class="fa-solid fa-clone"></i>
+            <span>SELECTED: <strong id="draft-counter-val">0</strong> / 5</span>
+          </div>
+          <div class="draft-meta-badge glass" id="draft-elemental-box">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+            <span>ELEMENTS: <strong id="draft-elemental-val">4</strong> / 4 min</span>
+          </div>
+        </div>
+      </header>
+      
+      <div class="draft-grid" id="draft-cards-grid">
+        <!-- 8 cards will be rendered dynamically here -->
+      </div>
+      
+      <div id="draft-keyword-info" class="keyword-info-box glass hidden"></div>
+      
+      <footer class="draft-footer">
+        <button id="draft-lock-btn" class="btn btn-primary disabled" disabled>
+          LOCK DECK
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Screen 2: Battle Screen -->
+  <div id="battle-screen" class="screen">
+    <div class="arena-background">
+      <div class="grid-lines"></div>
+    </div>
+
+    <!-- HUD Panels: Player (Top-Left) and Enemy (Top-Right) -->
+    <div class="hud-panel player-hud glass">
+      <div class="player-info-row">
+        <span class="hud-name" id="player-name" title="Click to view your active status effects">You <i class="fa-solid fa-circle-info hud-info-icon"></i></span>
+        <div class="status-container" id="player-status-container"></div>
+        <div class="shield-indicator empty" id="player-shield-box">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span id="player-shield-val">0</span>
+        </div>
+      </div>
+      <div class="hp-bar-container">
+        <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%;"></div>
+        <div class="hp-text"><span id="player-hp-val">100</span> / 100 HP</div>
+      </div>
+    </div>
+
+    <div class="hud-panel enemy-hud glass">
+      <div class="player-info-row">
+        <span class="hud-name" id="enemy-name" title="Click to view opponent's active status effects">Opponent <i class="fa-solid fa-circle-info hud-info-icon"></i></span>
+        <div class="status-container" id="enemy-status-container"></div>
+        <div class="shield-indicator empty" id="enemy-shield-box">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span id="enemy-shield-val">0</span>
+        </div>
+      </div>
+      <div class="hp-bar-container">
+        <div class="hp-bar-fill" id="enemy-hp-fill" style="width: 100%;"></div>
+        <div class="hp-text"><span id="enemy-hp-val">100</span> / 100 HP</div>
+      </div>
+      <div class="hand-size-indicator">
+        <span class="hand-card-dots" id="enemy-card-dots">
+          <!-- Dots representing cards in enemy hand -->
+        </span>
+      </div>
+    </div>
+
+    <!-- Central Arena -->
+    <div class="arena-zone">
+      <!-- Player played card slot -->
+      <div class="play-slot-container" id="player-slot-wrapper">
+        <span class="slot-label">YOUR PLAY</span>
+        <div class="card-play-slot" id="player-play-slot">
+          <!-- Card drops here -->
+        </div>
+      </div>
+
+      <!-- Combat messaging & FX -->
+      <div class="clash-effects-zone">
+        <div class="vs-badge" id="vs-badge">VS</div>
+        <div class="combat-text" id="arena-combat-text">Select your card!</div>
+        <button id="lock-btn" class="btn btn-lock disabled" disabled>
+          <span class="lock-btn-text">SELECT CARD</span>
+          <span class="btn-glow"></span>
+        </button>
+        <!-- Element Matchup Legend Toggle -->
+        <button id="element-legend-btn" class="btn-legend-toggle" title="View element matchups">
+          <i class="fa-solid fa-circle-nodes"></i>
+        </button>
+        <div id="damage-popup-container"></div>
+      </div>
+
+      <!-- Enemy played card slot -->
+      <div class="play-slot-container" id="enemy-slot-wrapper">
+        <span class="slot-label">OPPONENT PLAY</span>
+        <div class="card-play-slot" id="enemy-play-slot">
+          <!-- Card drops here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Player Interaction Area (Bottom) -->
+    <div class="player-controls-zone">
+      <div id="battle-keyword-info" class="keyword-info-box glass hidden"></div>
+      
+      <!-- Element Matchup Legend Panel (hidden by default) -->
+      <div id="element-legend-panel" class="element-legend glass hidden">
+        <div class="legend-title"><i class="fa-solid fa-circle-nodes"></i> Element Matchups</div>
+        <div class="legend-rows">
+          <div class="legend-row"><span class="el-tag fire">FIRE</span> <span class="arrow">›</span> <span class="el-tag nature">NATURE</span> <span class="arrow">›</span> <span class="el-tag water">WATER</span> <span class="arrow">›</span> <span class="el-tag fire">FIRE</span></div>
+          <div class="legend-row"><span class="el-tag neutral">NEUTRAL</span> <span class="arrow">›</span> <span class="el-tag chaos">CHAOS</span> <span class="arrow">›</span> <span class="el-tag elem">FIRE / WATER / NATURE</span></div>
+          <div class="legend-row legend-note">Same element = TIE &nbsp;|&nbsp; NEUTRAL ties all elements</div>
+        </div>
+      </div>
+      
+      <!-- Player Hand (Fanned layout) -->
+      <div class="hand-container-wrapper">
+        <div class="hand-container" id="player-hand">
+          <!-- Hand cards will be rendered dynamically here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Game Over Overlay -->
+  <div id="game-over-screen" class="overlay">
+    <div class="game-over-card glass">
+      <h1 id="game-over-title">VICTORY</h1>
+      <p id="game-over-msg">You have defeated the opponent!</p>
+      
+      <div class="game-over-stats">
+        <div class="stat-item">
+          <span class="stat-lbl">Final HP</span>
+          <span class="stat-val" id="go-final-hp">100</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-lbl">Rounds Played</span>
+          <span class="stat-val" id="go-rounds">0</span>
+        </div>  
+      </div>
+
+      <button id="go-lobby-btn" class="btn btn-primary">
+        RETURN TO LOBBY
+      </button>
+    </div>
+  </div>
+
+  <!-- Socket.io & Anime.js & Howler.js scripts from CDNs -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  
+  <!-- Client Application scripts -->
+  <script src="js/socket.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

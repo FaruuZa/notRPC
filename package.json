@@ -1,0 +1,18 @@
+{
+  "name": "notrpc-realtime-card-game",
+  "version": "1.0.0",
+  "description": "A realtime multiplayer element card game using Node.js, Express, Socket.IO, and Anime.js",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "nanoid": "^3.3.4",
+    "socket.io": "^4.6.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "private": true
+}
