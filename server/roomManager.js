@@ -1,6 +1,12 @@
 const { nanoid } = require('nanoid');
-const { MAX_HP } = require('./constants');
-const { drawCards, drawDraftPool, drawReplacements, evaluateClash } = require('./gameLogic');
+const { MAX_HP, PACK_POOL } = require('./constants');
+const {
+  evaluateClash,
+  generateStarterDeck,
+  generatePacks,
+  generatePackCards,
+  generateBonusPickCards
+} = require('./gameLogic');
 
 // Active game rooms map: roomId -> roomState
 const rooms = {};
@@ -9,12 +15,11 @@ const rooms = {};
 const playerToRoom = {};
 
 /**
- * Creates and initializes a new game room, launching the Draft Phase
+ * Creates and initializes a new game room, launching the Battle directly with starter decks
  */
 function createRoom(roomId, player1, player2, io) {
-  // Generate 8 random cards for each player to draft/mulligan from (at least 4 elemental)
-  const draftPool1 = drawDraftPool(8, 4);
-  const draftPool2 = drawDraftPool(8, 4);
+  const deck1 = generateStarterDeck();
+  const deck2 = generateStarterDeck();
 
   rooms[roomId] = {
     id: roomId,
@@ -25,12 +30,11 @@ function createRoom(roomId, player1, player2, io) {
         socket: player1.socket,
         hp: MAX_HP,
         shield: 0,
-        hand: [],
-        deck: [], // Will hold the 8 drafted cards
-        draftPool: draftPool1,
-        draftLocked: false,
+        hand: drawHandFromDeck(deck1, 4),
+        deck: deck1,
         selectedCardId: null,
         locked: false,
+        points: 0,
         statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0 }
       },
       [player2.socketId]: {
@@ -39,173 +43,32 @@ function createRoom(roomId, player1, player2, io) {
         socket: player2.socket,
         hp: MAX_HP,
         shield: 0,
-        hand: [],
-        deck: [], // Will hold the 8 drafted cards
-        draftPool: draftPool2,
-        draftLocked: false,
+        hand: drawHandFromDeck(deck2, 4),
+        deck: deck2,
         selectedCardId: null,
         locked: false,
+        points: 0,
         statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0 }
       }
     },
-    round: 0,
-    state: 'DRAFT',
-    draftSecondsLeft: 20,
-    draftTimer: null
+    round: 1,
+    state: 'BATTLE'
   };
 
   // Map sockets to room
   playerToRoom[player1.socketId] = roomId;
   playerToRoom[player2.socketId] = roomId;
 
-  console.log(`[RoomManager] Room ${roomId} created. Launching draft phase...`);
+  console.log(`[RoomManager] Room ${roomId} created. Starting match with starter decks...`);
 
-  // Send draft start payload to clients (8 cards mulligan pool)
-  player1.socket.emit('draftStart', {
-    draftPool: draftPool1,
-    seconds: 20
-  });
-
-  player2.socket.emit('draftStart', {
-    draftPool: draftPool2,
-    seconds: 20
-  });
-
-  // Start server-side draft timer countdown
-  startDraftTimer(roomId, io);
+  // Small delay to allow matchmaking screen to play transition
+  setTimeout(() => {
+    startRound(roomId, io);
+  }, 1600);
 }
 
 /**
- * Handles the countdown interval for the Draft Phase
- */
-function startDraftTimer(roomId, io) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  room.draftTimer = setInterval(() => {
-    room.draftSecondsLeft -= 1;
-
-    if (room.draftSecondsLeft <= 0) {
-      clearInterval(room.draftTimer);
-      autoDraftAndStart(roomId, io);
-    }
-  }, 1000);
-}
-
-/**
- * Autodrafts (keeps entire pool as deck) for idle players and launches the match
- */
-function autoDraftAndStart(roomId, io) {
-  const room = rooms[roomId];
-  if (!room || room.state !== 'DRAFT') return;
-
-  console.log(`[RoomManager] Room ${roomId}: Draft timer expired. Keeping current pool...`);
-
-  Object.keys(room.players).forEach(socketId => {
-    const player = room.players[socketId];
-    if (!player.draftLocked) {
-      // Keep entire draft pool as deck
-      player.deck = JSON.parse(JSON.stringify(player.draftPool));
-      player.draftLocked = true;
-    }
-  });
-
-  finalizeDraftAndStartGame(roomId, io);
-}
-
-/**
- * Handles incoming lockDraft events from clients (Mulligan keep selection)
- */
-function handleLockDraft(socket, selectedInstanceIds, io) {
-  const roomId = playerToRoom[socket.id];
-  const room = rooms[roomId];
-  if (!room || room.state !== 'DRAFT') return;
-
-  const player = room.players[socket.id];
-  if (player.draftLocked) return;
-
-  // Validate that selectedInstanceIds is an array
-  if (!selectedInstanceIds || !Array.isArray(selectedInstanceIds)) {
-    socket.emit('error', 'Invalid mulligan selection.');
-    return;
-  }
-
-  // Count elemental and non-elemental cards in the selected keeps
-  const keptElementals = player.draftPool.filter(card => 
-    selectedInstanceIds.includes(card.instanceId) && 
-    ['FIRE', 'WATER', 'NATURE'].includes(card.element)
-  );
-  const keptNonElementals = player.draftPool.filter(card => 
-    selectedInstanceIds.includes(card.instanceId) && 
-    !['FIRE', 'WATER', 'NATURE'].includes(card.element)
-  );
-
-  // Validate keeping limit for non-elementals to guarantee at least 4 elementals can be obtained
-  if (keptNonElementals.length > 4) {
-    socket.emit('error', 'Invalid selection: You can keep at most 4 Neutral/Chaos cards to ensure at least 4 Elementals.');
-    return;
-  }
-
-  // Draw replacements in a single batch, forcing enough elementals to hit 4 min
-  const unselectedCards = player.draftPool.filter(card => !selectedInstanceIds.includes(card.instanceId));
-  const numReplacements = unselectedCards.length;
-  const minElementalReq = Math.max(0, 4 - keptElementals.length);
-  const replacementCards = drawReplacements(numReplacements, minElementalReq);
-
-  const finalDeck = [];
-  const replaced = [];
-  let replacementIndex = 0;
-
-  player.draftPool.forEach(card => {
-    if (selectedInstanceIds.includes(card.instanceId)) {
-      finalDeck.push(card);
-    } else {
-      const newCard = replacementCards[replacementIndex++];
-      finalDeck.push(newCard);
-      replaced.push({
-        oldId: card.instanceId,
-        newCard: newCard
-      });
-    }
-  });
-
-  player.draftPool = finalDeck;
-  player.deck = JSON.parse(JSON.stringify(finalDeck));
-  player.draftLocked = true;
-  
-  console.log(`[RoomManager] Room ${roomId}: Player ${player.username} locked draft.`);
-
-  // Inform the client about which cards were replaced and what they got
-  socket.emit('draftMulliganResult', {
-    draftPool: player.draftPool,
-    replaced: replaced
-  });
-
-  // Check if both players have locked their drafts
-  const opponentId = Object.keys(room.players).find(id => id !== socket.id);
-  const opponent = room.players[opponentId];
-
-  if (opponent.draftLocked) {
-    // Clear draft timer
-    if (room.draftTimer) {
-      clearInterval(room.draftTimer);
-    }
-    
-    // Inform both clients that draft is finalized
-    io.to(roomId).emit('draftFinalized');
-
-    // Delay start of game to allow shuffle animations to complete on clients
-    room.nextRoundTimeout = setTimeout(() => {
-      finalizeDraftAndStartGame(roomId, io);
-    }, 4500);
-  } else {
-    // Notify opponent that player locked draft (can display waiting status)
-    opponent.socket.emit('opponentDraftLocked');
-  }
-}
-
-/**
- * Draws a random starting hand from the 8-card deck
+ * Draws a random starting hand from the deck
  */
 function drawHandFromDeck(deck, size = 4) {
   const shuffled = [...deck].sort(() => Math.random() - 0.5);
@@ -218,33 +81,6 @@ function drawHandFromDeck(deck, size = 4) {
     description: card.description,
     outcomes: JSON.parse(JSON.stringify(card.outcomes))
   }));
-}
-
-/**
- * Finalizes the draft phase and deals the starting hand of 4 cards randomly from the 8-card deck
- */
-function finalizeDraftAndStartGame(roomId, io) {
-  const room = rooms[roomId];
-  if (!room || room.state !== 'DRAFT') return;
-
-  console.log(`[RoomManager] Room ${roomId}: Draft completed. Starting match...`);
-
-  Object.keys(room.players).forEach(socketId => {
-    const player = room.players[socketId];
-    
-    // Starting hand of 4 cards randomly chosen from their deck
-    player.hand = drawHandFromDeck(player.deck, 4);
-    
-    // Clear draft values
-    delete player.draftPool;
-    delete player.draftLocked;
-  });
-
-  room.state = 'BATTLE';
-  room.round = 1;
-
-  // Kickoff round 1
-  startRound(roomId, io);
 }
 
 /**
@@ -268,15 +104,15 @@ function startRound(roomId, io) {
   p1.socket.emit('roundStart', {
     round: room.round,
     hand: p1.hand,
-    selfStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, statuses: p1.statuses },
-    opponentStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, username: p2.username, statuses: p2.statuses }
+    selfStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, statuses: p1.statuses, points: p1.points },
+    opponentStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, username: p2.username, statuses: p2.statuses, points: p2.points }
   });
 
   p2.socket.emit('roundStart', {
     round: room.round,
     hand: p2.hand,
-    selfStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, statuses: p2.statuses },
-    opponentStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, username: p1.username, statuses: p1.statuses }
+    selfStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, statuses: p2.statuses, points: p2.points },
+    opponentStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, username: p1.username, statuses: p1.statuses, points: p1.points }
   });
 }
 
@@ -353,6 +189,9 @@ function resolveRound(roomId, io) {
 
   // Evaluate clash considering active statuses
   const result = evaluateClash(card1, card2, p1.shield, p2.shield, p1.statuses, p2.statuses);
+
+  const shieldDamageA = Math.max(0, (p1.shield + result.shieldGainA) - result.newShieldA);
+  const shieldDamageB = Math.max(0, (p2.shield + result.shieldGainB) - result.newShieldB);
 
   // Apply clash results to server states (including HEAL)
   p1.shield = result.newShieldA;
@@ -515,6 +354,7 @@ function resolveRound(roomId, io) {
     selfDamage: result.selfDamageA,
     totalIncomingDmg: result.totalDmgA,
     hpDamage: result.hpDamageA,
+    shieldDamage: shieldDamageA,
     newShield: p1.shield,
     newHp: p1.hp,
     newStatuses: p1.statuses,
@@ -527,6 +367,7 @@ function resolveRound(roomId, io) {
     opponentSelfDamage: result.selfDamageB,
     opponentTotalIncomingDmg: result.totalDmgB,
     opponentHpDamage: result.hpDamageB,
+    opponentShieldDamage: shieldDamageB,
     opponentNewShield: p2.shield,
     opponentNewHp: p2.hp,
     opponentNewStatuses: p2.statuses,
@@ -543,6 +384,7 @@ function resolveRound(roomId, io) {
     selfDamage: result.selfDamageB,
     totalIncomingDmg: result.totalDmgB,
     hpDamage: result.hpDamageB,
+    shieldDamage: shieldDamageB,
     newShield: p2.shield,
     newHp: p2.hp,
     newStatuses: p2.statuses,
@@ -555,6 +397,7 @@ function resolveRound(roomId, io) {
     opponentSelfDamage: result.selfDamageA,
     opponentTotalIncomingDmg: result.totalDmgA,
     opponentHpDamage: result.hpDamageA,
+    opponentShieldDamage: shieldDamageA,
     opponentNewShield: p1.shield,
     opponentNewHp: p1.hp,
     opponentNewStatuses: p1.statuses,
@@ -569,39 +412,212 @@ function resolveRound(roomId, io) {
     [p2.id]: { hp: p2.hp, shield: p2.shield }
   });
 
-  // Check Game Over
-  let winnerId = null;
-  let isGameOver = false;
-  let reason = '';
+  // Check Round End (HP reaches 0)
+  let roundOver = false;
+  let roundWinnerId = null;
+  let loserId = null;
 
   if (p1.hp <= 0 && p2.hp <= 0) {
-    isGameOver = true;
-    reason = 'draw';
+    roundOver = true;
+    // Draw: nobody gets a point, both score remains same
   } else if (p1.hp <= 0) {
-    isGameOver = true;
-    winnerId = p2.id;
-    reason = 'opponent_defeated';
+    roundOver = true;
+    roundWinnerId = p2.id;
+    loserId = p1.id;
+    p2.points += 1;
   } else if (p2.hp <= 0) {
-    isGameOver = true;
-    winnerId = p1.id;
-    reason = 'opponent_defeated';
+    roundOver = true;
+    roundWinnerId = p1.id;
+    loserId = p2.id;
+    p1.points += 1;
   }
 
-  if (isGameOver) {
-    room.state = 'OVER';
-    setTimeout(() => {
-      io.to(roomId).emit('gameOver', {
-        winnerId,
-        reason,
-        winnerName: winnerId ? room.players[winnerId].username : 'DRAW'
-      });
-      cleanupRoom(roomId);
-    }, 3500);
+  if (roundOver) {
+    console.log(`[RoomManager] Round ${room.round} Over. Winner: ${roundWinnerId || 'DRAW'}. Current Score: ${p1.username} ${p1.points} - ${p2.points} ${p2.username}`);
+
+    // Check if match is fully completed
+    const maxRoundsReached = (room.round >= 3);
+    const scoreTied = (p1.points === p2.points);
+
+    if (maxRoundsReached && !scoreTied) {
+      // Match is fully over!
+      room.state = 'OVER';
+      const matchWinnerId = p1.points > p2.points ? p1.id : p2.id;
+      const matchWinnerName = room.players[matchWinnerId].username;
+
+      setTimeout(() => {
+        io.to(roomId).emit('gameOver', {
+          winnerId: matchWinnerId,
+          winnerName: matchWinnerName,
+          reason: 'match_finished',
+          score: {
+            [p1.id]: p1.points,
+            [p2.id]: p2.points
+          }
+        });
+      }, 3500);
+    } else {
+      // Transition to Draft Phase!
+      room.state = 'DRAFT_PHASE';
+      
+      // Initialize draft phase state in room
+      const p1OfferedPacks = generatePacks(3);
+      const p2OfferedPacks = generatePacks(3);
+
+      room.draft = {
+        loserId: loserId,
+        bonusChosen: loserId ? false : true,
+        p1PackChosen: false,
+        p2PackChosen: false,
+        p1RevealConfirmed: false,
+        p2RevealConfirmed: false,
+        p1OfferedPacks: p1OfferedPacks,
+        p2OfferedPacks: p2OfferedPacks,
+        bonusCards: loserId ? generateBonusPickCards() : []
+      };
+
+      // Emit roundFinished to show round result overlay on clients after animations resolve
+      room.nextRoundTimeout = setTimeout(() => {
+        io.to(roomId).emit('roundFinished', {
+          round: room.round,
+          winnerId: roundWinnerId,
+          loserId: loserId,
+          score: {
+            [p1.id]: p1.points,
+            [p2.id]: p2.points
+          }
+        });
+
+        // After a delay for roundFinished overlay display, trigger drafting
+        room.nextRoundTimeout = setTimeout(() => {
+          if (loserId) {
+            // Send bonus pick to loser, and waiting message to winner
+            const loserPlayer = room.players[loserId];
+            const winnerPlayerId = Object.keys(room.players).find(id => id !== loserId);
+            const winnerPlayer = room.players[winnerPlayerId];
+
+            loserPlayer.socket.emit('bonusPickStart', {
+              cards: room.draft.bonusCards
+            });
+            winnerPlayer.socket.emit('waitingForOpponentBonus');
+          } else {
+            // No loser (draw round), transition directly to Pack Selection for both
+            p1.socket.emit('packSelectionStart', {
+              packs: p1OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
+            });
+            p2.socket.emit('packSelectionStart', {
+              packs: p2OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
+            });
+          }
+        }, 4000);
+      }, 3800);
+    }
   } else {
-    room.round += 1;
+    // Round is not over, schedule next card clash turn
     room.nextRoundTimeout = setTimeout(() => {
       startRound(roomId, io);
     }, 3500);
+  }
+}
+
+/**
+ * Handles choosing a loser bonus card
+ */
+function handleSelectBonusCard(socket, cardTemplateId, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'DRAFT_PHASE' || !room.draft) return;
+
+  const player = room.players[socket.id];
+  if (room.draft.loserId !== socket.id || room.draft.bonusChosen) return;
+
+  const cardTemplate = room.draft.bonusCards.find(c => c.templateId === cardTemplateId);
+  if (!cardTemplate) return;
+
+  player.deck.push(cardTemplate);
+  room.draft.bonusChosen = true;
+  console.log(`[RoomManager] Player ${player.username} chose bonus card ${cardTemplate.name}. Added to deck.`);
+
+  socket.emit('bonusPickLocked', cardTemplate);
+
+  // Transition both players to Pack Selection
+  const playerIds = Object.keys(room.players);
+  const p1 = room.players[playerIds[0]];
+  const p2 = room.players[playerIds[1]];
+
+  p1.socket.emit('packSelectionStart', {
+    packs: room.draft.p1OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
+  });
+  p2.socket.emit('packSelectionStart', {
+    packs: room.draft.p2OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
+  });
+}
+
+/**
+ * Handles selecting a pack in draft phase
+ */
+function handleSelectPack(socket, packId, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'DRAFT_PHASE' || !room.draft || !room.draft.bonusChosen) return;
+
+  const player = room.players[socket.id];
+  const isPlayer1 = (Object.keys(room.players)[0] === socket.id);
+  const offeredPacks = isPlayer1 ? room.draft.p1OfferedPacks : room.draft.p2OfferedPacks;
+  const packChosenKey = isPlayer1 ? 'p1PackChosen' : 'p2PackChosen';
+
+  if (room.draft[packChosenKey]) return;
+  if (!offeredPacks.includes(packId)) return;
+
+  const cards = generatePackCards(packId);
+  player.deck.push(...cards);
+  room.draft[packChosenKey] = true;
+
+  console.log(`[RoomManager] Player ${player.username} selected pack ${packId}. Added 4 cards.`);
+
+  socket.emit('packRevealStart', {
+    packName: PACK_POOL[packId].name,
+    packColor: PACK_POOL[packId].color,
+    cards: cards
+  });
+}
+
+/**
+ * Handles pack reveal confirmation
+ */
+function handlePackRevealConfirm(socket, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'DRAFT_PHASE' || !room.draft) return;
+
+  const isPlayer1 = (Object.keys(room.players)[0] === socket.id);
+  const confirmKey = isPlayer1 ? 'p1RevealConfirmed' : 'p2RevealConfirmed';
+
+  room.draft[confirmKey] = true;
+  console.log(`[RoomManager] Player ${room.players[socket.id].username} confirmed pack reveal.`);
+
+  if (room.draft.p1RevealConfirmed && room.draft.p2RevealConfirmed) {
+    const playerIds = Object.keys(room.players);
+    const p1 = room.players[playerIds[0]];
+    const p2 = room.players[playerIds[1]];
+
+    p1.hp = MAX_HP;
+    p2.hp = MAX_HP;
+    p1.shield = 0;
+    p2.shield = 0;
+    p1.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0 };
+    p2.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0 };
+
+    p1.hand = drawHandFromDeck(p1.deck, 4);
+    p2.hand = drawHandFromDeck(p2.deck, 4);
+
+    room.round += 1;
+    room.state = 'BATTLE';
+
+    console.log(`[RoomManager] Room ${roomId}: Starting Round ${room.round}`);
+    delete room.draft;
+
+    startRound(roomId, io);
   }
 }
 
@@ -675,11 +691,124 @@ function isPlayerInActiveRoom(socketId) {
   return !!playerToRoom[socketId];
 }
 
+/**
+ * Handles match surrender
+ */
+function handleSurrender(socket, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || (room.state !== 'BATTLE' && room.state !== 'DRAFT_PHASE')) return;
+
+  const playerIds = Object.keys(room.players);
+  const p1 = room.players[playerIds[0]];
+  const p2 = room.players[playerIds[1]];
+
+  const opponentId = playerIds.find(id => id !== socket.id);
+  if (!opponentId) return;
+
+  room.state = 'OVER';
+  const matchWinnerName = room.players[opponentId].username;
+
+  io.to(roomId).emit('gameOver', {
+    winnerId: opponentId,
+    winnerName: matchWinnerName,
+    reason: 'surrender',
+    score: {
+      [p1.id]: p1.points,
+      [p2.id]: p2.points
+    }
+  });
+}
+
+/**
+ * Handles rematch requests
+ */
+function handleRequestRematch(socket, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'OVER') return;
+
+  if (!room.rematchRequests) {
+    room.rematchRequests = {};
+  }
+
+  room.rematchRequests[socket.id] = true;
+  
+  // Notify opponent
+  const opponentId = Object.keys(room.players).find(id => id !== socket.id);
+  if (opponentId) {
+    const opponent = room.players[opponentId];
+    opponent.socket.emit('rematchRequested');
+  }
+
+  // If both players requested rematch, start!
+  if (Object.keys(room.rematchRequests).length === 2) {
+    const playerIds = Object.keys(room.players);
+    const p1 = room.players[playerIds[0]];
+    const p2 = room.players[playerIds[1]];
+
+    const deck1 = generateStarterDeck();
+    const deck2 = generateStarterDeck();
+
+    p1.hp = MAX_HP;
+    p1.shield = 0;
+    p1.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0 };
+    p1.points = 0;
+    p1.deck = deck1;
+    p1.hand = drawHandFromDeck(deck1, 4);
+    p1.selectedCardId = null;
+    p1.locked = false;
+
+    p2.hp = MAX_HP;
+    p2.shield = 0;
+    p2.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0 };
+    p2.points = 0;
+    p2.deck = deck2;
+    p2.hand = drawHandFromDeck(deck2, 4);
+    p2.selectedCardId = null;
+    p2.locked = false;
+
+    room.round = 1;
+    room.state = 'BATTLE';
+    room.draft = null;
+    room.rematchRequests = {};
+
+    console.log(`[RoomManager] Rematch started for room ${roomId}.`);
+    io.to(roomId).emit('rematchStarted');
+
+    setTimeout(() => {
+      startRound(roomId, io);
+    }, 1000);
+  }
+}
+
+/**
+ * Handles leaving the game room
+ */
+function handleLeaveRoom(socket, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room) return;
+
+  const opponentId = Object.keys(room.players).find(id => id !== socket.id);
+  if (opponentId) {
+    const opponent = room.players[opponentId];
+    opponent.socket.emit('opponentLeftRoom');
+  }
+
+  cleanupRoom(roomId);
+}
+
 module.exports = {
   createRoom,
-  handleLockDraft,
   handleSelectCard,
   handleLockSelection,
   handleDisconnect,
-  isPlayerInActiveRoom
+  isPlayerInActiveRoom,
+  handleSelectBonusCard,
+  handleSelectPack,
+  handlePackRevealConfirm,
+  handleSurrender,
+  handleRequestRematch,
+  handleLeaveRoom
 };

@@ -133,211 +133,117 @@ const Animations = {
       }
     });
 
-    if (outcome === 'SUPERIOR') {
-      if (playerDamaging) {
-        // Player card (cardA) lunges right and hits Opponent card (cardB)
-        timeline
-          .add({
-            targets: cardA,
-            translateX: distanceX * 0.55,
-            translateY: -15,
-            duration: 150,
-            easing: 'easeInBack',
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          })
-          .add({
-            targets: cardB,
-            translateX: 20,
-            rotate: 4,
-            duration: 50,
-            easing: 'easeOutQuint'
-          }, '-=25')
-          .add({
-            targets: cardB,
-            translateX: [20, -5, 3, 0],
-            rotate: 0,
-            duration: 150,
-            easing: 'linear'
-          })
-          .add({
-            targets: cardA,
-            translateX: 0,
-            translateY: 0,
-            duration: 150,
-            easing: 'easeOutBack'
-          }, '-=120');
-      } else {
-        // Player card is superior but doesn't damage. Stay stationary, invoke impact after a buffer.
-        timeline
-          .add({
-            targets: {},
-            duration: 150,
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          });
-      }
-    } else if (outcome === 'INFERIOR') {
-      if (opponentDamaging) {
-        // Opponent card (cardB) lunges left and hits Player card (cardA)
-        timeline
-          .add({
-            targets: cardB,
-            translateX: -distanceX * 0.55,
-            translateY: -15,
-            duration: 150,
-            easing: 'easeInBack',
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          })
-          .add({
-            targets: cardA,
-            translateX: -20,
-            rotate: -4,
-            duration: 50,
-            easing: 'easeOutQuint'
-          }, '-=25')
-          .add({
-            targets: cardA,
-            translateX: [-20, 5, -3, 0],
-            rotate: 0,
-            duration: 150,
-            easing: 'linear'
-          })
-          .add({
-            targets: cardB,
-            translateX: 0,
-            translateY: 0,
-            duration: 150,
-            easing: 'easeOutBack'
-          }, '-=120');
-      } else {
-        // Opponent card is inferior but doesn't damage. Stay stationary, invoke impact after a buffer.
-        timeline
-          .add({
-            targets: {},
-            duration: 150,
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          });
-      }
+    if (playerDamaging && opponentDamaging) {
+      // Both collide in the middle
+      timeline
+        .add({
+          targets: cardA,
+          translateX: distanceX * 0.28,
+          translateY: -10,
+          duration: 150,
+          easing: 'easeInBack',
+          complete: () => {
+            if (onImpact) onImpact();
+          }
+        })
+        .add({
+          targets: cardB,
+          translateX: -distanceX * 0.28,
+          translateY: -10,
+          duration: 150,
+          easing: 'easeInBack'
+        }, '-=150')
+        .add({
+          targets: [cardA, cardB],
+          translateX: (el, i) => i === 0 ? distanceX * 0.28 - 10 : -distanceX * 0.28 + 10,
+          duration: 50,
+          easing: 'easeOutQuint'
+        })
+        .add({
+          targets: [cardA, cardB],
+          translateX: 0,
+          translateY: 0,
+          duration: 150,
+          easing: 'easeOutBack'
+        });
+    } else if (playerDamaging) {
+      // Player card (cardA) lunges right and hits Opponent card (cardB)
+      timeline
+        .add({
+          targets: cardA,
+          translateX: distanceX * 0.55,
+          translateY: -15,
+          duration: 150,
+          easing: 'easeInBack',
+          complete: () => {
+            if (onImpact) onImpact();
+          }
+        })
+        .add({
+          targets: cardB,
+          translateX: 20,
+          rotate: 4,
+          duration: 50,
+          easing: 'easeOutQuint'
+        }, '-=25')
+        .add({
+          targets: cardB,
+          translateX: [20, -5, 3, 0],
+          rotate: 0,
+          duration: 150,
+          easing: 'linear'
+        })
+        .add({
+          targets: cardA,
+          translateX: 0,
+          translateY: 0,
+          duration: 150,
+          easing: 'easeOutBack'
+        }, '-=120');
+    } else if (opponentDamaging) {
+      // Opponent card (cardB) lunges left and hits Player card (cardA)
+      timeline
+        .add({
+          targets: cardB,
+          translateX: -distanceX * 0.55,
+          translateY: -15,
+          duration: 150,
+          easing: 'easeInBack',
+          complete: () => {
+            if (onImpact) onImpact();
+          }
+        })
+        .add({
+          targets: cardA,
+          translateX: -20,
+          rotate: -4,
+          duration: 50,
+          easing: 'easeOutQuint'
+        }, '-=25')
+        .add({
+          targets: cardA,
+          translateX: [-20, 5, -3, 0],
+          rotate: 0,
+          duration: 150,
+          easing: 'linear'
+        })
+        .add({
+          targets: cardB,
+          translateX: 0,
+          translateY: 0,
+          duration: 150,
+          easing: 'easeOutBack'
+        }, '-=120');
     } else {
-      // TIE: Both collide in the middle if both damage, or only the damaging one lunges, or stationary if none
-      if (playerDamaging && opponentDamaging) {
-        timeline
-          .add({
-            targets: cardA,
-            translateX: distanceX * 0.28,
-            translateY: -10,
-            duration: 150,
-            easing: 'easeInBack',
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          })
-          .add({
-            targets: cardB,
-            translateX: -distanceX * 0.28,
-            translateY: -10,
-            duration: 150,
-            easing: 'easeInBack'
-          }, '-=150')
-          .add({
-            targets: [cardA, cardB],
-            translateX: (el, i) => i === 0 ? distanceX * 0.28 - 10 : -distanceX * 0.28 + 10,
-            duration: 50,
-            easing: 'easeOutQuint'
-          })
-          .add({
-            targets: [cardA, cardB],
-            translateX: 0,
-            translateY: 0,
-            duration: 150,
-            easing: 'easeOutBack'
-          });
-      } else if (playerDamaging) {
-        // Player only lunges
-        timeline
-          .add({
-            targets: cardA,
-            translateX: distanceX * 0.4,
-            translateY: -10,
-            duration: 150,
-            easing: 'easeInBack',
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          })
-          .add({
-            targets: cardB,
-            translateX: 15,
-            rotate: 3,
-            duration: 80,
-            easing: 'easeOutQuint'
-          }, '-=25')
-          .add({
-            targets: cardB,
-            translateX: [15, -3, 0],
-            rotate: 0,
-            duration: 150,
-            easing: 'linear'
-          })
-          .add({
-            targets: cardA,
-            translateX: 0,
-            translateY: 0,
-            duration: 150,
-            easing: 'easeOutBack'
-          }, '-=120');
-      } else if (opponentDamaging) {
-        // Opponent only lunges
-        timeline
-          .add({
-            targets: cardB,
-            translateX: -distanceX * 0.4,
-            translateY: -10,
-            duration: 150,
-            easing: 'easeInBack',
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          })
-          .add({
-            targets: cardA,
-            translateX: -15,
-            rotate: -3,
-            duration: 80,
-            easing: 'easeOutQuint'
-          }, '-=25')
-          .add({
-            targets: cardA,
-            translateX: [-15, 3, 0],
-            rotate: 0,
-            duration: 150,
-            easing: 'linear'
-          })
-          .add({
-            targets: cardB,
-            translateX: 0,
-            translateY: 0,
-            duration: 150,
-            easing: 'easeOutBack'
-          }, '-=120');
-      } else {
-        // Neither damages. Stationary.
-        timeline
-          .add({
-            targets: {},
-            duration: 150,
-            complete: () => {
-              if (onImpact) onImpact();
-            }
-          });
-      }
+      // Neither damages. Stationary.
+      timeline
+        .add({
+          targets: {},
+          duration: 150,
+          complete: () => {
+            if (onImpact) onImpact();
+          }
+        });
     }
   },
 
@@ -373,6 +279,9 @@ const Animations = {
     if (type === 'shield' || type === true) {
       colorClass = 'blue';
       text = `<i class="fa-solid fa-shield-halved"></i> +${value} SHIELD`;
+    } else if (type === 'shield-damage') {
+      colorClass = 'blue';
+      text = `<i class="fa-solid fa-shield-halved"></i> -${value} SHIELD`;
     } else if (type === 'heal') {
       colorClass = 'green';
       text = `<i class="fa-solid fa-heart"></i> +${value} HP`;
@@ -414,6 +323,54 @@ const Animations = {
   },
 
   /**
+   * Animates a protective shield absorb visual flash over a card
+   */
+  animateShieldAbsorb(cardEl) {
+    if (!cardEl) return;
+    
+    // Create shield overlay element
+    const shieldOverlay = document.createElement('div');
+    shieldOverlay.className = 'shield-absorb-overlay';
+    shieldOverlay.innerHTML = '<i class="fa-solid fa-shield-halved"></i>';
+    
+    // Apply styling to overlay
+    shieldOverlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(77, 171, 247, 0.25);
+      color: #4dabf7;
+      font-size: 3.5rem;
+      border: 3px solid #4dabf7;
+      border-radius: 4px;
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 0 20px rgba(77, 171, 247, 0.6);
+      text-shadow: 0 0 10px rgba(77, 171, 247, 0.8);
+    `;
+    
+    cardEl.appendChild(shieldOverlay);
+    
+    // Animate opacity and scale
+    anime({
+      targets: shieldOverlay,
+      opacity: [0, 1, 1, 0],
+      scale: [0.7, 1.1, 1],
+      duration: 500,
+      easing: 'easeOutBack',
+      complete: () => {
+        shieldOverlay.remove();
+      }
+    });
+  },
+
+  /**
    * Animates a fade and scale reveal of a modal overlay
    */
   animateOverlayReveal(overlayElement, cardElement, callback) {
@@ -450,6 +407,68 @@ const Animations = {
       direction: 'alternate',
       loop: true,
       easing: 'easeInOutSine'
+    });
+  },
+
+  /**
+   * Animates a card pack shaking, scaling up, and then bursting open.
+   */
+  animatePackOpening(packElement, onBurst, callback) {
+    packElement.classList.add('pack-bursting');
+    
+    if (window.AudioSynth) {
+      window.AudioSynth.playLock();
+      // Retro synthesizer arpeggio for booster opening
+      setTimeout(() => {
+        window.AudioSynth.playMatchFound();
+      }, 200);
+    }
+    
+    setTimeout(() => {
+      if (onBurst) onBurst();
+      if (callback) callback();
+    }, 600);
+  },
+
+  /**
+   * Animates fanned cards revealing sequentially
+   */
+  animateFannedCardsReveal(cardElements, callback) {
+    cardElements.forEach(card => {
+      card.style.opacity = '0';
+    });
+
+    anime({
+      targets: cardElements,
+      opacity: [0, 1],
+      scale: [0.8, 1],
+      delay: anime.stagger(150),
+      duration: 500,
+      easing: 'easeOutBack',
+      complete: () => {
+        cardElements.forEach(card => {
+          card.style.transform = '';
+        });
+        if (callback) callback();
+      }
+    });
+  },
+
+  /**
+   * Animates cards sliding to deck (shrinking and fading)
+   */
+  animateCardsAcquisition(cardElements, callback) {
+    anime({
+      targets: cardElements,
+      scale: 0.1,
+      opacity: 0,
+      translateY: 200,
+      delay: anime.stagger(80),
+      duration: 500,
+      easing: 'easeInBack',
+      complete: () => {
+        if (callback) callback();
+      }
     });
   }
 };

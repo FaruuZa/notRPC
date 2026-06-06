@@ -473,17 +473,198 @@ const CARD_POOL = [
     }
   },
   {
-    id: 'unstable_shield',
-    name: 'Unstable Shield',
-    element: ELEMENTS.CHAOS,
-    description: 'Superior: 18 <span class="kw-shield">SHIELD</span> & 3 self dmg. Neutral: 10 <span class="kw-shield">SHIELD</span> & 6 self dmg. Inferior: 8 self dmg.',
+    id: 'meteor_shower',
+    name: 'Meteor Shower',
+    element: ELEMENTS.FIRE,
+    description: 'Superior: 22 dmg. Inferior: 15 self dmg.',
+    isDraftExclusive: true,
     outcomes: {
-      SUPERIOR: { damage: 0, shield: 18, selfDamage: 3 },
-      NEUTRAL:  { damage: 0, shield: 10, selfDamage: 6 },
-      INFERIOR: { damage: 0, shield: 0,  selfDamage: 8 }
+      SUPERIOR: { damage: 22, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 15 }
+    }
+  },
+  {
+    id: 'tsunami',
+    name: 'Tsunami',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 10 dmg & 15 <span class="kw-shield">SHIELD</span>. Neutral: 5 <span class="kw-shield">SHIELD</span>.',
+    isDraftExclusive: true,
+    outcomes: {
+      SUPERIOR: { damage: 10, shield: 15, selfDamage: 0 },
+      NEUTRAL:  { damage: 0,  shield: 5,  selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0,  selfDamage: 0 }
+    }
+  },
+  {
+    id: 'wrath_of_nature',
+    name: 'Wrath of Nature',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 12 dmg & <span class="kw-buff">BUFF [3]</span>. Inferior: <span class="kw-poison">POISON [3]</span> to self.',
+    isDraftExclusive: true,
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 3 } } },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 0, applyStatus: { self: { poison: 3 } } }
+    }
+  },
+  {
+    id: 'cosmic_alignment',
+    name: 'Cosmic Alignment',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 15 dmg & <span class="kw-cleanse">CLEANSE</span>. Neutral: 5 <span class="kw-heal">HEAL</span>.',
+    isDraftExclusive: true,
+    outcomes: {
+      SUPERIOR: { damage: 15, shield: 0, selfDamage: 0, applyStatus: { self: { cleanse: 1 } } },
+      NEUTRAL:  { damage: 0,  shield: 0, heal: 5, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'pandemonium',
+    name: 'Pandemonium',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 25 dmg. Neutral: <span class="kw-burn">BURN [2]</span> to All. Inferior: 10 self dmg.',
+    isDraftExclusive: true,
+    outcomes: {
+      SUPERIOR: { damage: 25, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 2 }, self: { burn: 2 } } },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 10 }
     }
   }
 ];
+
+const PACK_TYPES = {
+  FIRE_PACK: 'FIRE_PACK',
+  WATER_PACK: 'WATER_PACK',
+  NATURE_PACK: 'NATURE_PACK',
+  WILD_PACK: 'WILD_PACK',
+  ELEMENTAL_PACK: 'ELEMENTAL_PACK',
+  UNIVERSAL_PACK: 'UNIVERSAL_PACK',
+  BURN_PACK: 'BURN_PACK',
+  POISON_PACK: 'POISON_PACK',
+  SHIELD_PACK: 'SHIELD_PACK',
+  SUSTAIN_PACK: 'SUSTAIN_PACK',
+  AGGRO_PACK: 'AGGRO_PACK',
+  CONTROL_PACK: 'CONTROL_PACK',
+  STATUS_PACK: 'STATUS_PACK',
+  COUNTER_PACK: 'COUNTER_PACK',
+  GAMBLER_PACK: 'GAMBLER_PACK',
+  REVENGE_PACK: 'REVENGE_PACK',
+  TRAP_PACK: 'TRAP_PACK',
+  DRAFT_EXCLUSIVE_PACK: 'DRAFT_EXCLUSIVE_PACK'
+};
+
+const PACK_POOL = {
+  [PACK_TYPES.FIRE_PACK]: {
+    name: 'Pyromaniac Vault',
+    theme: 'Fire Spec',
+    description: 'Contains explosive Fire cards. Burn and blast your foes.',
+    color: 'linear-gradient(135deg, #e74c3c, #f39c12)'
+  },
+  [PACK_TYPES.WATER_PACK]: {
+    name: 'Tidal Arsenal',
+    theme: 'Water Spec',
+    description: 'Defensive and chilling Water cards to control the flow.',
+    color: 'linear-gradient(135deg, #2980b9, #8e44ad)'
+  },
+  [PACK_TYPES.NATURE_PACK]: {
+    name: 'Wildbloom Cache',
+    theme: 'Nature Spec',
+    description: 'Poisonous vines and restoring blooms from the jungle.',
+    color: 'linear-gradient(135deg, #27ae60, #2ecc71)'
+  },
+  [PACK_TYPES.WILD_PACK]: {
+    name: 'Chaos Singularity',
+    theme: 'Chaos Spec',
+    description: 'Unstable and volatile Chaos cards. High risk, extreme reward.',
+    color: 'linear-gradient(135deg, #8e44ad, #2c3e50)'
+  },
+  [PACK_TYPES.ELEMENTAL_PACK]: {
+    name: 'Elemental Conflux',
+    theme: 'Tri-Element',
+    description: 'A balanced mix of Fire, Water, and Nature cards.',
+    color: 'linear-gradient(135deg, #16a085, #f1c40f)'
+  },
+  [PACK_TYPES.UNIVERSAL_PACK]: {
+    name: 'Emperor Trunk',
+    theme: 'General Pool',
+    description: 'A completely random assortment of cards from the general pool.',
+    color: 'linear-gradient(135deg, #7f8c8d, #bdc3c7)'
+  },
+  [PACK_TYPES.BURN_PACK]: {
+    name: 'Blazing Hearth',
+    theme: 'Burn Focus',
+    description: 'Cards specialized in applying the devastating Burn status effect.',
+    color: 'linear-gradient(135deg, #d35400, #c0392b)'
+  },
+  [PACK_TYPES.POISON_PACK]: {
+    name: 'Viper Nest',
+    theme: 'Poison Focus',
+    description: 'Slow acting but lethal Poison cards that drain opponent health.',
+    color: 'linear-gradient(135deg, #16a085, #27ae60)'
+  },
+  [PACK_TYPES.SHIELD_PACK]: {
+    name: 'Fortress Core',
+    theme: 'Shield Focus',
+    description: 'Highly defensive cards to absorb incoming strikes.',
+    color: 'linear-gradient(135deg, #2c3e50, #34495e)'
+  },
+  [PACK_TYPES.SUSTAIN_PACK]: {
+    name: 'Elixir Spring',
+    theme: 'Sustain Focus',
+    description: 'Restores HP and cleanses debuffs to outlast your opponent.',
+    color: 'linear-gradient(135deg, #1abc9c, #16a085)'
+  },
+  [PACK_TYPES.AGGRO_PACK]: {
+    name: 'Apex Striker',
+    theme: 'High Damage',
+    description: 'Pure offensive pressure. High base damage outcomes.',
+    color: 'linear-gradient(135deg, #c0392b, #d35400)'
+  },
+  [PACK_TYPES.CONTROL_PACK]: {
+    name: 'Grip of Winter',
+    theme: 'Control Focus',
+    description: 'Weakens opponent damage and manages the match pacing.',
+    color: 'linear-gradient(135deg, #2980b9, #34495e)'
+  },
+  [PACK_TYPES.STATUS_PACK]: {
+    name: 'Affliction Grid',
+    theme: 'Status Effects',
+    description: 'Applies various status effects: buffs, weaknesses, burn, poison.',
+    color: 'linear-gradient(135deg, #f39c12, #8e44ad)'
+  },
+  [PACK_TYPES.COUNTER_PACK]: {
+    name: 'Mirror Shield',
+    theme: 'Inferior Benefits',
+    description: 'Contains cards that excel when they lose a clash.',
+    color: 'linear-gradient(135deg, #2c3e50, #e74c3c)'
+  },
+  [PACK_TYPES.GAMBLER_PACK]: {
+    name: 'Risk Vault',
+    theme: 'High Risk/Reward',
+    description: 'High variance cards. Might damage you, but will crush them.',
+    color: 'linear-gradient(135deg, #d35400, #2c3e50)'
+  },
+  [PACK_TYPES.REVENGE_PACK]: {
+    name: 'Vengeance Spur',
+    theme: 'Recovery Focus',
+    description: 'Payoffs when losing clashes combined with restoration.',
+    color: 'linear-gradient(135deg, #c0392b, #8e44ad)'
+  },
+  [PACK_TYPES.TRAP_PACK]: {
+    name: 'Ambush Satchel',
+    theme: 'Trickster Focus',
+    description: 'Deceptive cards with powerful neutral or inferior results.',
+    color: 'linear-gradient(135deg, #2c3e50, #16a085)'
+  },
+  [PACK_TYPES.DRAFT_EXCLUSIVE_PACK]: {
+    name: 'Astral Rift (LEGENDARY)',
+    theme: 'Draft Exclusive',
+    description: 'Contains legendary, draft-only cards with powerful game-warping abilities.',
+    color: 'linear-gradient(135deg, #f1c40f, #8e44ad)'
+  }
+};
 
 module.exports = {
   PORT,
@@ -491,5 +672,8 @@ module.exports = {
   HAND_SIZE,
   ELEMENTS,
   CLASH_RULES,
-  CARD_POOL
+  CARD_POOL,
+  PACK_TYPES,
+  PACK_POOL
 };
+

@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/mobile.css">
   
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -125,6 +126,11 @@
 
   <!-- Screen 2: Battle Screen -->
   <div id="battle-screen" class="screen">
+    <!-- Surrender Button floating in top center -->
+    <button id="surrender-btn" class="btn-surrender" title="Surrender Match">
+      <i class="fa-solid fa-flag"></i> SURRENDER
+    </button>
+
     <div class="arena-background">
       <div class="grid-lines"></div>
     </div>
@@ -143,6 +149,11 @@
         <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%;"></div>
         <div class="hp-text"><span id="player-hp-val">100</span> / 100 HP</div>
       </div>
+      <div class="points-indicator" id="player-points">
+        <span class="point-dot"></span>
+        <span class="point-dot"></span>
+        <span class="point-dot"></span>
+      </div>
     </div>
 
     <div class="hud-panel enemy-hud glass">
@@ -157,6 +168,11 @@
       <div class="hp-bar-container">
         <div class="hp-bar-fill" id="enemy-hp-fill" style="width: 100%;"></div>
         <div class="hp-text"><span id="enemy-hp-val">100</span> / 100 HP</div>
+      </div>
+      <div class="points-indicator" id="enemy-points">
+        <span class="point-dot"></span>
+        <span class="point-dot"></span>
+        <span class="point-dot"></span>
       </div>
       <div class="hand-size-indicator">
         <span class="hand-card-dots" id="enemy-card-dots">
@@ -222,26 +238,154 @@
     </div>
   </div>
 
-  <!-- Screen 3: Game Over Overlay -->
+  <!-- Screen 3: Game Over / Match Result Overlay -->
   <div id="game-over-screen" class="overlay">
     <div class="game-over-card glass">
       <h1 id="game-over-title">VICTORY</h1>
-      <p id="game-over-msg">You have defeated the opponent!</p>
+      <p id="game-over-msg">You have won the match!</p>
       
       <div class="game-over-stats">
         <div class="stat-item">
-          <span class="stat-lbl">Final HP</span>
-          <span class="stat-val" id="go-final-hp">100</span>
+          <span class="stat-lbl">Final Score</span>
+          <span class="stat-val" id="go-final-score">2 - 1</span>
         </div>
         <div class="stat-item">
-          <span class="stat-lbl">Rounds Played</span>
-          <span class="stat-val" id="go-rounds">0</span>
+          <span class="stat-lbl">Match Rounds</span>
+          <span class="stat-val" id="go-rounds">3</span>
         </div>  
       </div>
 
-      <button id="go-lobby-btn" class="btn btn-primary">
-        RETURN TO LOBBY
-      </button>
+      <div class="game-over-actions" style="display: flex; gap: 1rem; width: 100%; justify-content: center; margin-top: 0.5rem;">
+        <button id="rematch-btn" class="btn btn-primary">
+          REMATCH
+        </button>
+        <button id="go-lobby-btn" class="btn btn-secondary">
+          RETURN TO LOBBY
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Round Result Overlay -->
+  <div id="round-result-overlay" class="overlay">
+    <div class="round-result-card glass">
+      <span class="logo-sub">ROUND COMPLETED</span>
+      <h1 id="round-winner-title" class="logo-main" style="font-size: 2.2rem; margin: 0.5rem 0;">ROUND <span class="accent-text">1</span></h1>
+      <p id="round-winner-desc" class="result-desc" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 600;">Opponent won this round!</p>
+      
+      <div class="round-scores-container" style="display: flex; align-items: center; justify-content: center; gap: 2rem; margin-bottom: 2rem; background: rgba(0,0,0,0.3); padding: 1rem 2rem; border-radius: 4px; border: 1.5px solid var(--border-mat);">
+        <div class="score-player-box" style="display: flex; flex-direction: column; align-items: center;">
+          <span id="score-p1-name" class="score-pname" style="font-family: var(--font-title); font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">You</span>
+          <span id="score-p1-val" class="score-pval" style="font-family: var(--font-title); font-size: 2.4rem; font-weight: 800; color: #fff;">0</span>
+        </div>
+        <div class="score-vs" style="font-family: var(--font-title); font-weight: 800; font-size: 1.2rem; color: var(--color-fire);">VS</div>
+        <div class="score-player-box" style="display: flex; flex-direction: column; align-items: center;">
+          <span id="score-p2-name" class="score-pname" style="font-family: var(--font-title); font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Opponent</span>
+          <span id="score-p2-val" class="score-pval" style="font-family: var(--font-title); font-size: 2.4rem; font-weight: 800; color: #fff;">0</span>
+        </div>
+      </div>
+      
+      <p class="next-phase-tip" style="font-size: 0.85rem; color: var(--text-secondary); font-style: italic; animation: pulseText 1.5s infinite alternate;">Draft Phase starting in a few seconds...</p>
+    </div>
+  </div>
+
+  <!-- Screen 5: Loser Bonus Pick Screen -->
+  <div id="bonus-pick-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub">COMEBACK MECHANIC</span>
+        <h2 class="draft-title">LOSER <span class="accent-text">BONUS PICK</span></h2>
+        <p class="draft-subtitle">Choose exactly <strong>1 card</strong> to add directly to your deck</p>
+      </header>
+      
+      <div class="horizontal-fan-container" id="bonus-cards-fan">
+        <!-- 3 cards horizontal fanned layout -->
+      </div>
+      
+      <footer class="draft-footer">
+        <button id="bonus-confirm-btn" class="btn btn-primary disabled" disabled>
+          CONFIRM CHOICE
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Screen 6: Winner Waiting Screen -->
+  <div id="waiting-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="lobby-container">
+      <header class="logo-area animate-logo">
+        <span class="logo-sub">DRAFT PHASE</span>
+        <h2 class="draft-title">WAITING FOR <span class="accent-text">OPPONENT</span></h2>
+      </header>
+      <div class="lobby-card glass" style="text-align: center; padding: 3rem 2rem;">
+        <span class="loader" style="width: 36px; height: 36px; border-width: 3px; display: inline-block; margin-bottom: 1.5rem;"></span>
+        <p style="color: var(--text-secondary); font-size: 1rem; font-weight: 600;">Your opponent is choosing their loser bonus card...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Pack Selection Screen -->
+  <div id="pack-selection-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub">ARCHETYPE DRAFT</span>
+        <h2 class="draft-title">PACK <span class="accent-text">SELECTION</span></h2>
+        <p class="draft-subtitle">Select <strong>1 Card Pack</strong> (you will receive all 4 cards in the pack)</p>
+      </header>
+      
+      <div class="packs-grid" id="packs-selection-grid">
+        <!-- 3 packs with rich graphics will be rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 8: Pack Reveal Screen -->
+  <div id="pack-reveal-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub">PACK REVEALED</span>
+        <h2 class="draft-title">NEW <span class="accent-text">ACQUISITIONS</span></h2>
+        <p class="draft-subtitle">All 4 cards have been added to your deck!</p>
+      </header>
+      
+      <div class="pack-opening-area">
+        <div id="pack-graphic-wrapper">
+          <div class="pack-graphic" id="revealed-pack-card">
+            <div class="pack-ribbon">TCG</div>
+            <div class="pack-logo"><i class="fa-solid fa-circle-nodes"></i> CLASH</div>
+            <p class="pack-name-text" id="revealed-pack-name">BOOSTER PACK</p>
+          </div>
+        </div>
+        <div class="horizontal-fan-container hidden" id="reveal-cards-fan">
+          <!-- 4 cards horizontal fanned layout -->
+        </div>
+      </div>
+      
+      <footer class="draft-footer hidden" id="reveal-footer">
+        <button id="pack-reveal-confirm-btn" class="btn btn-primary">
+          CONTINUE TO NEXT ROUND
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Screen 9: Surrender Confirmation Modal -->
+  <div id="surrender-modal" class="overlay">
+    <div class="game-over-card glass" style="max-width: 380px; padding: 2.2rem 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1.2rem;">
+      <h2 style="font-family: var(--font-title); font-size: 1.8rem; color: #ff8888; font-weight: 800; margin: 0;"><i class="fa-solid fa-flag"></i> SURRENDER MATCH</h2>
+      <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0; line-height: 1.4;">Are you sure you want to surrender this match? You will immediately lose the game.</p>
+      <div style="display: flex; gap: 1rem; width: 100%; justify-content: center; margin-top: 0.5rem;">
+        <button id="surrender-confirm-btn" class="btn btn-primary" style="background-color: var(--color-fire); border-color: #ff5555; flex: 1;">
+          YES, SURRENDER
+        </button>
+        <button id="surrender-cancel-btn" class="btn btn-secondary" style="flex: 1;">
+          CANCEL
+        </button>
+      </div>
     </div>
   </div>
 

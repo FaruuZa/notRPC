@@ -1,5 +1,8 @@
 const { nanoid } = require('nanoid');
-const { CARD_POOL, CLASH_RULES, HAND_SIZE } = require('./constants');
+const { CARD_POOL, CLASH_RULES, HAND_SIZE, ELEMENTS, PACK_TYPES } = require('./constants');
+
+const generalPool = CARD_POOL.filter(c => !c.isDraftExclusive);
+const draftExclusivePool = CARD_POOL.filter(c => c.isDraftExclusive);
 
 function createCardInstance(template) {
   return {
@@ -20,8 +23,8 @@ function createCardInstance(template) {
 function drawCards(count = HAND_SIZE) {
   const hand = [];
   for (let i = 0; i < count; i++) {
-    const randomIndex = Math.floor(Math.random() * CARD_POOL.length);
-    hand.push(createCardInstance(CARD_POOL[randomIndex]));
+    const randomIndex = Math.floor(Math.random() * generalPool.length);
+    hand.push(createCardInstance(generalPool[randomIndex]));
   }
   return hand;
 }
@@ -33,7 +36,7 @@ function drawCards(count = HAND_SIZE) {
  * @returns {Array} List of cards with unique instance IDs
  */
 function drawDraftPool(totalCount = 8, minElemental = 4) {
-  const elementals = CARD_POOL.filter(c => ['FIRE', 'WATER', 'NATURE'].includes(c.element));
+  const elementals = generalPool.filter(c => ['FIRE', 'WATER', 'NATURE'].includes(c.element));
   const pool = [];
   
   // 1. Draw required elementals
@@ -45,8 +48,8 @@ function drawDraftPool(totalCount = 8, minElemental = 4) {
   // 2. Draw the remaining cards randomly from the whole pool
   const remainingCount = totalCount - minElemental;
   for (let i = 0; i < remainingCount; i++) {
-    const randomIndex = Math.floor(Math.random() * CARD_POOL.length);
-    pool.push(createCardInstance(CARD_POOL[randomIndex]));
+    const randomIndex = Math.floor(Math.random() * generalPool.length);
+    pool.push(createCardInstance(generalPool[randomIndex]));
   }
   
   // Shuffle pool so elementals are mixed
@@ -60,7 +63,7 @@ function drawDraftPool(totalCount = 8, minElemental = 4) {
  * @returns {Array} List of replacement cards
  */
 function drawReplacements(totalReplacements, minElementalReq) {
-  const elementals = CARD_POOL.filter(c => ['FIRE', 'WATER', 'NATURE'].includes(c.element));
+  const elementals = generalPool.filter(c => ['FIRE', 'WATER', 'NATURE'].includes(c.element));
   const replacements = [];
   
   // Draw required elementals first
@@ -69,16 +72,184 @@ function drawReplacements(totalReplacements, minElementalReq) {
     replacements.push(createCardInstance(elementals[randomIndex]));
   }
   
-  // Draw remaining replacements from general CARD_POOL
+  // Draw remaining replacements from general pool
   const remaining = totalReplacements - minElementalReq;
   for (let i = 0; i < remaining; i++) {
-    const randomIndex = Math.floor(Math.random() * CARD_POOL.length);
-    replacements.push(createCardInstance(CARD_POOL[randomIndex]));
+    const randomIndex = Math.floor(Math.random() * generalPool.length);
+    replacements.push(createCardInstance(generalPool[randomIndex]));
   }
   
   // Shuffle to mix them
   return replacements.sort(() => Math.random() - 0.5);
 }
+
+/**
+ * Generates a randomized 4-card starter deck (1 Fire, 1 Water, 1 Nature, 1 Neutral/Chaos)
+ */
+function generateStarterDeck() {
+  const fireCards = generalPool.filter(c => c.element === ELEMENTS.FIRE);
+  const waterCards = generalPool.filter(c => c.element === ELEMENTS.WATER);
+  const natureCards = generalPool.filter(c => c.element === ELEMENTS.NATURE);
+  const neutralOrChaos = generalPool.filter(c => c.element === ELEMENTS.NEUTRAL || c.element === ELEMENTS.CHAOS);
+
+  const starter = [
+    fireCards[Math.floor(Math.random() * fireCards.length)],
+    waterCards[Math.floor(Math.random() * waterCards.length)],
+    natureCards[Math.floor(Math.random() * natureCards.length)],
+    neutralOrChaos[Math.floor(Math.random() * neutralOrChaos.length)]
+  ];
+
+  return starter.map(card => createCardInstance(card));
+}
+
+/**
+ * Generates 3 unique random pack types
+ */
+function generatePacks(count = 3) {
+  const packKeys = Object.keys(PACK_TYPES);
+  const shuffled = packKeys.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+/**
+ * Generates 4 cards matching the pack type's theme
+ */
+function generatePackCards(packType) {
+  let pool = [];
+
+  switch(packType) {
+    case PACK_TYPES.FIRE_PACK:
+      pool = generalPool.filter(c => c.element === ELEMENTS.FIRE);
+      break;
+    case PACK_TYPES.WATER_PACK:
+      pool = generalPool.filter(c => c.element === ELEMENTS.WATER);
+      break;
+    case PACK_TYPES.NATURE_PACK:
+      pool = generalPool.filter(c => c.element === ELEMENTS.NATURE);
+      break;
+    case PACK_TYPES.WILD_PACK:
+      pool = generalPool.filter(c => c.element === ELEMENTS.CHAOS);
+      break;
+    case PACK_TYPES.ELEMENTAL_PACK:
+      pool = generalPool.filter(c => [ELEMENTS.FIRE, ELEMENTS.WATER, ELEMENTS.NATURE].includes(c.element));
+      break;
+    case PACK_TYPES.UNIVERSAL_PACK:
+      pool = generalPool;
+      break;
+    case PACK_TYPES.BURN_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.burn || o.applyStatus.self?.burn));
+      });
+      break;
+    case PACK_TYPES.POISON_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.poison || o.applyStatus.self?.poison));
+      });
+      break;
+    case PACK_TYPES.SHIELD_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.shield > 0);
+      });
+      break;
+    case PACK_TYPES.SUSTAIN_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.heal > 0 || (o.applyStatus && o.applyStatus.self?.cleanse));
+      });
+      break;
+    case PACK_TYPES.AGGRO_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.damage >= 14);
+      });
+      break;
+    case PACK_TYPES.CONTROL_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => (o.applyStatus && o.applyStatus.opponent?.weakness) || o.shield > 0);
+      });
+      break;
+    case PACK_TYPES.STATUS_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.applyStatus && Object.keys(o.applyStatus).length > 0);
+      });
+      break;
+    case PACK_TYPES.COUNTER_PACK:
+      pool = generalPool.filter(c => {
+        const inf = c.outcomes.INFERIOR;
+        return inf && (inf.damage > 0 || inf.shield > 0 || inf.heal > 0 || (inf.applyStatus && Object.keys(inf.applyStatus).length > 0));
+      });
+      break;
+    case PACK_TYPES.GAMBLER_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.selfDamage > 0);
+      });
+      break;
+    case PACK_TYPES.REVENGE_PACK:
+      pool = generalPool.filter(c => {
+        const inf = c.outcomes.INFERIOR;
+        const hasInfBenefit = inf && (inf.damage > 0 || inf.shield > 0 || inf.heal > 0 || (inf.applyStatus && Object.keys(inf.applyStatus).length > 0));
+        const outcomes = Object.values(c.outcomes);
+        const hasSustain = outcomes.some(o => o.heal > 0 || (o.applyStatus && o.applyStatus.self?.cleanse));
+        return hasInfBenefit || hasSustain;
+      });
+      break;
+    case PACK_TYPES.TRAP_PACK:
+      pool = generalPool.filter(c => {
+        const inf = c.outcomes.INFERIOR;
+        const neu = c.outcomes.NEUTRAL;
+        return (inf && (inf.damage >= 10 || (inf.applyStatus && inf.applyStatus.opponent?.poison))) ||
+               (neu && (neu.damage >= 4 || neu.shield >= 8));
+      });
+      break;
+    case PACK_TYPES.DRAFT_EXCLUSIVE_PACK:
+      pool = draftExclusivePool;
+      break;
+    default:
+      pool = generalPool;
+  }
+
+  if (pool.length === 0) {
+    pool = generalPool;
+  }
+
+  const cards = [];
+  const tempPool = [...pool];
+  for (let i = 0; i < 4; i++) {
+    if (tempPool.length > 0) {
+      const idx = Math.floor(Math.random() * tempPool.length);
+      cards.push(createCardInstance(tempPool[idx]));
+      tempPool.splice(idx, 1);
+    } else {
+      const idx = Math.floor(Math.random() * pool.length);
+      cards.push(createCardInstance(pool[idx]));
+    }
+  }
+
+  return cards;
+}
+
+/**
+ * Generates 3 unique cards for the Loser Bonus Pick
+ */
+function generateBonusPickCards() {
+  const cards = [];
+  const tempPool = [...generalPool];
+  for (let i = 0; i < 3; i++) {
+    if (tempPool.length > 0) {
+      const idx = Math.floor(Math.random() * tempPool.length);
+      cards.push(createCardInstance(tempPool[idx]));
+      tempPool.splice(idx, 1);
+    }
+  }
+  return cards;
+}
+
 
 /**
  * Evaluates the outcome of a clash between two cards considering active status effects
@@ -180,5 +351,9 @@ module.exports = {
   drawCards,
   drawDraftPool,
   drawReplacements,
-  evaluateClash
+  evaluateClash,
+  generateStarterDeck,
+  generatePacks,
+  generatePackCards,
+  generateBonusPickCards
 };

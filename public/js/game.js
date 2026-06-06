@@ -1,7 +1,3 @@
-/**
- * ELEMENT CLASH: GAME CONTROLLER & STATE MANAGER
- */
-
 const GameManager = {
   currentRoomId: null,
   myId: null,
@@ -19,9 +15,10 @@ const GameManager = {
   myStatuses: {},
   opponentStatuses: {},
   
-  // Draft phase state
-  selectedDraftInstanceIds: [],
-  draftTimerInterval: null,
+  // Rework score states
+  myPoints: 0,
+  opponentPoints: 0,
+  selectedBonusCardTemplateId: null,
   
   // Animation sync helpers
   currentRoundReveal: null,
@@ -108,11 +105,29 @@ const GameManager = {
       });
     }
 
-    // Draft lock button
-    if (UI.draftLockBtn) {
-      UI.draftLockBtn.addEventListener('click', () => {
+    // Loser Bonus pick confirm button
+    if (UI.bonusConfirmBtn) {
+      UI.bonusConfirmBtn.addEventListener('click', () => {
+        if (this.selectedBonusCardTemplateId) {
+          window.AudioSynth.playClick();
+          UI.bonusConfirmBtn.classList.add('disabled');
+          UI.bonusConfirmBtn.disabled = true;
+          window.SocketService.selectBonusCard(this.selectedBonusCardTemplateId);
+        }
+      });
+    }
+
+    // Pack reveal confirm button
+    if (UI.packRevealConfirmBtn) {
+      UI.packRevealConfirmBtn.addEventListener('click', () => {
         window.AudioSynth.playClick();
-        this.lockDraft();
+        UI.packRevealConfirmBtn.classList.add('disabled');
+        UI.packRevealConfirmBtn.disabled = true;
+        // Animate cards acquisition sliding down
+        const cards = UI.revealCardsFan.querySelectorAll('.card');
+        window.Animations.animateCardsAcquisition(cards, () => {
+          window.SocketService.packRevealConfirm();
+        });
       });
     }
 
@@ -121,6 +136,46 @@ const GameManager = {
       window.AudioSynth.playClick();
       this.resetLobby();
     });
+
+    // Surrender button click handler
+    const surrenderBtn = document.getElementById('surrender-btn');
+    const surrenderModal = document.getElementById('surrender-modal');
+    const surrenderConfirmBtn = document.getElementById('surrender-confirm-btn');
+    const surrenderCancelBtn = document.getElementById('surrender-cancel-btn');
+
+    if (surrenderBtn && surrenderModal) {
+      surrenderBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        surrenderModal.classList.add('active');
+      });
+    }
+
+    if (surrenderConfirmBtn) {
+      surrenderConfirmBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        if (surrenderModal) surrenderModal.classList.remove('active');
+        window.SocketService.surrender();
+      });
+    }
+
+    if (surrenderCancelBtn) {
+      surrenderCancelBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        if (surrenderModal) surrenderModal.classList.remove('active');
+      });
+    }
+
+    // Rematch button click handler
+    const rematchBtn = document.getElementById('rematch-btn');
+    if (rematchBtn) {
+      rematchBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        rematchBtn.classList.add('disabled');
+        rematchBtn.disabled = true;
+        rematchBtn.innerText = 'WAITING FOR OPPONENT...';
+        window.SocketService.requestRematch();
+      });
+    }
 
     // Click player name to display/toggle their current active statuses in battleKeywordInfo
     if (UI.playerName) {
@@ -159,6 +214,9 @@ const GameManager = {
     
     // Exit landscape full screen on mobile
     this.exitLandscapeImmersive();
+
+    // Leave current game room
+    window.SocketService.leaveRoom();
     
     // Clear variables
     this.currentRoomId = null;
@@ -172,15 +230,11 @@ const GameManager = {
     this.opponentShield = 0;
     this.myStatuses = {};
     this.opponentStatuses = {};
+    this.myPoints = 0;
+    this.opponentPoints = 0;
+    this.selectedBonusCardTemplateId = null;
     this.currentRoundReveal = null;
     this.currentRoundResult = null;
-    
-    // Reset draft states
-    this.selectedDraftInstanceIds = [];
-    if (this.draftTimerInterval) {
-      clearInterval(this.draftTimerInterval);
-      this.draftTimerInterval = null;
-    }
     
     UI.updateKeywordExplanations(UI.draftKeywordInfo, '');
     UI.updateKeywordExplanations(UI.battleKeywordInfo, '');
@@ -201,6 +255,10 @@ const GameManager = {
     UI.lockBtn.querySelector('.lock-btn-text').innerText = 'SELECT CARD';
     
     UI.clearArenaSlots();
+
+    // Reset points on HUD
+    UI.renderPoints(UI.playerPoints, 0);
+    UI.renderPoints(UI.enemyPoints, 0);
     
     UI.showScreen('lobby');
     UI.gameOverScreen.classList.remove('active');
@@ -253,63 +311,10 @@ const GameManager = {
     
     // Transition Screen to draft screen after a small buffer delay
     setTimeout(() => {
+      this.enterLandscapeImmersive();
       UI.showScreen('draft');
       UI.clearArenaSlots();
     }, 1500);
-  },
-
-  /**
-   * Triggers at the start of a round
-   */
-  onRoundStart(data) {
-    const UI = window.UI;
-    
-    // Clear draft timer just in case
-    if (this.draftTimerInterval) {
-      clearInterval(this.draftTimerInterval);
-      this.draftTimerInterval = null;
-    }
-    
-    // Transition to battle screen
-    UI.showScreen('battle');
-    
-    this.round = data.round;
-    this.hand = data.hand;
-    this.myHp = data.selfStatus.hp;
-    this.myShield = data.selfStatus.shield;
-    this.myStatuses = data.selfStatus.statuses || {};
-    this.opponentHp = data.opponentStatus.hp;
-    this.opponentShield = data.opponentStatus.shield;
-    this.opponentStatuses = data.opponentStatus.statuses || {};
-
-    // Reset selection locked states
-    UI.selectedCardInstanceId = null;
-    UI.isLocked = false;
-    UI.lockBtn.classList.add('disabled');
-    UI.lockBtn.disabled = true;
-    UI.lockBtn.classList.remove('locked-state');
-    UI.lockBtn.querySelector('.lock-btn-text').innerText = 'SELECT CARD';
-
-    // Wipe arena slots clean
-    UI.clearArenaSlots();
-    UI.arenaCombatText.innerText = `Round ${this.round}: Select your card!`;
-
-    // Render cards and trigger draw animation
-    UI.renderHand(this.hand, true);
-    
-    // Update Opponent card indicators
-    UI.updateOpponentHandSize(data.opponentStatus.handSize);
-
-    // Sync HUD status bars and active badges immediately
-    UI.playerHpVal.innerText = this.myHp;
-    UI.playerHpFill.style.width = `${this.myHp}%`;
-    UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
-    UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
-
-    UI.enemyHpVal.innerText = this.opponentHp;
-    UI.enemyHpFill.style.width = `${this.opponentHp}%`;
-    UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
-    UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
   },
 
   /**
@@ -590,6 +595,20 @@ const GameManager = {
               Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHpDamage, false);
             }
 
+            // Show Shield damage popups and trigger card shield absorb overlay effects
+            if (result.shieldDamage > 0) {
+              Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldDamage, 'shield-damage');
+              if (playerCard) {
+                Animations.animateShieldAbsorb(playerCard);
+              }
+            }
+            if (result.opponentShieldDamage > 0) {
+              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldDamage, 'shield-damage');
+              if (opponentCard) {
+                Animations.animateShieldAbsorb(opponentCard);
+              }
+            }
+
             // Show self damage popups
             if (result.selfDamage > 0) {
               Animations.animateDamagePopup(UI.playerPlaySlot, result.selfDamage, false);
@@ -713,9 +732,281 @@ const GameManager = {
    */
   onPlayerDisconnected(data) {
     const UI = window.UI;
-    alert(`Opponent ${data.disconnectedPlayerName} disconnected! Winning match by default.`);
+    UI.showToast(`Opponent ${data.disconnectedPlayerName} disconnected! Winning match by default.`);
     UI.arenaCombatText.innerText = 'Opponent disconnected!';
   },
+
+  /**
+   * Triggers at the start of a round
+   */
+  onRoundStart(data) {
+    const UI = window.UI;
+    
+    // Enter landscape full screen on mobile
+    this.enterLandscapeImmersive();
+    
+    // Clear draft timer just in case
+    if (this.draftTimerInterval) {
+      clearInterval(this.draftTimerInterval);
+      this.draftTimerInterval = null;
+    }
+    
+    // Transition to battle screen
+    UI.showScreen('battle');
+    
+    this.round = data.round;
+    this.hand = data.hand;
+    this.myHp = data.selfStatus.hp;
+    this.myShield = data.selfStatus.shield;
+    this.myStatuses = data.selfStatus.statuses || {};
+    this.opponentHp = data.opponentStatus.hp;
+    this.opponentShield = data.opponentStatus.shield;
+    this.opponentStatuses = data.opponentStatus.statuses || {};
+    
+    this.myPoints = data.selfStatus.points || 0;
+    this.opponentPoints = data.opponentStatus.points || 0;
+
+    // Reset selection locked states
+    UI.selectedCardInstanceId = null;
+    UI.isLocked = false;
+    UI.lockBtn.classList.add('disabled');
+    UI.lockBtn.disabled = true;
+    UI.lockBtn.classList.remove('locked-state');
+    UI.lockBtn.querySelector('.lock-btn-text').innerText = 'SELECT CARD';
+
+    // Wipe arena slots clean
+    UI.clearArenaSlots();
+    UI.arenaCombatText.innerText = `Round ${this.round}: Select your card!`;
+
+    // Render cards and trigger draw animation
+    UI.renderHand(this.hand, true);
+    
+    // Update Opponent card indicators
+    UI.updateOpponentHandSize(data.opponentStatus.handSize);
+
+    // Sync HUD status bars, active badges, and points immediately
+    UI.playerHpVal.innerText = this.myHp;
+    UI.playerHpFill.style.width = `${this.myHp}%`;
+    UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
+    UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+    UI.renderPoints(UI.playerPoints, this.myPoints);
+
+    UI.enemyHpVal.innerText = this.opponentHp;
+    UI.enemyHpFill.style.width = `${this.opponentHp}%`;
+    UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+    UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+    UI.renderPoints(UI.enemyPoints, this.opponentPoints);
+  },
+
+  /**
+   * Triggers when a round ends and transitioning to Draft Phase
+   */
+  onRoundFinished(data) {
+    const UI = window.UI;
+    const Animations = window.Animations;
+
+    // Sync scores
+    this.myPoints = data.score[this.myId] || 0;
+    this.opponentPoints = data.score[this.opponentId] || 0;
+
+    // Render points on HUD immediately
+    UI.renderPoints(UI.playerPoints, this.myPoints);
+    UI.renderPoints(UI.enemyPoints, this.opponentPoints);
+
+    const isRoundWinner = data.winnerId === this.myId;
+    const isRoundDraw = data.winnerId === null;
+
+    const roundTitle = UI.roundResultOverlay.querySelector('#round-winner-title');
+    const roundDesc = UI.roundResultOverlay.querySelector('#round-winner-desc');
+    const scoreP1Val = UI.roundResultOverlay.querySelector('#score-p1-val');
+    const scoreP2Val = UI.roundResultOverlay.querySelector('#score-p2-val');
+
+    if (roundTitle) roundTitle.innerHTML = `ROUND <span class="accent-text">${data.round}</span> COMPLETED`;
+    
+    if (isRoundWinner) {
+      if (roundDesc) {
+        roundDesc.innerText = 'You won this round!';
+        roundDesc.style.color = '#2ecc71';
+      }
+    } else if (isRoundDraw) {
+      if (roundDesc) {
+        roundDesc.innerText = 'It was a Draw!';
+        roundDesc.style.color = '#f1c40f';
+      }
+    } else {
+      if (roundDesc) {
+        roundDesc.innerText = `${this.opponentName || 'Opponent'} won this round!`;
+        roundDesc.style.color = '#e74c3c';
+      }
+    }
+
+    if (scoreP1Val) scoreP1Val.innerText = this.myPoints;
+    if (scoreP2Val) scoreP2Val.innerText = this.opponentPoints;
+
+    // Render names in scores overlay
+    const scoreP1Name = UI.roundResultOverlay.querySelector('#score-p1-name');
+    const scoreP2Name = UI.roundResultOverlay.querySelector('#score-p2-name');
+    if (scoreP1Name) scoreP1Name.innerText = this.myName || 'You';
+    if (scoreP2Name) scoreP2Name.innerText = this.opponentName || 'Opponent';
+
+    // Show round result overlay with animation
+    const cardEl = UI.roundResultOverlay.querySelector('.round-result-card');
+    Animations.animateOverlayReveal(UI.roundResultOverlay, cardEl);
+
+    // Play round-finished sound
+    if (window.AudioSynth) {
+      if (isRoundWinner) {
+        window.AudioSynth.playVictory();
+      } else {
+        window.AudioSynth.playDefeat();
+      }
+    }
+  },
+
+  /**
+   * Starts the Bonus Pick screen for the loser
+   */
+  onBonusPickStart(data) {
+    const UI = window.UI;
+    this.selectedBonusCardTemplateId = null;
+
+    // Reset confirm button
+    UI.bonusConfirmBtn.classList.add('disabled');
+    UI.bonusConfirmBtn.disabled = true;
+
+    // Clear and render bonus cards fanned
+    UI.bonusCardsFan.innerHTML = '';
+    
+    data.cards.forEach(card => {
+      const cardEl = UI.createCardElement(card);
+      UI.bonusCardsFan.appendChild(cardEl);
+
+      cardEl.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        
+        // Remove selected class from all cards
+        UI.bonusCardsFan.querySelectorAll('.card').forEach(c => c.classList.remove('draft-selected'));
+        
+        // Mark this one selected
+        cardEl.classList.add('draft-selected');
+        this.selectedBonusCardTemplateId = card.templateId;
+
+        // Enable confirm button
+        UI.bonusConfirmBtn.classList.remove('disabled');
+        UI.bonusConfirmBtn.disabled = false;
+        
+        // Show keyword explanations
+        const descEl = cardEl.querySelector('.card-desc');
+        UI.updateKeywordExplanations(UI.draftKeywordInfo, descEl ? descEl.innerHTML : '');
+      });
+    });
+
+    UI.showScreen('bonusPick');
+    
+    // Animate drawing/revealing fanned cards
+    const cards = UI.bonusCardsFan.querySelectorAll('.card');
+    window.Animations.animateFannedCardsReveal(Array.from(cards));
+  },
+
+  /**
+   * Shows a waiting panel for the winner during bonus pick
+   */
+  onWaitingForOpponentBonus() {
+    window.UI.showScreen('waiting');
+  },
+
+  /**
+   * Lock bonus choice visually
+   */
+  onBonusPickLocked(cardTemplate) {
+    window.UI.bonusCardsFan.querySelectorAll('.card').forEach(c => c.style.pointerEvents = 'none');
+  },
+
+  /**
+   * Starts pack selection screen
+   */
+  onPackSelectionStart(data) {
+    const UI = window.UI;
+    UI.packsSelectionGrid.innerHTML = '';
+
+    data.packs.forEach(pack => {
+      const packEl = document.createElement('div');
+      packEl.className = 'pack-item';
+      packEl.style.background = `linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.35) 100%), ${pack.color}`;
+      packEl.innerHTML = `
+        <div class="pack-header-info">
+          <span class="pack-theme">${pack.theme}</span>
+          <h3 class="pack-title">${pack.name}</h3>
+        </div>
+        <p class="pack-desc">${pack.description}</p>
+        <div class="pack-action-hint">CHOOSE PACK</div>
+      `;
+
+      packEl.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        // Disable grid interaction immediately to prevent double choosing
+        UI.packsSelectionGrid.style.pointerEvents = 'none';
+        window.SocketService.selectPack(pack.id);
+      });
+
+      UI.packsSelectionGrid.appendChild(packEl);
+    });
+
+    UI.packsSelectionGrid.style.pointerEvents = 'auto';
+    UI.showScreen('packSelection');
+  },
+
+  /**
+   * Handles pack reveal opening sequence
+   */
+  onPackRevealStart(data) {
+    const UI = window.UI;
+    
+    // Clear reveal area
+    UI.revealCardsFan.innerHTML = '';
+    UI.revealCardsFan.classList.add('hidden');
+    UI.revealFooter.classList.add('hidden');
+    
+    // Configure pack graphic
+    UI.revealedPackCard.className = 'pack-graphic'; // Reset classes
+    UI.revealedPackName.innerText = data.packName;
+    UI.revealedPackCard.style.background = `linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.35) 100%), ${data.packColor || 'linear-gradient(135deg, #1f2533, #3a4763)'}`;
+    document.getElementById('pack-graphic-wrapper').style.display = 'block';
+
+    // Show screen
+    UI.showScreen('packReveal');
+
+    // One-time shake and burst on click
+    const handlePackClick = () => {
+      UI.revealedPackCard.removeEventListener('click', handlePackClick);
+      
+      // Trigger burst animation
+      window.Animations.animatePackOpening(UI.revealedPackCard, () => {
+        // Swap pack graphic for cards
+        document.getElementById('pack-graphic-wrapper').style.display = 'none';
+        UI.revealCardsFan.classList.remove('hidden');
+        
+        // Render 4 cards horizontally
+        data.cards.forEach(card => {
+          const cardEl = UI.createCardElement(card);
+          UI.revealCardsFan.appendChild(cardEl);
+        });
+
+        // Show confirm footer
+        UI.revealFooter.classList.remove('hidden');
+        UI.packRevealConfirmBtn.classList.remove('disabled');
+        UI.packRevealConfirmBtn.disabled = false;
+
+        // Run sequential cards flip reveal animation
+        const cards = UI.revealCardsFan.querySelectorAll('.card');
+        window.Animations.animateFannedCardsReveal(Array.from(cards));
+      });
+    };
+
+    UI.revealedPackCard.addEventListener('click', handlePackClick);
+  },
+
+
 
   /**
    * Triggers when round HP results in Game Over
@@ -724,31 +1015,35 @@ const GameManager = {
     const UI = window.UI;
     const Animations = window.Animations;
 
-    // Play final result sounds
     const isWinner = data.winnerId === this.myId;
     const isDraw = data.winnerId === null;
     
     if (isWinner) {
       window.AudioSynth.playVictory();
+      UI.gameOverTitle.style.color = '#2d9a59';
       UI.gameOverTitle.innerText = 'VICTORY';
       UI.gameOverMsg.innerText = data.reason === 'opponent_disconnected' 
         ? 'Your opponent fled the field. You win by default!' 
-        : 'You have out-predicted and defeated your opponent!';
+        : 'You have out-scored and defeated your opponent!';
       UI.gameOverScreen.className = 'overlay active victory';
     } else if (isDraw) {
-      window.AudioSynth.playVictory(); // Neutral chord works too
+      window.AudioSynth.playVictory(); 
+      UI.gameOverTitle.style.color = '#f5cf70';
       UI.gameOverTitle.innerText = 'DRAW MATCH';
-      UI.gameOverMsg.innerText = 'A double knockout! Both elements crumbled.';
+      UI.gameOverMsg.innerText = 'A double knockout! Tie game.';
       UI.gameOverScreen.className = 'overlay active';
     } else {
       window.AudioSynth.playDefeat();
+      UI.gameOverTitle.style.color = '#d93838';
       UI.gameOverTitle.innerText = 'DEFEAT';
-      UI.gameOverMsg.innerText = 'You were defeated in elemental combat!';
+      UI.gameOverMsg.innerText = 'You were out-drafted and defeated!';
       UI.gameOverScreen.className = 'overlay active defeat';
     }
 
     // Set stats info in screen modal
-    UI.goFinalHp.innerText = this.myHp;
+    const p1Points = data.score ? (data.score[this.myId] || 0) : this.myPoints;
+    const p2Points = data.score ? (data.score[this.opponentId] || 0) : this.opponentPoints;
+    UI.goFinalScore.innerText = `${p1Points} - ${p2Points}`;
     UI.goRounds.innerText = this.round;
 
     // Display modal card
@@ -757,287 +1052,18 @@ const GameManager = {
   },
 
   /**
-   * Triggers when the draft/mulligan phase starts
-   */
-  onDraftStart(data) {
-    const UI = window.UI;
-    
-    // Enter landscape full screen on mobile
-    this.enterLandscapeImmersive();
-    
-    // Reset draft state
-    this.selectedDraftInstanceIds = [];
-    if (this.draftTimerInterval) {
-      clearInterval(this.draftTimerInterval);
-    }
-    
-    // Reset UI elements
-    UI.draftCardsGrid.style.pointerEvents = 'auto';
-    UI.updateKeywordExplanations(UI.draftKeywordInfo, '');
-    
-    // Reset elemental counter badge
-    const elementalVal = document.getElementById('draft-elemental-val');
-    if (elementalVal) {
-      elementalVal.innerText = '4 / 4 min';
-      elementalVal.style.color = '';
-      elementalVal.classList.remove('text-danger');
-    }
-    
-    // Configure badge counters to show KEEPING
-    const counterLabel = document.querySelector('#draft-counter-box span');
-    if (counterLabel) {
-      counterLabel.innerHTML = `KEEPING: <strong id="draft-counter-val">0</strong> / 8`;
-      UI.draftCounterVal = document.getElementById('draft-counter-val');
-    }
-    
-    const subtitle = UI.draftScreen.querySelector('.draft-subtitle');
-    if (subtitle) {
-      subtitle.innerHTML = 'Select the cards you want to <strong class="accent-text" style="color: #ffd700;">KEEP</strong>. Unselected cards will be replaced.';
-    }
-    
-    // Mulligan lock is always enabled from the start
-    UI.draftLockBtn.classList.remove('disabled');
-    UI.draftLockBtn.disabled = false;
-    UI.draftLockBtn.innerText = 'LOCK DECK';
-    
-    // Render draft pool
-    UI.renderDraftPool(data.draftPool, (instanceId, cardEl) => {
-      this.onDraftCardClick(instanceId, cardEl);
-    });
-    
-    // Start countdown timer
-    let secondsLeft = data.seconds;
-    UI.draftTimerVal.innerText = secondsLeft;
-    
-    this.draftTimerInterval = setInterval(() => {
-      secondsLeft -= 1;
-      UI.draftTimerVal.innerText = secondsLeft;
-      
-      if (secondsLeft <= 0) {
-        clearInterval(this.draftTimerInterval);
-        this.draftTimerInterval = null;
-        
-        // Auto lock selection if not locked
-        if (UI.draftCardsGrid.style.pointerEvents !== 'none') {
-          this.lockDraft();
-        }
-      }
-    }, 1000);
-  },
-
-  /**
-   * Handles draft card clicks
-   */
-  onDraftCardClick(instanceId, cardEl) {
-    const UI = window.UI;
-    const index = this.selectedDraftInstanceIds.indexOf(instanceId);
-    
-    if (index > -1) {
-      // Deselect
-      this.selectedDraftInstanceIds.splice(index, 1);
-      cardEl.classList.remove('draft-selected');
-    } else {
-      // Select (max 8)
-      if (this.selectedDraftInstanceIds.length < 8) {
-        this.selectedDraftInstanceIds.push(instanceId);
-        cardEl.classList.add('draft-selected');
-      } else {
-        return;
-      }
-    }
-    
-    // Update counter text
-    if (UI.draftCounterVal) {
-      UI.draftCounterVal.innerText = this.selectedDraftInstanceIds.length;
-    }
-
-    // Count elementals in current selection
-    const selectedCards = UI.draftCardsGrid.querySelectorAll('.card.draft-selected');
-    let keptElementals = 0;
-    let keptNonElementals = 0;
-    selectedCards.forEach(c => {
-      const elType = c.getAttribute('data-element');
-      if (elType === 'FIRE' || elType === 'WATER' || elType === 'NATURE') {
-        keptElementals++;
-      } else {
-        keptNonElementals++;
-      }
-    });
-
-    const maxNonElementalsAllowed = 4;
-    const isSelectionValid = (keptNonElementals <= maxNonElementalsAllowed);
-
-    // Update elemental validation badge
-    const elementalVal = document.getElementById('draft-elemental-val');
-    if (elementalVal) {
-      const guaranteedElementals = Math.max(keptElementals, Math.min(4, 8 - keptNonElementals));
-      elementalVal.innerText = `${guaranteedElementals} / 4 min`;
-      
-      if (isSelectionValid) {
-        elementalVal.style.color = '';
-        elementalVal.classList.remove('text-danger');
-      } else {
-        elementalVal.style.color = '#ff4a4a';
-        elementalVal.classList.add('text-danger');
-      }
-    }
-
-    // Enable / disable lock button
-    if (isSelectionValid) {
-      UI.draftLockBtn.classList.remove('disabled');
-      UI.draftLockBtn.disabled = false;
-      UI.draftLockBtn.innerText = 'LOCK DECK';
-      
-      const subtitle = UI.draftScreen.querySelector('.draft-subtitle');
-      if (subtitle) {
-        subtitle.innerHTML = 'Select the cards you want to <strong class="accent-text" style="color: #ffd700;">KEEP</strong>. Unselected cards will be replaced.';
-      }
-    } else {
-      UI.draftLockBtn.classList.add('disabled');
-      UI.draftLockBtn.disabled = true;
-      UI.draftLockBtn.innerText = 'INVALID DECK';
-      
-      const subtitle = UI.draftScreen.querySelector('.draft-subtitle');
-      if (subtitle) {
-        subtitle.innerHTML = '<span style="color: #ff4a4a; font-weight: bold;">Cannot keep more than 4 Neutral/Chaos cards! (Need at least 4 Elementals)</span>';
-      }
-    }
-    
-    // Render keyword definitions for selected card
-    const descEl = cardEl.querySelector('.card-desc');
-    const desc = descEl ? descEl.innerHTML : '';
-    if (this.selectedDraftInstanceIds.includes(instanceId)) {
-      UI.updateKeywordExplanations(UI.draftKeywordInfo, desc);
-    } else {
-      // Deselected: show most recently selected card's keywords, or hide if none
-      if (this.selectedDraftInstanceIds.length > 0) {
-        const lastId = this.selectedDraftInstanceIds[this.selectedDraftInstanceIds.length - 1];
-        const lastCardEl = UI.draftCardsGrid.querySelector(`[data-instance-id="${lastId}"]`);
-        const lastDescEl = lastCardEl ? lastCardEl.querySelector('.card-desc') : null;
-        UI.updateKeywordExplanations(UI.draftKeywordInfo, lastDescEl ? lastDescEl.innerHTML : '');
-      } else {
-        UI.updateKeywordExplanations(UI.draftKeywordInfo, '');
-      }
-    }
-  },
-
-  /**
-   * Triggers when opponent locks their deck in draft
-   */
-  onOpponentDraftLocked() {
-    const UI = window.UI;
-    const subtitle = UI.draftScreen.querySelector('.draft-subtitle');
-    if (subtitle) {
-      subtitle.innerHTML = '<span class="accent-text" style="color: #f5cf70;">Opponent locked deck, waiting for you...</span>';
-    }
-  },
-
-  /**
-   * Locks the draft and emits chosen deck to the server
-   */
-  lockDraft() {
-    const UI = window.UI;
-    
-    if (this.draftTimerInterval) {
-      clearInterval(this.draftTimerInterval);
-      this.draftTimerInterval = null;
-    }
-    
-    // Disable interactions
-    UI.draftCardsGrid.style.pointerEvents = 'none';
-    UI.draftLockBtn.classList.add('disabled');
-    UI.draftLockBtn.disabled = true;
-    UI.draftLockBtn.innerText = 'DECK LOCKED';
-    
-    // Hide keyword panel when locked
-    UI.updateKeywordExplanations(UI.draftKeywordInfo, '');
-    
-    // Play lock sound
-    if (window.AudioSynth) {
-      window.AudioSynth.playLock();
-    }
-    
-    window.SocketService.lockDraft(this.selectedDraftInstanceIds);
-  },
-
-  /**
-   * Animates replacement of unselected cards during mulligan
-   */
-  onDraftMulliganResult(data) {
-    const UI = window.UI;
-    if (!data.replaced || data.replaced.length === 0) return;
-
-    data.replaced.forEach(item => {
-      const cardEl = UI.draftCardsGrid.querySelector(`[data-instance-id="${item.oldId}"]`);
-      if (cardEl) {
-        // Remove selection highlight
-        cardEl.classList.remove('draft-selected');
-
-        // Play flip-down/flip-up shuffle transition
-        anime({
-          targets: cardEl,
-          rotateY: 180,
-          duration: 400,
-          easing: 'easeInQuad',
-          complete: () => {
-            // Replace attribute values
-            cardEl.setAttribute('data-instance-id', item.newCard.instanceId);
-            cardEl.setAttribute('data-element', item.newCard.element);
-            
-            // Re-render front face content
-            const iconClass = UI.getElementIconClass(item.newCard.element);
-            const frontFace = cardEl.querySelector('.card-front');
-            frontFace.innerHTML = `
-              <div class="card-header">
-                <span class="card-name">${item.newCard.name}</span>
-              </div>
-              <div class="card-middle">
-                <i class="card-element-icon fa-solid ${iconClass}"></i>
-                <p class="card-desc">${item.newCard.description}</p>
-              </div>
-              <div class="card-footer">
-                <span class="card-element-name">${item.newCard.element}</span>
-              </div>
-            `;
-            
-            // Add glow outline highlight for newly drawn cards
-            cardEl.classList.add('new-mulligan-glow');
-            
-            // Flip back to face up
-            anime({
-              targets: cardEl,
-              rotateY: 360,
-              duration: 400,
-              easing: 'easeOutQuad',
-              complete: () => {
-                cardEl.style.transform = 'none';
-              }
-            });
-          }
-        });
-      }
-    });
-  },
-
-  /**
-   * Called when both players lock and mulligans are completed
-   */
-  onDraftFinalized() {
-    const UI = window.UI;
-    const subtitle = UI.draftScreen.querySelector('.draft-subtitle');
-    if (subtitle) {
-      subtitle.innerHTML = '<span class="accent-text" style="color: #ffd700;">Finalizing decks... Starting battle soon!</span>';
-    }
-  },
-
-  /**
    * Requests fullscreen and locks screen orientation to landscape on mobile devices
    */
   enterLandscapeImmersive() {
+    // Clean up first to prevent multiple duplicate/leaked listeners
+    if (this._mobileTouchImmersiveHandler) {
+      document.removeEventListener('click', this._mobileTouchImmersiveHandler);
+      document.removeEventListener('touchstart', this._mobileTouchImmersiveHandler);
+    }
+
     document.body.classList.add('force-landscape');
     
     const requestImmersive = () => {
-      // 1. request fullscreen
       const docEl = document.documentElement;
       if (!document.fullscreenElement) {
         if (docEl.requestFullscreen) {
@@ -1046,16 +1072,13 @@ const GameManager = {
           docEl.webkitRequestFullscreen();
         }
       }
-      // 2. lock screen orientation to landscape
       if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('landscape').catch(() => {});
       }
     };
 
-    // Trigger immediately
     requestImmersive();
 
-    // Bind touch listener for mobile browsers requiring direct user gestures
     this._mobileTouchImmersiveHandler = requestImmersive;
     document.addEventListener('click', this._mobileTouchImmersiveHandler);
     document.addEventListener('touchstart', this._mobileTouchImmersiveHandler);
@@ -1073,13 +1096,61 @@ const GameManager = {
       this._mobileTouchImmersiveHandler = null;
     }
 
-    // Exit fullscreen
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('portrait').catch(() => {
+        if (screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      });
+    } else if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+
     if (document.exitFullscreen && document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-    // Unlock screen orientation
-    if (screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
+  },
+
+  /**
+   * Opponent requested a rematch
+   */
+  onRematchRequested() {
+    const rematchBtn = document.getElementById('rematch-btn');
+    if (rematchBtn) {
+      rematchBtn.innerText = 'ACCEPT REMATCH';
+      rematchBtn.style.animation = 'pulseNewCard 1.5s infinite';
+    }
+  },
+
+  /**
+   * Rematch accepted and starting
+   */
+  onRematchStarted() {
+    // Hide game over screen overlay
+    window.UI.gameOverScreen.classList.remove('active');
+    window.UI.gameOverScreen.style.display = 'none';
+    window.UI.gameOverScreen.style.opacity = '0';
+    
+    // Reset rematch button state
+    const rematchBtn = document.getElementById('rematch-btn');
+    if (rematchBtn) {
+      rematchBtn.classList.remove('disabled');
+      rematchBtn.disabled = false;
+      rematchBtn.innerText = 'REMATCH';
+      rematchBtn.style.animation = '';
+    }
+  },
+
+  /**
+   * Opponent left the rematch room
+   */
+  onOpponentLeftRoom() {
+    const rematchBtn = document.getElementById('rematch-btn');
+    if (rematchBtn) {
+      rematchBtn.classList.add('disabled');
+      rematchBtn.disabled = true;
+      rematchBtn.innerText = 'OPPONENT LEFT';
+      rematchBtn.style.animation = '';
     }
   }
 };

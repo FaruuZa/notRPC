@@ -33,28 +33,40 @@ socket.on('matchFound', (data) => {
   }
 });
 
-// Draft socket event handlers
-socket.on('draftStart', (data) => {
+// Draft / Rework socket event handlers
+socket.on('roundFinished', (data) => {
   if (window.gameManager) {
-    window.gameManager.onDraftStart(data);
+    window.gameManager.onRoundFinished(data);
   }
 });
 
-socket.on('opponentDraftLocked', () => {
+socket.on('bonusPickStart', (data) => {
   if (window.gameManager) {
-    window.gameManager.onOpponentDraftLocked();
+    window.gameManager.onBonusPickStart(data);
   }
 });
 
-socket.on('draftMulliganResult', (data) => {
+socket.on('waitingForOpponentBonus', () => {
   if (window.gameManager) {
-    window.gameManager.onDraftMulliganResult(data);
+    window.gameManager.onWaitingForOpponentBonus();
   }
 });
 
-socket.on('draftFinalized', () => {
+socket.on('bonusPickLocked', (data) => {
   if (window.gameManager) {
-    window.gameManager.onDraftFinalized();
+    window.gameManager.onBonusPickLocked(data);
+  }
+});
+
+socket.on('packSelectionStart', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onPackSelectionStart(data);
+  }
+});
+
+socket.on('packRevealStart', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onPackRevealStart(data);
   }
 });
 
@@ -108,7 +120,29 @@ socket.on('gameOver', (data) => {
 });
 
 socket.on('error', (message) => {
-  alert(message);
+  if (window.UI && window.UI.showToast) {
+    window.UI.showToast(message);
+  } else {
+    console.error('Game Error:', message);
+  }
+});
+
+socket.on('rematchRequested', () => {
+  if (window.gameManager) {
+    window.gameManager.onRematchRequested();
+  }
+});
+
+socket.on('rematchStarted', () => {
+  if (window.gameManager) {
+    window.gameManager.onRematchStarted();
+  }
+});
+
+socket.on('opponentLeftRoom', () => {
+  if (window.gameManager) {
+    window.gameManager.onOpponentLeftRoom();
+  }
 });
 
 // Outbound events wrapper
@@ -119,14 +153,29 @@ const SocketService = {
   leaveQueue() {
     socket.emit('leaveQueue');
   },
-  lockDraft(selectedInstanceIds) {
-    socket.emit('lockDraft', selectedInstanceIds);
-  },
   selectCard(cardInstanceId) {
     socket.emit('selectCard', cardInstanceId);
   },
   lockSelection() {
     socket.emit('lockSelection');
+  },
+  selectBonusCard(cardTemplateId) {
+    socket.emit('selectBonusCard', cardTemplateId);
+  },
+  selectPack(packId) {
+    socket.emit('selectPack', packId);
+  },
+  packRevealConfirm() {
+    socket.emit('packRevealConfirm');
+  },
+  surrender() {
+    socket.emit('surrender');
+  },
+  requestRematch() {
+    socket.emit('requestRematch');
+  },
+  leaveRoom() {
+    socket.emit('leaveRoom');
   }
 };
 

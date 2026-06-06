@@ -178,6 +178,27 @@ const AudioSynth = {
     playTone(220.00, 0.0, 0.4); // A3
     playTone(207.65, 0.4, 0.4); // G#3
     playTone(196.00, 0.8, 0.7); // G3
+  },
+
+  playShieldBreak() {
+    this.init();
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    // High metal clink / shield sound
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.18);
+    
+    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.18);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.18);
   }
 };
 
@@ -188,6 +209,11 @@ const UI = {
   draftScreen: document.getElementById('draft-screen'),
   battleScreen: document.getElementById('battle-screen'),
   gameOverScreen: document.getElementById('game-over-screen'),
+  roundResultOverlay: document.getElementById('round-result-overlay'),
+  bonusPickScreen: document.getElementById('bonus-pick-screen'),
+  waitingScreen: document.getElementById('waiting-screen'),
+  packSelectionScreen: document.getElementById('pack-selection-screen'),
+  packRevealScreen: document.getElementById('pack-reveal-screen'),
   
   // Matchmaking elements
   usernameInput: document.getElementById('username-input'),
@@ -211,6 +237,7 @@ const UI = {
   playerShieldVal: document.getElementById('player-shield-val'),
   playerShieldBox: document.getElementById('player-shield-box'),
   playerStatusContainer: document.getElementById('player-status-container'),
+  playerPoints: document.getElementById('player-points'),
   
   enemyName: document.getElementById('enemy-name'),
   enemyHpVal: document.getElementById('enemy-hp-val'),
@@ -218,6 +245,7 @@ const UI = {
   enemyShieldVal: document.getElementById('enemy-shield-val'),
   enemyShieldBox: document.getElementById('enemy-shield-box'),
   enemyStatusContainer: document.getElementById('enemy-status-container'),
+  enemyPoints: document.getElementById('enemy-points'),
   
   enemyCardDots: document.getElementById('enemy-card-dots'),
   battleKeywordInfo: document.getElementById('battle-keyword-info'),
@@ -233,10 +261,20 @@ const UI = {
   playerHand: document.getElementById('player-hand'),
   lockBtn: document.getElementById('lock-btn'),
   
+  // Draft Phase elements
+  bonusCardsFan: document.getElementById('bonus-cards-fan'),
+  bonusConfirmBtn: document.getElementById('bonus-confirm-btn'),
+  packsSelectionGrid: document.getElementById('packs-selection-grid'),
+  revealedPackCard: document.getElementById('revealed-pack-card'),
+  revealedPackName: document.getElementById('revealed-pack-name'),
+  revealCardsFan: document.getElementById('reveal-cards-fan'),
+  revealFooter: document.getElementById('reveal-footer'),
+  packRevealConfirmBtn: document.getElementById('pack-reveal-confirm-btn'),
+
   // Game Over Elements
   gameOverTitle: document.getElementById('game-over-title'),
   gameOverMsg: document.getElementById('game-over-msg'),
-  goFinalHp: document.getElementById('go-final-hp'),
+  goFinalScore: document.getElementById('go-final-score'),
   goRounds: document.getElementById('go-rounds'),
   goLobbyBtn: document.getElementById('go-lobby-btn'),
   
@@ -246,13 +284,26 @@ const UI = {
 
   /**
    * Toggles active screens
-   * @param {string} screenName 'lobby' | 'draft' | 'battle' | 'gameOver'
+   * @param {string} screenName 'lobby' | 'draft' | 'battle' | 'gameOver' | 'bonusPick' | 'waiting' | 'packSelection' | 'packReveal'
    */
   showScreen(screenName) {
     this.matchmakingScreen.classList.remove('active');
     if (this.draftScreen) this.draftScreen.classList.remove('active');
     this.battleScreen.classList.remove('active');
     this.gameOverScreen.classList.remove('active');
+    this.gameOverScreen.style.display = 'none';
+    this.gameOverScreen.style.opacity = '0';
+    if (this.bonusPickScreen) this.bonusPickScreen.classList.remove('active');
+    if (this.waitingScreen) this.waitingScreen.classList.remove('active');
+    if (this.packSelectionScreen) this.packSelectionScreen.classList.remove('active');
+    if (this.packRevealScreen) this.packRevealScreen.classList.remove('active');
+
+    // Hide round overlay if switching screens
+    if (this.roundResultOverlay) {
+      this.roundResultOverlay.classList.remove('active');
+      this.roundResultOverlay.style.display = 'none';
+      this.roundResultOverlay.style.opacity = '0';
+    }
 
     if (screenName === 'lobby') {
       this.matchmakingScreen.classList.add('active');
@@ -262,6 +313,14 @@ const UI = {
       this.battleScreen.classList.add('active');
     } else if (screenName === 'gameOver') {
       this.gameOverScreen.classList.add('active');
+    } else if (screenName === 'bonusPick') {
+      if (this.bonusPickScreen) this.bonusPickScreen.classList.add('active');
+    } else if (screenName === 'waiting') {
+      if (this.waitingScreen) this.waitingScreen.classList.add('active');
+    } else if (screenName === 'packSelection') {
+      if (this.packSelectionScreen) this.packSelectionScreen.classList.add('active');
+    } else if (screenName === 'packReveal') {
+      if (this.packRevealScreen) this.packRevealScreen.classList.add('active');
     }
   },
 
@@ -630,10 +689,38 @@ const UI = {
    * Updates player/enemy shield indicators
    */
   updateShield(elementBox, elementText, val) {
+    const oldVal = parseInt(elementText.innerText) || 0;
     elementText.innerText = val;
+    
     if (val > 0) {
       elementBox.classList.remove('empty');
-    } else {
+    }
+
+    if (val < oldVal) {
+      // Shield took damage! Play flash & shake animation
+      elementBox.classList.remove('shield-flash');
+      // trigger reflow
+      void elementBox.offsetWidth;
+      elementBox.classList.add('shield-flash');
+      
+      if (val === 0) {
+        // Keep visible during the flash animation
+        elementBox.classList.remove('empty');
+        setTimeout(() => {
+          elementBox.classList.remove('shield-flash');
+          elementBox.classList.add('empty');
+        }, 350);
+      } else {
+        setTimeout(() => {
+          elementBox.classList.remove('shield-flash');
+        }, 300);
+      }
+      
+      // Play shield damage sound
+      if (window.AudioSynth && window.AudioSynth.playShieldBreak) {
+        window.AudioSynth.playShieldBreak();
+      }
+    } else if (val === 0) {
       elementBox.classList.add('empty');
     }
   },
@@ -672,6 +759,64 @@ const UI = {
     if (legendBtn) legendBtn.classList.remove('active');
     const legendPanel = document.getElementById('element-legend-panel');
     if (legendPanel) legendPanel.classList.add('hidden');
+  },
+
+  /**
+   * Lights up the round win point indicators on HUD
+   */
+  renderPoints(container, score) {
+    if (!container) return;
+    const dots = container.querySelectorAll('.point-dot');
+    dots.forEach((dot, idx) => {
+      if (idx < score) {
+        dot.classList.add('filled');
+      } else {
+        dot.classList.remove('filled');
+      }
+    });
+  },
+
+  /**
+   * Shows a premium, non-blocking floating notification toast
+   */
+  showToast(message) {
+    let toast = document.getElementById('game-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'game-toast';
+      toast.className = 'glass';
+      toast.style.position = 'fixed';
+      toast.style.top = '1.5rem';
+      toast.style.left = '50%';
+      toast.style.transform = 'translateX(-50%) translateY(-100px)';
+      toast.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+      toast.style.opacity = '0';
+      toast.style.padding = '0.75rem 2rem';
+      toast.style.borderRadius = '4px';
+      toast.style.border = '2.5px solid var(--border-brass)';
+      toast.style.background = 'rgba(21, 24, 33, 0.95)';
+      toast.style.color = '#fff';
+      toast.style.fontFamily = 'var(--font-title)';
+      toast.style.fontWeight = '700';
+      toast.style.fontSize = '0.9rem';
+      toast.style.zIndex = '99999';
+      toast.style.boxShadow = '0 10px 25px rgba(0,0,0,0.8)';
+      toast.style.textAlign = 'center';
+      toast.style.minWidth = '280px';
+      document.body.appendChild(toast);
+    }
+    
+    toast.innerText = message;
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    toast.style.opacity = '1';
+    
+    if (this._toastTimeout) {
+      clearTimeout(this._toastTimeout);
+    }
+    this._toastTimeout = setTimeout(() => {
+      toast.style.transform = 'translateX(-50%) translateY(-120px)';
+      toast.style.opacity = '0';
+    }, 3200);
   }
 };
 

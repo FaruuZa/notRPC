@@ -1,0 +1,190 @@
+/* =============================================================================
+   MOBILE LANDSCAPE AND COMPACT SCREEN OPTIMIZATIONS
+   ============================================================================= */
+
+@media (max-width: 900px), (max-height: 550px) {
+  /* Scale down the entire screen container gap */
+  .draft-container {
+    max-width: 95% !important;
+    gap: 0.2rem !important;
+  }
+
+  /* Shrink draft headers */
+  .draft-header {
+    gap: 0.05rem !important;
+    margin-bottom: 0.1rem !important;
+  }
+  
+  .draft-title {
+    font-size: 1.15rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .draft-subtitle {
+    font-size: 0.62rem !important;
+    margin-top: 0.05rem !important;
+  }
+
+  .logo-sub {
+    font-size: 0.5rem !important;
+    letter-spacing: 2px !important;
+  }
+
+  /* Pack Selection Grid adjustments */
+  .packs-grid {
+    margin: 0.3rem auto !important;
+    gap: 0.8rem !important;
+    padding: 0.2rem !important;
+  }
+
+  /* Shrink booster pack items vertically to fit within height */
+  .pack-item {
+    width: 120px !important;
+    height: 165px !important;
+    padding: 0.8rem 0.5rem !important;
+  }
+
+  .pack-item::before, .pack-graphic::before {
+    height: 10px !important;
+  }
+  
+  .pack-item::after, .pack-graphic::after {
+    height: 10px !important;
+  }
+
+  .pack-theme {
+    font-size: 0.55rem !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .pack-title {
+    font-size: 0.8rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .pack-desc {
+    font-size: 0.55rem !important;
+    margin-top: 0.3rem !important;
+    line-height: 1.2 !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+
+  .pack-action-hint {
+    font-size: 0.6rem !important;
+    padding: 0.15rem !important;
+    margin-top: 0.3rem !important;
+  }
+
+  /* Pack opening and card fanning adjustments */
+  .pack-opening-area {
+    min-height: 145px !important;
+  }
+
+  .pack-graphic {
+    width: 120px !important;
+    height: 165px !important;
+    padding: 0.8rem 0.5rem !important;
+  }
+
+  .pack-logo {
+    font-size: 0.95rem !important;
+  }
+
+  .pack-name-text {
+    font-size: 0.62rem !important;
+  }
+
+  .horizontal-fan-container {
+    margin: 0.2rem auto !important;
+    min-height: 125px !important;
+    padding: 0.2rem !important;
+  }
+
+  /* Medium-sized cards to balance spacing and legibility */
+  .horizontal-fan-container .card {
+    margin-right: -1.6rem !important; /* tighter overlap for larger size */
+    width: 80px !important;
+    height: 112px !important;
+    border-width: 2px !important;
+  }
+
+  .horizontal-fan-container .card .card-face {
+    padding: 0.12rem !important;
+  }
+
+  .horizontal-fan-container .card .card-front {
+    outline-offset: -1px !important;
+  }
+
+  .horizontal-fan-container .card .card-name {
+    font-size: 0.5rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .horizontal-fan-container .card .card-middle {
+    margin: 0.05rem 0 !important;
+    padding: 0.01rem !important;
+  }
+
+  .horizontal-fan-container .card .card-element-icon {
+    font-size: 0.8rem !important;
+  }
+
+  .horizontal-fan-container .card .card-desc {
+    font-size: 0.38rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .horizontal-fan-container .card .card-element-name {
+    font-size: 0.5rem !important;
+  }
+
+  .horizontal-fan-container .card-back::after {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.72rem !important;
+    border-width: 1px !important;
+  }
+
+  /* Specific rotation/translation overrides for 4-card fan inside the smaller box */
+  .horizontal-fan-container .card:nth-child(1) { transform: rotate(-5deg) translateY(3px) !important; }
+  .horizontal-fan-container .card:nth-child(2) { transform: rotate(-1.5deg) translateY(-1px) !important; }
+  .horizontal-fan-container .card:nth-child(3) { transform: rotate(1.5deg) translateY(-1px) !important; }
+  .horizontal-fan-container .card:nth-child(4) { transform: rotate(5deg) translateY(3px) !important; }
+
+  /* Double fan rotation for 3 cards (Loser bonus) */
+  #bonus-cards-fan .card:nth-child(1) { transform: rotate(-4deg) translateY(2px) !important; }
+  #bonus-cards-fan .card:nth-child(2) { transform: rotate(0deg) translateY(-1px) !important; }
+  #bonus-cards-fan .card:nth-child(3) { transform: rotate(4deg) translateY(2px) !important; }
+
+  /* Premium hover scale adjustment to fit mobile limits */
+  .horizontal-fan-container .card:hover {
+    transform: translateY(-18px) scale(1.15) rotate(0deg) !important;
+  }
+
+  /* Surrender button on mobile */
+  .btn-surrender {
+    top: 0.35rem !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.68rem !important;
+  }
+
+  /* Footer button adjustment */
+  .draft-footer {
+    margin-top: 0.1rem !important;
+  }
+
+  .draft-footer .btn {
+    padding: 0.45rem 1rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Game toast placement on mobile landscape */
+  #game-toast {
+    top: 0.5rem !important;
+    font-size: 0.72rem !important;
+    padding: 0.35rem 1.2rem !important;
+    min-width: 200px !important;
+    border-width: 1.5px !important;
+  }
+}

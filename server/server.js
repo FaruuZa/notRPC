@@ -44,9 +44,19 @@ const express = require('express');
       matchmaking.leave(socket.id, io);
     });
   
-    // Player locks their chosen deck in draft phase
-    socket.on('lockDraft', (selectedInstanceIds) => {
-      roomManager.handleLockDraft(socket, selectedInstanceIds, io);
+    // Player selects a loser bonus card in draft phase
+    socket.on('selectBonusCard', (cardTemplateId) => {
+      roomManager.handleSelectBonusCard(socket, cardTemplateId, io);
+    });
+  
+    // Player selects a pack in draft phase
+    socket.on('selectPack', (packId) => {
+      roomManager.handleSelectPack(socket, packId, io);
+    });
+  
+    // Player confirms their pack reveal animation is finished
+    socket.on('packRevealConfirm', () => {
+      roomManager.handlePackRevealConfirm(socket, io);
     });
   
     // Player selects a card in battle
@@ -57,6 +67,21 @@ const express = require('express');
     // Player locks their selection in battle
     socket.on('lockSelection', () => {
       roomManager.handleLockSelection(socket, io);
+    });
+
+    // Player surrenders the match
+    socket.on('surrender', () => {
+      roomManager.handleSurrender(socket, io);
+    });
+
+    // Player requests a rematch after match is over
+    socket.on('requestRematch', () => {
+      roomManager.handleRequestRematch(socket, io);
+    });
+
+    // Player leaves the game room (returns to lobby)
+    socket.on('leaveRoom', () => {
+      roomManager.handleLeaveRoom(socket, io);
     });
   
     // Player disconnects (tab closed, internet drop, etc.)
