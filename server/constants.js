@@ -403,73 +403,66 @@ const CARD_POOL = [
     id: 'chaos_strike',
     name: 'Chaos Strike',
     element: ELEMENTS.CHAOS,
-    // NERFED Superior: 18 dmg (was 20). Added clear Inferior outcome vs NEUTRAL.
-    description: 'Superior: 15 dmg. Neutral: 5 dmg & 8 self dmg. Inferior: 6 self dmg.',
+    description: 'Superior: 12 dmg. Neutral: 4 dmg & 6 self dmg. Inferior: 10 self dmg.',
     outcomes: {
-      SUPERIOR: { damage: 15, shield: 0, selfDamage: 0 },
-      NEUTRAL:  { damage: 5,  shield: 0, selfDamage: 8 },
-      INFERIOR: { damage: 0,  shield: 0, selfDamage: 6 }
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 4,  shield: 0, selfDamage: 6 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 10 }
     }
   },
   {
     id: 'chaos_blast',
     name: 'Chaos Blast',
     element: ELEMENTS.CHAOS,
-    // UNCHANGED but now Inferior makes sense (vs NEUTRAL)
-    description: 'Superior: 18 dmg. Neutral: 12 self dmg. Inferior: 8 self dmg.',
+    description: 'Superior: 14 dmg. Neutral: 12 self dmg. Inferior: 8 self dmg & <span class="kw-weak">WEAK [2]</span> to self.',
     outcomes: {
-      SUPERIOR: { damage: 18, shield: 0, selfDamage: 0 },
+      SUPERIOR: { damage: 14, shield: 0, selfDamage: 0 },
       NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 12 },
-      INFERIOR: { damage: 0,  shield: 0, selfDamage: 8 }
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 8, applyStatus: { self: { weakness: 2 } } }
     }
   },
   {
     id: 'chaos_overdrive',
     name: 'Chaos Overdrive',
     element: ELEMENTS.CHAOS,
-    // Added Inferior: 4 self dmg (vs NEUTRAL — previously missing)
-    description: 'Superior: 12 dmg & <span class="kw-buff">BUFF [2]</span>. Neutral: <span class="kw-buff">BUFF [1]</span> & 6 self dmg. Inferior: 4 self dmg & <span class="kw-weak">WEAK [2]</span> to self.',
+    description: 'Superior: 10 dmg, <span class="kw-buff">BUFF [2]</span> & <span class="kw-weak">WEAK [1]</span> to self. Neutral: <span class="kw-buff">BUFF [1]</span> & 8 self dmg. Inferior: 6 self dmg & <span class="kw-weak">WEAK [2]</span> to self.',
     outcomes: {
-      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } },
-      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 6, applyStatus: { self: { attackBuff: 1 } } },
-      INFERIOR: { damage: 0,  shield: 0, selfDamage: 4, applyStatus: { self: { weakness: 2 } } },
+      SUPERIOR: { damage: 10, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2, weakness: 1 } } },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 8, applyStatus: { self: { attackBuff: 1 } } },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 6, applyStatus: { self: { weakness: 2 } } },
     }
   },
   {
     id: 'void_pact',
     name: 'Void Pact',
     element: ELEMENTS.CHAOS,
-    // NEW: INTENTIONAL INFERIOR BENEFIT — weak when winning, massive counter when losing to NEUTRAL
-    // Mind-game card: punishes NEUTRAL players who think they're safe countering Chaos
-    description: 'Superior: 2 dmg. Neutral: 2 dmg. Inferior: 20 dmg (counter vs NEUTRAL!).',
+    description: 'Superior: 3 dmg. Neutral: 3 dmg & <span class="kw-weak">WEAK [1]</span> to self. Inferior: 15 dmg & 5 self dmg.',
     outcomes: {
-      SUPERIOR: { damage: 2,  shield: 0, selfDamage: 0 },
-      NEUTRAL:  { damage: 2,  shield: 0, selfDamage: 0 },
-      INFERIOR: { damage: 20, shield: 0, selfDamage: 0 }
+      SUPERIOR: { damage: 3,  shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 3,  shield: 0, selfDamage: 0, applyStatus: { self: { weakness: 1 } } },
+      INFERIOR: { damage: 15, shield: 0, selfDamage: 5 }
     }
   },
   {
     id: 'chaos_reversal',
     name: 'Chaos Reversal',
     element: ELEMENTS.CHAOS,
-    // NEW: INTENTIONAL INFERIOR BENEFIT — garbage when winning, devastating + BUFF when losing to NEUTRAL
-    // Forces opponent to reconsider playing NEUTRAL against Chaos
-    description: 'Superior: 6 dmg. Neutral: 3 self dmg. Inferior: 14 dmg & <span class="kw-buff">BUFF [2]</span>.',
+    description: 'Superior: 5 dmg & <span class="kw-burn">BURN [1]</span> to self. Neutral: 5 self dmg. Inferior: 11 dmg & <span class="kw-buff">BUFF [2]</span>.',
     outcomes: {
-      SUPERIOR: { damage: 6,  shield: 0, selfDamage: 0 },
-      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 3 },
-      INFERIOR: { damage: 14, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } }
+      SUPERIOR: { damage: 5,  shield: 0, selfDamage: 0, applyStatus: { self: { burn: 1 } } },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 5 },
+      INFERIOR: { damage: 11, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } }
     }
   },
   {
     id: 'entropy',
     name: 'Entropy',
     element: ELEMENTS.CHAOS,
-    description: 'Superior: 4 dmg & <span class="kw-poison">POISON [3]</span>. Neutral: <span class="kw-poison">POISON [2]</span> to All. Inferior: <span class="kw-poison">POISON [3]</span> to self.',
+    description: 'Superior: 3 dmg & <span class="kw-poison">POISON [2]</span>. Neutral: <span class="kw-poison">POISON [1]</span> to opponent & <span class="kw-poison">POISON [2]</span> to self. Inferior: 4 self dmg & <span class="kw-poison">POISON [3]</span> to self.',
     outcomes: {
-      SUPERIOR: { damage: 4, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 3 } } },
-      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 2 }, self: { poison: 2 } } },
-      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { poison: 3 } } }
+      SUPERIOR: { damage: 3, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 1 }, self: { poison: 2 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 4, applyStatus: { self: { poison: 3 } } }
     }
   },
   {
@@ -524,12 +517,12 @@ const CARD_POOL = [
     id: 'pandemonium',
     name: 'Pandemonium',
     element: ELEMENTS.CHAOS,
-    description: 'Superior: 25 dmg. Neutral: <span class="kw-burn">BURN [2]</span> to All. Inferior: 10 self dmg.',
+    description: 'Superior: 18 dmg. Neutral: <span class="kw-burn">BURN [2]</span> to All & 6 self dmg. Inferior: 15 self dmg & <span class="kw-weak">WEAK [2]</span> to self.',
     isDraftExclusive: true,
     outcomes: {
-      SUPERIOR: { damage: 25, shield: 0, selfDamage: 0 },
-      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 2 }, self: { burn: 2 } } },
-      INFERIOR: { damage: 0,  shield: 0, selfDamage: 10 }
+      SUPERIOR: { damage: 18, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 6, applyStatus: { opponent: { burn: 2 }, self: { burn: 2 } } },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 15, applyStatus: { self: { weakness: 2 } } }
     }
   }
 ];
@@ -538,8 +531,8 @@ const PACK_TYPES = {
   FIRE_PACK: 'FIRE_PACK',
   WATER_PACK: 'WATER_PACK',
   NATURE_PACK: 'NATURE_PACK',
-  WILD_PACK: 'WILD_PACK',
   ELEMENTAL_PACK: 'ELEMENTAL_PACK',
+  HYBRID_PACK: 'HYBRID_PACK',
   UNIVERSAL_PACK: 'UNIVERSAL_PACK',
   BURN_PACK: 'BURN_PACK',
   POISON_PACK: 'POISON_PACK',
@@ -549,6 +542,7 @@ const PACK_TYPES = {
   CONTROL_PACK: 'CONTROL_PACK',
   STATUS_PACK: 'STATUS_PACK',
   COUNTER_PACK: 'COUNTER_PACK',
+  RISK_PACK: 'RISK_PACK',
   GAMBLER_PACK: 'GAMBLER_PACK',
   REVENGE_PACK: 'REVENGE_PACK',
   TRAP_PACK: 'TRAP_PACK',
@@ -574,17 +568,17 @@ const PACK_POOL = {
     description: 'Poisonous vines and restoring blooms from the jungle.',
     color: 'linear-gradient(135deg, #27ae60, #2ecc71)'
   },
-  [PACK_TYPES.WILD_PACK]: {
-    name: 'Chaos Singularity',
-    theme: 'Chaos Spec',
-    description: 'Unstable and volatile Chaos cards. High risk, extreme reward.',
-    color: 'linear-gradient(135deg, #8e44ad, #2c3e50)'
-  },
   [PACK_TYPES.ELEMENTAL_PACK]: {
     name: 'Elemental Conflux',
     theme: 'Tri-Element',
     description: 'A balanced mix of Fire, Water, and Nature cards.',
     color: 'linear-gradient(135deg, #16a085, #f1c40f)'
+  },
+  [PACK_TYPES.HYBRID_PACK]: {
+    name: 'Entropy Fusion',
+    theme: 'Elemental & Chaos',
+    description: 'A volatile combination of traditional elements and chaotic energy.',
+    color: 'linear-gradient(135deg, #16a085, #8e44ad)'
   },
   [PACK_TYPES.UNIVERSAL_PACK]: {
     name: 'Emperor Trunk',
@@ -640,10 +634,16 @@ const PACK_POOL = {
     description: 'Contains cards that excel when they lose a clash.',
     color: 'linear-gradient(135deg, #2c3e50, #e74c3c)'
   },
+  [PACK_TYPES.RISK_PACK]: {
+    name: 'Reckless Gambit',
+    theme: 'Self-Harm & Power',
+    description: 'High reward cards that demand HP or apply self debuffs.',
+    color: 'linear-gradient(135deg, #e74c3c, #2c3e50)'
+  },
   [PACK_TYPES.GAMBLER_PACK]: {
-    name: 'Risk Vault',
-    theme: 'High Risk/Reward',
-    description: 'High variance cards. Might damage you, but will crush them.',
+    name: 'Chaos Casino',
+    theme: 'High Variance',
+    description: 'Roll the dice with extreme damage variance and self-inflicted pain.',
     color: 'linear-gradient(135deg, #d35400, #2c3e50)'
   },
   [PACK_TYPES.REVENGE_PACK]: {

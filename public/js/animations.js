@@ -291,6 +291,9 @@ const Animations = {
     } else if (type === 'poison') {
       colorClass = 'poison-tick';
       text = `<i class="fa-solid fa-skull-crossbones"></i> -${value} POISON`;
+    } else if (type === 'shield-decay') {
+      colorClass = 'shield-decay';
+      text = `<i class="fa-solid fa-shield-halved"></i> -${value} DECAY`;
     } else {
       colorClass = 'red';
       text = `-${value} HP`;
@@ -366,6 +369,110 @@ const Animations = {
       easing: 'easeOutBack',
       complete: () => {
         shieldOverlay.remove();
+      }
+    });
+  },
+
+  /**
+   * Animates a floating overlay over a card to signify actions like buffing, debuffing, healing, self damage
+   */
+  animateCardActionOverlay(cardEl, actionType, text) {
+    if (!cardEl) return;
+
+    // Create action overlay element
+    const overlay = document.createElement('div');
+    overlay.className = `card-action-overlay ${actionType}`;
+
+    let iconHtml = '';
+    let color = '';
+    let border = '';
+    let bg = '';
+    let glow = '';
+
+    if (actionType === 'buff') {
+      iconHtml = '<i class="fa-solid fa-bolt"></i>';
+      color = '#ff9f43';
+      border = '3px solid #ff9f43';
+      bg = 'rgba(255, 159, 67, 0.28)';
+      glow = '0 0 20px rgba(255, 159, 67, 0.6)';
+    } else if (actionType === 'debuff') {
+      iconHtml = '<i class="fa-solid fa-arrow-down-long"></i>';
+      color = '#a55eea';
+      border = '3px solid #a55eea';
+      bg = 'rgba(165, 94, 234, 0.28)';
+      glow = '0 0 20px rgba(165, 94, 234, 0.6)';
+    } else if (actionType === 'heal') {
+      iconHtml = '<i class="fa-solid fa-heart"></i>';
+      color = '#2ed573';
+      border = '3px solid #2ed573';
+      bg = 'rgba(46, 213, 115, 0.28)';
+      glow = '0 0 20px rgba(46, 213, 115, 0.6)';
+    } else if (actionType === 'self-damage') {
+      iconHtml = '<i class="fa-solid fa-heart-crack"></i>';
+      color = '#ff4757';
+      border = '3px solid #ff4757';
+      bg = 'rgba(255, 71, 87, 0.28)';
+      glow = '0 0 20px rgba(255, 71, 87, 0.6)';
+    } else if (actionType === 'shield-gain') {
+      iconHtml = '<i class="fa-solid fa-shield-halved"></i>';
+      color = '#4dabf7';
+      border = '3px solid #4dabf7';
+      bg = 'rgba(77, 171, 247, 0.28)';
+      glow = '0 0 20px rgba(77, 171, 247, 0.6)';
+    } else if (actionType === 'cleanse') {
+      iconHtml = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
+      color = '#f1f2f6';
+      border = '3px solid #f1f2f6';
+      bg = 'rgba(241, 242, 246, 0.28)';
+      glow = '0 0 20px rgba(241, 242, 246, 0.6)';
+    }
+
+    overlay.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      background: ${bg};
+      color: ${color};
+      border: ${border};
+      border-radius: 4px;
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: ${glow};
+      text-shadow: 0 0 10px ${color};
+    `;
+
+    const iconSpan = document.createElement('span');
+    iconSpan.style.fontSize = '2.4rem';
+    iconSpan.innerHTML = iconHtml;
+
+    const textSpan = document.createElement('span');
+    textSpan.style.fontFamily = 'var(--font-title)';
+    textSpan.style.fontSize = '0.82rem';
+    textSpan.style.fontWeight = '850';
+    textSpan.style.letterSpacing = '1px';
+    textSpan.style.textTransform = 'uppercase';
+    textSpan.innerText = text;
+
+    overlay.appendChild(iconSpan);
+    overlay.appendChild(textSpan);
+    cardEl.appendChild(overlay);
+
+    anime({
+      targets: overlay,
+      opacity: [0, 1, 1, 0],
+      scale: [0.75, 1.05, 1],
+      duration: 650,
+      easing: 'easeOutBack',
+      complete: () => {
+        overlay.remove();
       }
     });
   },

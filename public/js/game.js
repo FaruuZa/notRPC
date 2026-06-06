@@ -165,6 +165,35 @@ const GameManager = {
       });
     }
 
+    // Deck view button click handler
+    const viewDeckBtn = document.getElementById('view-deck-btn');
+    const deckModal = document.getElementById('deck-modal');
+    const deckCloseBtn = document.getElementById('deck-close-btn');
+
+    if (viewDeckBtn && deckModal) {
+      viewDeckBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        this.renderDeckModal();
+        deckModal.classList.add('active');
+      });
+    }
+
+    if (deckCloseBtn && deckModal) {
+      deckCloseBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        deckModal.classList.remove('active');
+      });
+    }
+
+    if (deckModal) {
+      deckModal.addEventListener('click', (e) => {
+        if (e.target === deckModal) {
+          window.AudioSynth.playClick();
+          deckModal.classList.remove('active');
+        }
+      });
+    }
+
     // Rematch button click handler
     const rematchBtn = document.getElementById('rematch-btn');
     if (rematchBtn) {
@@ -365,9 +394,14 @@ const GameManager = {
    * CSS absolute-positioning / transform conflicts in the hand container),
    * then rendering cards directly in arena slots.
    */
-  tryResolveVisualPipeline() {
+  async tryResolveVisualPipeline() {
     // Run only when BOTH payloads have successfully landed
     if (!this.currentRoundReveal || !this.currentRoundResult) return;
+
+    // Await any active local card lock flight animation to prevent race conditions
+    if (window.cardFlightPromise) {
+      await window.cardFlightPromise;
+    }
 
     const UI = window.UI;
     const Animations = window.Animations;
@@ -384,69 +418,84 @@ const GameManager = {
 
     // 1. Locate player card inside fanned hand DOM
     const playedCardId = reveal.yourCard.instanceId;
-    const playerCardEl = document.getElementById(`card-${playedCardId}`);
+    const playerCardEl = UI.playerHand.querySelector(`.card[data-instance-id="${playedCardId}"]`);
 
-    // --- Player Card: Clone-based flight to avoid CSS transform interference ---
-    if (playerCardEl) {
-      const cardRect = playerCardEl.getBoundingClientRect();
-      const slotRect = UI.playerPlaySlot.getBoundingClientRect();
+    // Check if the card is already in the player play slot
+    const alreadyInSlot = UI.playerPlaySlot.querySelector(`.card[data-instance-id="${playedCardId}"]`) !== null;
 
-      if (cardRect.width > 0 && slotRect.width > 0) {
-        // Create a clone that flies in page-coordinate space
-        const clone = playerCardEl.cloneNode(true);
-        clone.style.cssText = `
-          position: fixed;
-          left: ${cardRect.left}px;
-          top: ${cardRect.top}px;
-          width: ${cardRect.width}px;
-          height: ${cardRect.height}px;
-          margin: 0;
-          z-index: 200;
-          pointer-events: none;
-          transform: none;
-          transition: none;
-        `;
-        document.body.appendChild(clone);
-
-        // Hide original card immediately
+    if (alreadyInSlot) {
+      // Card is already in slot, ensure hand element is hidden cleanly
+      if (playerCardEl) {
         playerCardEl.style.opacity = '0';
         playerCardEl.style.pointerEvents = 'none';
+      }
+    } else {
+      // --- Player Card: Clone-based flight to avoid CSS transform interference ---
+      if (playerCardEl) {
+        const cardRect = playerCardEl.getBoundingClientRect();
+        const slotRect = UI.playerPlaySlot.getBoundingClientRect();
 
-        const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
-        const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
-        const scaleVal = Math.min(slotRect.width / cardRect.width, slotRect.height / cardRect.height);
+        if (cardRect.width > 0 && slotRect.width > 0) {
+          // Create a clone that flies in page-coordinate space
+          const clone = playerCardEl.cloneNode(true);
+          clone.removeAttribute('id'); // Remove id from flight clone
+          clone.style.cssText = `
+            position: fixed;
+            left: ${cardRect.left}px;
+            top: ${cardRect.top}px;
+            width: ${cardRect.width}px;
+            height: ${cardRect.height}px;
+            margin: 0;
+            z-index: 200;
+            pointer-events: none;
+            transform: none;
+            transition: none;
+          `;
+          document.body.appendChild(clone);
 
-        anime({
-          targets: clone,
-          translateX: targetX,
-          translateY: targetY,
-          scale: scaleVal,
-          duration: 300,
-          easing: 'easeOutQuint',
-          complete: () => {
-            clone.remove();
-            // Place a proper fresh card into the slot
-            const slotCard = UI.createCardElement(reveal.yourCard);
-            slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
-            UI.playerPlaySlot.innerHTML = '';
-            UI.playerPlaySlot.appendChild(slotCard);
-          }
-        });
+          // Hide original card immediately
+          playerCardEl.style.opacity = '0';
+          playerCardEl.style.pointerEvents = 'none';
+
+          const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
+          const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
+          const scaleVal = Math.min(slotRect.width / cardRect.width, slotRect.height / cardRect.height);
+
+          anime({
+            targets: clone,
+            translateX: targetX,
+            translateY: targetY,
+            scale: scaleVal,
+            duration: 300,
+            easing: 'easeOutQuint',
+            complete: () => {
+              clone.remove();
+              // Place a proper fresh card into the slot
+              const slotCard = UI.createCardElement(reveal.yourCard);
+              slotCard.removeAttribute('id'); // Remove duplicate ID
+              slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
+              UI.playerPlaySlot.innerHTML = '';
+              UI.playerPlaySlot.appendChild(slotCard);
+            }
+          });
+        } else {
+          // Fallback: no valid rects, just place card
+          const fallbackCard = UI.createCardElement(reveal.yourCard);
+          fallbackCard.removeAttribute('id'); // Remove duplicate ID
+          fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
+          UI.playerPlaySlot.innerHTML = '';
+          UI.playerPlaySlot.appendChild(fallbackCard);
+        }
       } else {
-        // Fallback: no valid rects, just place card
+        // Card element not found — render directly
         const fallbackCard = UI.createCardElement(reveal.yourCard);
+        fallbackCard.removeAttribute('id'); // Remove duplicate ID
         fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
         UI.playerPlaySlot.innerHTML = '';
         UI.playerPlaySlot.appendChild(fallbackCard);
       }
-    } else {
-      // Card element not found — render directly
-      const fallbackCard = UI.createCardElement(reveal.yourCard);
-      fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
-      UI.playerPlaySlot.innerHTML = '';
-      UI.playerPlaySlot.appendChild(fallbackCard);
+      UI.playerPlaySlot.classList.add('filled');
     }
-    UI.playerPlaySlot.classList.add('filled');
 
     // 2. Create face-down opponent card in arena slot and slide it in
     const opponentCardEl = document.createElement('div');
@@ -509,9 +558,31 @@ const GameManager = {
               begin: () => {
                 if (result.shieldGain > 0) {
                   Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldGain, true);
+                  Animations.animateCardActionOverlay(playerCard, 'shield-gain', `+${result.shieldGain} shield`);
                 }
                 if (result.healGain > 0) {
                   Animations.animateDamagePopup(UI.playerPlaySlot, result.healGain, 'heal');
+                  Animations.animateCardActionOverlay(playerCard, 'heal', `+${result.healGain} hp`);
+                }
+
+                // Check other status applications
+                if (result.cardA && result.cardA.outcomes) {
+                  const p1Effect = result.cardA.outcomes[result.outcome];
+                  if (p1Effect && p1Effect.applyStatus) {
+                    if (p1Effect.applyStatus.self) {
+                      if (p1Effect.applyStatus.self.attackBuff > 0) {
+                        Animations.animateCardActionOverlay(playerCard, 'buff', `buff self`);
+                      }
+                      if (p1Effect.applyStatus.self.cleanse > 0) {
+                        Animations.animateCardActionOverlay(playerCard, 'cleanse', `cleanse`);
+                      }
+                    }
+                    if (p1Effect.applyStatus.opponent) {
+                      if (p1Effect.applyStatus.opponent.burn > 0 || p1Effect.applyStatus.opponent.poison > 0 || p1Effect.applyStatus.opponent.weakness > 0) {
+                        Animations.animateCardActionOverlay(playerCard, 'debuff', `debuff enemy`);
+                      }
+                    }
+                  }
                 }
               },
               complete: () => {
@@ -537,9 +608,30 @@ const GameManager = {
               begin: () => {
                 if (result.opponentShieldGain > 0) {
                   Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldGain, true);
+                  Animations.animateCardActionOverlay(opponentCard, 'shield-gain', `+${result.opponentShieldGain} shield`);
                 }
                 if (result.opponentHealGain > 0) {
                   Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHealGain, 'heal');
+                  Animations.animateCardActionOverlay(opponentCard, 'heal', `+${result.opponentHealGain} hp`);
+                }
+
+                if (result.cardB && result.cardB.outcomes) {
+                  const p2Effect = result.cardB.outcomes[result.opponentOutcome];
+                  if (p2Effect && p2Effect.applyStatus) {
+                    if (p2Effect.applyStatus.self) {
+                      if (p2Effect.applyStatus.self.attackBuff > 0) {
+                        Animations.animateCardActionOverlay(opponentCard, 'buff', `buff self`);
+                      }
+                      if (p2Effect.applyStatus.self.cleanse > 0) {
+                        Animations.animateCardActionOverlay(opponentCard, 'cleanse', `cleanse`);
+                      }
+                    }
+                    if (p2Effect.applyStatus.opponent) {
+                      if (p2Effect.applyStatus.opponent.burn > 0 || p2Effect.applyStatus.opponent.poison > 0 || p2Effect.applyStatus.opponent.weakness > 0) {
+                        Animations.animateCardActionOverlay(opponentCard, 'debuff', `debuff enemy`);
+                      }
+                    }
+                  }
                 }
               },
               complete: () => {
@@ -612,14 +704,20 @@ const GameManager = {
             // Show self damage popups
             if (result.selfDamage > 0) {
               Animations.animateDamagePopup(UI.playerPlaySlot, result.selfDamage, false);
+              if (playerCard) {
+                Animations.animateCardActionOverlay(playerCard, 'self-damage', `-${result.selfDamage} self dmg`);
+              }
             }
             if (result.opponentSelfDamage > 0) {
               Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentSelfDamage, false);
+              if (opponentCard) {
+                Animations.animateCardActionOverlay(opponentCard, 'self-damage', `-${result.opponentSelfDamage} self dmg`);
+              }
             }
 
             // Calculate HP values after clash damage but before status tick damage
-            const p1TickTotal = (result.statusDamage.burn || 0) + (result.statusDamage.poison || 0);
-            const p2TickTotal = (result.opponentStatusDamage.burn || 0) + (result.opponentStatusDamage.poison || 0);
+            const p1TickTotal = (result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : (result.statusDamage.burn || 0)) + (result.statusDamage.poison || 0);
+            const p2TickTotal = (result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : (result.opponentStatusDamage.burn || 0)) + (result.opponentStatusDamage.poison || 0);
 
             const clashEndHp = result.newHp + p1TickTotal;
             const clashEndHpOpponent = result.opponentNewHp + p2TickTotal;
@@ -651,42 +749,84 @@ const GameManager = {
             setTimeout(() => {
               const p1Burn = result.statusDamage.burn || 0;
               const p1Poison = result.statusDamage.poison || 0;
+              const p1BurnHpDmg = result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : p1Burn;
+              const p1BurnShieldDmg = result.statusDamage.burnShieldDmg || 0;
+
               const p2Burn = result.opponentStatusDamage.burn || 0;
               const p2Poison = result.opponentStatusDamage.poison || 0;
+              const p2BurnHpDmg = result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : p2Burn;
+              const p2BurnShieldDmg = result.opponentStatusDamage.burnShieldDmg || 0;
 
               const playerHudEl = document.querySelector('.player-hud');
               const enemyHudEl = document.querySelector('.enemy-hud');
 
               if (p1Burn > 0) {
                 Animations.animateDamagePopup(playerHudEl, p1Burn, 'burn');
+                if (p1BurnShieldDmg > 0) {
+                  setTimeout(() => {
+                    Animations.animateDamagePopup(playerHudEl, p1BurnShieldDmg, 'shield-damage');
+                  }, 150);
+                }
               }
               if (p1Poison > 0) {
                 setTimeout(() => {
                   Animations.animateDamagePopup(playerHudEl, p1Poison, 'poison');
                 }, p1Burn > 0 ? 150 : 0);
               }
-              if (p1Burn > 0 || p1Poison > 0) {
+              if (p1BurnHpDmg > 0 || p1Poison > 0) {
                 Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, this.myHp, result.newHp);
               }
 
               if (p2Burn > 0) {
                 Animations.animateDamagePopup(enemyHudEl, p2Burn, 'burn');
+                if (p2BurnShieldDmg > 0) {
+                  setTimeout(() => {
+                    Animations.animateDamagePopup(enemyHudEl, p2BurnShieldDmg, 'shield-damage');
+                  }, 150);
+                }
               }
               if (p2Poison > 0) {
                 setTimeout(() => {
                   Animations.animateDamagePopup(enemyHudEl, p2Poison, 'poison');
                 }, p2Burn > 0 ? 150 : 0);
               }
-              if (p2Burn > 0 || p2Poison > 0) {
+              if (p2BurnHpDmg > 0 || p2Poison > 0) {
                 Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, this.opponentHp, result.opponentNewHp);
               }
 
-              // Sync final values locally
+              // Update shield numbers visually immediately if they absorbed burn damage
+              const p1ShieldPostTicks = result.newShield - p1BurnShieldDmg;
+              const p2ShieldPostTicks = result.opponentNewShield - p2BurnShieldDmg;
+              if (p1BurnShieldDmg > 0) {
+                UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, p1ShieldPostTicks);
+              }
+              if (p2BurnShieldDmg > 0) {
+                UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, p2ShieldPostTicks);
+              }
+
+              // Play Shield Decay animations 600ms later (after status damage ticks and HP reductions resolve)
+              setTimeout(() => {
+                const p1Decay = result.shieldDecay || 0;
+                const p2Decay = result.opponentShieldDecay || 0;
+
+                if (p1Decay > 0) {
+                  Animations.animateDamagePopup(playerHudEl, p1Decay, 'shield-decay');
+                  UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, result.finalShield);
+                }
+                if (p2Decay > 0) {
+                  Animations.animateDamagePopup(enemyHudEl, p2Decay, 'shield-decay');
+                  UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, result.opponentFinalShield);
+                }
+
+                // Sync final shield values locally
+                this.myShield = result.finalShield !== undefined ? result.finalShield : result.newShield;
+                this.opponentShield = result.opponentFinalShield !== undefined ? result.opponentFinalShield : result.opponentNewShield;
+              }, 600);
+
+              // Sync final HP and status values locally
               this.myHp = result.newHp;
-              this.myShield = result.newShield;
               this.myStatuses = result.newStatuses || {};
               this.opponentHp = result.opponentNewHp;
-              this.opponentShield = result.opponentNewShield;
               this.opponentStatuses = result.opponentNewStatuses || {};
 
               // Sync updated status badges in HUD
@@ -796,6 +936,11 @@ const GameManager = {
     UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
     UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
     UI.renderPoints(UI.enemyPoints, this.opponentPoints);
+
+    // Store deck locally and update HUD deck counter
+    this.deck = data.selfStatus.deck || [];
+    const deckCountEl = document.getElementById('deck-count-val');
+    if (deckCountEl) deckCountEl.innerText = this.deck.length;
   },
 
   /**
@@ -920,6 +1065,10 @@ const GameManager = {
    */
   onBonusPickLocked(cardTemplate) {
     window.UI.bonusCardsFan.querySelectorAll('.card').forEach(c => c.style.pointerEvents = 'none');
+    if (!this.deck) this.deck = [];
+    this.deck.push(cardTemplate);
+    const deckCountEl = document.getElementById('deck-count-val');
+    if (deckCountEl) deckCountEl.innerText = this.deck.length;
   },
 
   /**
@@ -966,6 +1115,12 @@ const GameManager = {
     UI.revealCardsFan.innerHTML = '';
     UI.revealCardsFan.classList.add('hidden');
     UI.revealFooter.classList.add('hidden');
+
+    // Also add these cards to the client's deck list!
+    if (!this.deck) this.deck = [];
+    this.deck.push(...data.cards);
+    const deckCountEl = document.getElementById('deck-count-val');
+    if (deckCountEl) deckCountEl.innerText = this.deck.length;
     
     // Configure pack graphic
     UI.revealedPackCard.className = 'pack-graphic'; // Reset classes
@@ -1152,8 +1307,155 @@ const GameManager = {
       rematchBtn.innerText = 'OPPONENT LEFT';
       rematchBtn.style.animation = '';
     }
+  },
+
+  /**
+   * Renders the cards in the player's deck inside the inspection modal.
+   */
+  renderDeckModal() {
+    const listContainer = document.getElementById('deck-cards-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+    
+    if (!this.deck || this.deck.length === 0) {
+      listContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Your deck is empty.</p>';
+      return;
+    }
+    
+    this.deck.forEach(card => {
+      const cardEl = window.UI.createCardElement(card);
+      listContainer.appendChild(cardEl);
+    });
   }
 };
+
+// =============================================================================
+// CARD DESCRIPTION AUTOSCROLL HELPER SYSTEM
+// =============================================================================
+const activeCardDescScrollTimers = new Map();
+
+function startCardDescAutoscroll(descEl) {
+  if (!descEl) return;
+  
+  // Only auto-scroll if there is actual overflow
+  const maxScroll = descEl.scrollHeight - descEl.clientHeight;
+  if (maxScroll <= 0) return;
+
+  if (descEl.dataset.isAutoscrolling === 'true') return;
+  descEl.dataset.isAutoscrolling = 'true';
+  descEl.dataset.userInterrupted = 'false';
+
+  let direction = 1; // 1 = scroll down, -1 = scroll up
+  let currentScroll = descEl.scrollTop;
+  let delayCounter = 0;
+  let animationId = null;
+
+  const scrollStep = () => {
+    // Stop if user interrupted or autoscroll is disabled
+    if (descEl.dataset.userInterrupted === 'true' || descEl.dataset.isAutoscrolling !== 'true') {
+      descEl.dataset.isAutoscrolling = 'false';
+      return;
+    }
+
+    if (delayCounter > 0) {
+      delayCounter--;
+      animationId = requestAnimationFrame(scrollStep);
+      activeCardDescScrollTimers.set(descEl, animationId);
+      return;
+    }
+
+    currentScroll += direction * 0.4; // smooth, slow scroll speed
+    descEl.scrollTop = currentScroll;
+
+    // Detect boundaries
+    if (direction === 1 && descEl.scrollTop >= maxScroll) {
+      descEl.scrollTop = maxScroll;
+      currentScroll = maxScroll;
+      direction = -1;
+      delayCounter = 90; // Pause at the bottom (~1.5 seconds)
+    } else if (direction === -1 && descEl.scrollTop <= 0) {
+      descEl.scrollTop = 0;
+      currentScroll = 0;
+      direction = 1;
+      delayCounter = 90; // Pause at the top (~1.5 seconds)
+    }
+
+    animationId = requestAnimationFrame(scrollStep);
+    activeCardDescScrollTimers.set(descEl, animationId);
+  };
+
+  animationId = requestAnimationFrame(scrollStep);
+  activeCardDescScrollTimers.set(descEl, animationId);
+}
+
+function stopCardDescAutoscroll(descEl) {
+  if (!descEl) return;
+  descEl.dataset.isAutoscrolling = 'false';
+  
+  const activeAnimationId = activeCardDescScrollTimers.get(descEl);
+  if (activeAnimationId) {
+    cancelAnimationFrame(activeAnimationId);
+    activeCardDescScrollTimers.delete(descEl);
+  }
+}
+
+// Global Event Delegation for Card Hover & Click Autoscroll
+document.addEventListener('mouseover', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const desc = card.querySelector('.card-desc');
+  if (!desc) return;
+  
+  desc.dataset.userInterrupted = 'false';
+  startCardDescAutoscroll(desc);
+});
+
+document.addEventListener('mouseout', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  
+  // Verify if mouse actually left the card container boundaries
+  const related = e.relatedTarget;
+  if (related && card.contains(related)) return;
+  
+  const desc = card.querySelector('.card-desc');
+  if (!desc) return;
+  
+  stopCardDescAutoscroll(desc);
+  desc.scrollTop = 0; // Return instantly to top
+});
+
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const desc = card.querySelector('.card-desc');
+  if (!desc) return;
+  
+  desc.dataset.userInterrupted = 'false';
+  startCardDescAutoscroll(desc);
+});
+
+// Interrupt autoscroll on any manual scroll action
+document.addEventListener('wheel', (e) => {
+  const desc = e.target.closest('.card-desc');
+  if (desc) {
+    desc.dataset.userInterrupted = 'true';
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  const desc = e.target.closest('.card-desc');
+  if (desc) {
+    desc.dataset.userInterrupted = 'true';
+  }
+}, { passive: true });
+
+document.addEventListener('pointerdown', (e) => {
+  const desc = e.target.closest('.card-desc');
+  if (desc) {
+    desc.dataset.userInterrupted = 'true';
+  }
+}, { passive: true });
 
 // Bind to window load
 window.addEventListener('DOMContentLoaded', () => {

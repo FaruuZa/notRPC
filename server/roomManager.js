@@ -104,14 +104,14 @@ function startRound(roomId, io) {
   p1.socket.emit('roundStart', {
     round: room.round,
     hand: p1.hand,
-    selfStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, statuses: p1.statuses, points: p1.points },
+    selfStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, statuses: p1.statuses, points: p1.points, deck: p1.deck },
     opponentStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, username: p2.username, statuses: p2.statuses, points: p2.points }
   });
 
   p2.socket.emit('roundStart', {
     round: room.round,
     hand: p2.hand,
-    selfStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, statuses: p2.statuses, points: p2.points },
+    selfStatus: { hp: p2.hp, shield: p2.shield, handSize: p2.hand.length, statuses: p2.statuses, points: p2.points, deck: p2.deck },
     opponentStatus: { hp: p1.hp, shield: p1.shield, handSize: p1.hand.length, username: p1.username, statuses: p1.statuses, points: p1.points }
   });
 }
@@ -199,7 +199,7 @@ function resolveRound(roomId, io) {
   p1.hp = Math.max(0, Math.min(MAX_HP, p1.hp - result.hpDamageA + result.healGainA));
   p2.hp = Math.max(0, Math.min(MAX_HP, p2.hp - result.hpDamageB + result.healGainB));
 
-  // Helper to apply status to a player
+  // Helper to apply status to a player (Buff and Weakness capping at 5 removed)
   const applyStatusToPlayer = (player, statusObj) => {
     if (!statusObj) return;
 
@@ -211,15 +211,10 @@ function resolveRound(roomId, io) {
       console.log(`[RoomManager] Player ${player.username} cleansed all debuffs.`);
     }
 
-    // Now process other statuses
+    // Now process other statuses (capping removed)
     Object.keys(statusObj).forEach(stat => {
       if (stat === 'cleanse') return; // already handled
-      
-      if (stat === 'attackBuff' || stat === 'weakness') {
-        player.statuses[stat] = Math.min(5, (player.statuses[stat] || 0) + statusObj[stat]);
-      } else {
-        player.statuses[stat] = (player.statuses[stat] || 0) + statusObj[stat];
-      }
+      player.statuses[stat] = (player.statuses[stat] || 0) + statusObj[stat];
     });
   };
 
@@ -251,15 +246,29 @@ function resolveRound(roomId, io) {
     p1.statuses.weakness = 0;
   }
 
-  // 2. Process end-of-round status damage ticks (Poison & Burn directly bypass Shield)
+  // 2. Process end-of-round status damage ticks
+  // Burn Rework: 3 damage per stack, blocked by Shield, instantly consumed.
+  // Poison Rework: still directly bypasses Shield, stack decreases by 1.
   // These use the pre-outcome statuses (except cleansed) so newly applied poison/burn will not tick this round
   let p1BurnTick = 0, p1PoisonTick = 0;
+  let p1BurnHpDmg = 0, p1BurnShieldDmg = 0;
   let p2BurnTick = 0, p2PoisonTick = 0;
+  let p2BurnHpDmg = 0, p2BurnShieldDmg = 0;
 
   // Player 1 Ticks
   if (p1.statuses.burn > 0) {
-    p1BurnTick = p1.statuses.burn * 2;
-    p1.hp = Math.max(0, p1.hp - p1BurnTick);
+    const totalBurnDmg = p1.statuses.burn * 3;
+    p1BurnTick = totalBurnDmg;
+    if (p1.shield >= totalBurnDmg) {
+      p1.shield -= totalBurnDmg;
+      p1BurnShieldDmg = totalBurnDmg;
+      p1BurnHpDmg = 0;
+    } else {
+      p1BurnShieldDmg = p1.shield;
+      p1BurnHpDmg = totalBurnDmg - p1.shield;
+      p1.shield = 0;
+    }
+    p1.hp = Math.max(0, p1.hp - p1BurnHpDmg);
     p1.statuses.burn = 0; // Burn immediately resets to 0
   }
   if (p1.statuses.poison > 0) {
@@ -270,15 +279,36 @@ function resolveRound(roomId, io) {
 
   // Player 2 Ticks
   if (p2.statuses.burn > 0) {
-    p2BurnTick = p2.statuses.burn * 2;
-    p2.hp = Math.max(0, p2.hp - p2BurnTick);
-    p2.statuses.burn = 0;
+    const totalBurnDmg = p2.statuses.burn * 3;
+    p2BurnTick = totalBurnDmg;
+    if (p2.shield >= totalBurnDmg) {
+      p2.shield -= totalBurnDmg;
+      p2BurnShieldDmg = totalBurnDmg;
+      p2BurnHpDmg = 0;
+    } else {
+      p2BurnShieldDmg = p2.shield;
+      p2BurnHpDmg = totalBurnDmg - p2.shield;
+      p2.shield = 0;
+    }
+    p2.hp = Math.max(0, p2.hp - p2BurnHpDmg);
+    p2.statuses.burn = 0; // Burn immediately resets to 0
   }
   if (p2.statuses.poison > 0) {
     p2PoisonTick = p2.statuses.poison;
     p2.hp = Math.max(0, p2.hp - p2PoisonTick);
     p2.statuses.poison = Math.max(0, p2.statuses.poison - 1);
   }
+
+  // Store intermediate shield values before decay (after clash and status ticks)
+  const shieldPostTicksA = p1.shield;
+  const shieldPostTicksB = p2.shield;
+
+  // 3. Shield Decay: On turn end, shield is reduced to Floor(Shield * 50%)
+  p1.shield = Math.floor(p1.shield * 0.5);
+  p2.shield = Math.floor(p2.shield * 0.5);
+
+  const shieldDecayedA = shieldPostTicksA - p1.shield;
+  const shieldDecayedB = shieldPostTicksB - p2.shield;
 
   // Decrement Buff/Weakness stacks by 1 ONLY when attacking (base damage > 0 outcome)
   if (result.didAttackA) {
@@ -355,23 +385,27 @@ function resolveRound(roomId, io) {
     totalIncomingDmg: result.totalDmgA,
     hpDamage: result.hpDamageA,
     shieldDamage: shieldDamageA,
-    newShield: p1.shield,
+    newShield: shieldPostTicksA, // Intermediate shield (after clash & tick, before decay)
+    finalShield: p1.shield,       // Decayed shield at end of round
+    shieldDecay: shieldDecayedA,  // Amount decayed
     newHp: p1.hp,
     newStatuses: p1.statuses,
-    statusDamage: { burn: p1BurnTick, poison: p1PoisonTick },
+    statusDamage: { burn: p1BurnTick, poison: p1PoisonTick, burnHpDmg: p1BurnHpDmg, burnShieldDmg: p1BurnShieldDmg },
     
     opponentOutcome: result.outcomeB,
     opponentShieldGain: result.shieldGainB,
-    opponentHealGain: result.healGainB,
+    opponentHealGain: result.opponentHealGain || result.healGainB,
     opponentDamageDealt: result.damageDealtByB,
     opponentSelfDamage: result.selfDamageB,
     opponentTotalIncomingDmg: result.totalDmgB,
     opponentHpDamage: result.hpDamageB,
     opponentShieldDamage: shieldDamageB,
-    opponentNewShield: p2.shield,
+    opponentNewShield: shieldPostTicksB, // Intermediate shield
+    opponentFinalShield: p2.shield,       // Decayed shield at end of round
+    opponentShieldDecay: shieldDecayedB,  // Amount decayed
     opponentNewHp: p2.hp,
     opponentNewStatuses: p2.statuses,
-    opponentStatusDamage: { burn: p2BurnTick, poison: p2PoisonTick },
+    opponentStatusDamage: { burn: p2BurnTick, poison: p2PoisonTick, burnHpDmg: p2BurnHpDmg, burnShieldDmg: p2BurnShieldDmg },
     
     drewNewCards: drewNewCardsP1
   });
@@ -385,10 +419,12 @@ function resolveRound(roomId, io) {
     totalIncomingDmg: result.totalDmgB,
     hpDamage: result.hpDamageB,
     shieldDamage: shieldDamageB,
-    newShield: p2.shield,
+    newShield: shieldPostTicksB, // Intermediate shield
+    finalShield: p2.shield,       // Decayed shield at end of round
+    shieldDecay: shieldDecayedB,  // Amount decayed
     newHp: p2.hp,
     newStatuses: p2.statuses,
-    statusDamage: { burn: p2BurnTick, poison: p2PoisonTick },
+    statusDamage: { burn: p2BurnTick, poison: p2PoisonTick, burnHpDmg: p2BurnHpDmg, burnShieldDmg: p2BurnShieldDmg },
     
     opponentOutcome: result.outcomeA,
     opponentShieldGain: result.shieldGainA,
@@ -398,10 +434,12 @@ function resolveRound(roomId, io) {
     opponentTotalIncomingDmg: result.totalDmgA,
     opponentHpDamage: result.hpDamageA,
     opponentShieldDamage: shieldDamageA,
-    opponentNewShield: p1.shield,
+    opponentNewShield: shieldPostTicksA, // Intermediate shield
+    opponentFinalShield: p1.shield,       // Decayed shield at end of round
+    opponentShieldDecay: shieldDecayedA,  // Amount decayed
     opponentNewHp: p1.hp,
     opponentNewStatuses: p1.statuses,
-    opponentStatusDamage: { burn: p1BurnTick, poison: p1PoisonTick },
+    opponentStatusDamage: { burn: p1BurnTick, poison: p1PoisonTick, burnHpDmg: p1BurnHpDmg, burnShieldDmg: p1BurnShieldDmg },
     
     drewNewCards: drewNewCardsP2
   });
@@ -435,14 +473,13 @@ function resolveRound(roomId, io) {
   if (roundOver) {
     console.log(`[RoomManager] Round ${room.round} Over. Winner: ${roundWinnerId || 'DRAW'}. Current Score: ${p1.username} ${p1.points} - ${p2.points} ${p2.username}`);
 
-    // Check if match is fully completed
-    const maxRoundsReached = (room.round >= 3);
-    const scoreTied = (p1.points === p2.points);
+    // Check if match is fully completed: First To 3 Points
+    const matchOver = (p1.points >= 3 || p2.points >= 3);
 
-    if (maxRoundsReached && !scoreTied) {
+    if (matchOver) {
       // Match is fully over!
       room.state = 'OVER';
-      const matchWinnerId = p1.points > p2.points ? p1.id : p2.id;
+      const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
       const matchWinnerName = room.players[matchWinnerId].username;
 
       setTimeout(() => {
@@ -798,6 +835,44 @@ function handleLeaveRoom(socket, io) {
 
   cleanupRoom(roomId);
 }
+
+/**
+ * FUTURE UPDATE: CARD REMOVAL PHASE
+ * 
+ * To implement this phase in the future:
+ * 1. Define a new game state `room.state = 'CARD_REMOVAL_PHASE'` in constants and logic.
+ * 2. In resolveRound, instead of transitioning directly from roundOver to DRAFT_PHASE,
+ *    transition to CARD_REMOVAL_PHASE.
+ * 3. Emit a socket event 'cardRemovalStart' to both players with their current deck list.
+ * 4. Implement a socket handler like the one below to process removals:
+ * 
+ * function handleRemoveCard(socket, cardInstanceId, io) {
+ *   const roomId = playerToRoom[socket.id];
+ *   const room = rooms[roomId];
+ *   if (!room || room.state !== 'CARD_REMOVAL_PHASE') return;
+ * 
+ *   const player = room.players[socket.id];
+ *   if (cardInstanceId) {
+ *     const idx = player.deck.findIndex(c => c.instanceId === cardInstanceId);
+ *     if (idx !== -1) {
+ *       const removed = player.deck.splice(idx, 1);
+ *       console.log(`[RoomManager] Player ${player.username} removed card: ${removed[0].name}`);
+ *     }
+ *   }
+ * 
+ *   player.removalConfirmed = true;
+ * 
+ *   // Once both players confirm/skip, transition to the DRAFT_PHASE
+ *   const playerIds = Object.keys(room.players);
+ *   const p1 = room.players[playerIds[0]];
+ *   const p2 = room.players[playerIds[1]];
+ *   if (p1.removalConfirmed && p2.removalConfirmed) {
+ *     p1.removalConfirmed = false;
+ *     p2.removalConfirmed = false;
+ *     // ... transition to DRAFT_PHASE / pack selection
+ *   }
+ * }
+ */
 
 module.exports = {
   createRoom,

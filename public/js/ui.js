@@ -368,14 +368,14 @@ const UI = {
       keywords.push({
         title: 'BUFF',
         class: 'buff',
-        desc: 'Increases card clash damage by +10% per stack (max 5 stacks). Stack decreases by 1 only when attacking.'
+        desc: 'Increases card clash damage by +10% per stack. Stack decreases by 1 only when attacking.'
       });
     }
     if (cardDescription.includes('kw-weak')) {
       keywords.push({
         title: 'WEAK',
         class: 'weak',
-        desc: 'Reduces card clash damage by -10% per stack (max 5 stacks). Stack decreases by 1 only when attacking.'
+        desc: 'Reduces card clash damage by -10% per stack. Stack decreases by 1 only when attacking.'
       });
     }
     if (cardDescription.includes('kw-shield')) {
@@ -439,14 +439,14 @@ const UI = {
       keywords.push({
         title: 'BUFF',
         class: 'buff',
-        desc: `Currently active stack: ${statuses.attackBuff}. Increases card clash damage by +10% per stack (max 5 stacks). Stack decreases by 1 only when attacking.`
+        desc: `Currently active stack: ${statuses.attackBuff}. Increases card clash damage by +10% per stack. Stack decreases by 1 when attacking.`
       });
     }
     if (statuses && statuses.weakness > 0) {
       keywords.push({
         title: 'WEAK',
         class: 'weak',
-        desc: `Currently active stack: ${statuses.weakness}. Reduces card clash damage by -10% per stack (max 5 stacks). Stack decreases by 1 only when attacking.`
+        desc: `Currently active stack: ${statuses.weakness}. Reduces card clash damage by -10% per stack. Stack decreases by 1 when attacking.`
       });
     }
 
@@ -540,7 +540,7 @@ const UI = {
     if (statuses.attackBuff > 0) {
       const badge = document.createElement('span');
       badge.className = 'status-badge attack-buff';
-      badge.innerHTML = `<i class="fa-solid fa-bolt"></i> +${statuses.attackBuff * 10}%`;
+      badge.innerHTML = `<i class="fa-solid fa-bolt"></i>${statuses.attackBuff}`;
       badge.title = `Buff: Clash damage increased by +${statuses.attackBuff * 10}% (decays when attacking: ${statuses.attackBuff} stacks left)`;
       container.appendChild(badge);
     }
@@ -549,7 +549,7 @@ const UI = {
     if (statuses.weakness > 0) {
       const badge = document.createElement('span');
       badge.className = 'status-badge weakness';
-      badge.innerHTML = `<i class="fa-solid fa-arrow-down-long"></i> -${statuses.weakness * 10}%`;
+      badge.innerHTML = `<i class="fa-solid fa-arrow-down-long"></i> ${statuses.weakness}`;
       badge.title = `Weakness: Clash damage reduced by -${statuses.weakness * 10}% (decays when attacking: ${statuses.weakness} stacks left)`;
       container.appendChild(badge);
     }
@@ -668,10 +668,77 @@ const UI = {
     this.lockBtn.disabled = true;
     this.lockBtn.querySelector('.lock-btn-text').innerText = 'LOCKED';
     
-    // Add locked state border to card
+    // Add locked state border to card and animate it to play slot
     const selectedCard = this.playerHand.querySelector('.card.selected');
     if (selectedCard) {
       selectedCard.classList.add('locked');
+
+      const cardRect = selectedCard.getBoundingClientRect();
+      const slotRect = this.playerPlaySlot.getBoundingClientRect();
+
+      if (cardRect.width > 0 && slotRect.width > 0) {
+        // Create flight clone
+        const clone = selectedCard.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.style.cssText = `
+          position: fixed;
+          left: ${cardRect.left}px;
+          top: ${cardRect.top}px;
+          width: ${cardRect.width}px;
+          height: ${cardRect.height}px;
+          margin: 0;
+          z-index: 200;
+          pointer-events: none;
+          transform: none;
+          transition: none;
+        `;
+        document.body.appendChild(clone);
+
+        // Hide original card
+        selectedCard.style.opacity = '0';
+        selectedCard.style.pointerEvents = 'none';
+
+        const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
+        const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
+        const scaleVal = Math.min(slotRect.width / cardRect.width, slotRect.height / cardRect.height);
+
+        window.cardFlightPromise = new Promise(resolve => {
+          anime({
+            targets: clone,
+            translateX: targetX,
+            translateY: targetY,
+            scale: scaleVal,
+            duration: 300,
+            easing: 'easeOutQuint',
+            complete: () => {
+              clone.remove();
+
+              // Place clean card node in the slot
+              const slotCard = selectedCard.cloneNode(true);
+              slotCard.removeAttribute('id'); // Remove duplicate ID in slot card
+              slotCard.classList.remove('selected', 'hovered', 'locked');
+              slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default; pointer-events: none; z-index: 1;';
+              this.playerPlaySlot.innerHTML = '';
+              this.playerPlaySlot.appendChild(slotCard);
+              this.playerPlaySlot.classList.add('filled');
+              
+              window.cardFlightPromise = null;
+              resolve();
+            }
+          });
+        });
+      } else {
+        // Fallback: place instantly
+        const slotCard = selectedCard.cloneNode(true);
+        slotCard.removeAttribute('id'); // Remove duplicate ID in slot card
+        slotCard.classList.remove('selected', 'hovered', 'locked');
+        slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default; pointer-events: none; z-index: 1;';
+        this.playerPlaySlot.innerHTML = '';
+        this.playerPlaySlot.appendChild(slotCard);
+        this.playerPlaySlot.classList.add('filled');
+        selectedCard.style.opacity = '0';
+        selectedCard.style.pointerEvents = 'none';
+      }
     }
 
     // Disable clicks on all hand cards

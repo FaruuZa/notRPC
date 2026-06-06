@@ -149,10 +149,15 @@
         <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%;"></div>
         <div class="hp-text"><span id="player-hp-val">100</span> / 100 HP</div>
       </div>
-      <div class="points-indicator" id="player-points">
-        <span class="point-dot"></span>
-        <span class="point-dot"></span>
-        <span class="point-dot"></span>
+      <div class="hud-bottom-row">
+        <div class="points-indicator" id="player-points">
+          <span class="point-dot"></span>
+          <span class="point-dot"></span>
+          <span class="point-dot"></span>
+        </div>
+        <button id="view-deck-btn" class="hud-deck-btn" title="Inspect your current deck">
+          <i class="fa-solid fa-layer-group"></i> DECK (<span id="deck-count-val">4</span>)
+        </button>
       </div>
     </div>
 
@@ -384,6 +389,25 @@
         </button>
         <button id="surrender-cancel-btn" class="btn btn-secondary" style="flex: 1;">
           CANCEL
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 10: Deck Inspection Modal -->
+  <div id="deck-modal" class="overlay">
+    <div class="deck-modal-content game-over-card glass">
+      <h2 class="deck-modal-title"><i class="fa-solid fa-box-archive"></i> YOUR DECK</h2>
+      <p class="deck-modal-desc">These are the cards currently in your deck:</p>
+      
+      <!-- A scrollable container of cards in the deck -->
+      <div id="deck-cards-list">
+        <!-- Card elements will be dynamically rendered here -->
+      </div>
+      
+      <div class="deck-modal-footer">
+        <button id="deck-close-btn" class="btn btn-secondary" style="min-width: 140px;">
+          CLOSE
         </button>
       </div>
     </div>

@@ -85,20 +85,11 @@ function drawReplacements(totalReplacements, minElementalReq) {
 
 /**
  * Generates a randomized 4-card starter deck (1 Fire, 1 Water, 1 Nature, 1 Neutral/Chaos)
+ * Now modified to return a fixed, identical set of cards to reduce RNG.
  */
 function generateStarterDeck() {
-  const fireCards = generalPool.filter(c => c.element === ELEMENTS.FIRE);
-  const waterCards = generalPool.filter(c => c.element === ELEMENTS.WATER);
-  const natureCards = generalPool.filter(c => c.element === ELEMENTS.NATURE);
-  const neutralOrChaos = generalPool.filter(c => c.element === ELEMENTS.NEUTRAL || c.element === ELEMENTS.CHAOS);
-
-  const starter = [
-    fireCards[Math.floor(Math.random() * fireCards.length)],
-    waterCards[Math.floor(Math.random() * waterCards.length)],
-    natureCards[Math.floor(Math.random() * natureCards.length)],
-    neutralOrChaos[Math.floor(Math.random() * neutralOrChaos.length)]
-  ];
-
+  const starterIds = ['ember_slash', 'tidal_surge', 'nature_shield', 'basic_fist'];
+  const starter = starterIds.map(id => CARD_POOL.find(c => c.id === id)).filter(Boolean);
   return starter.map(card => createCardInstance(card));
 }
 
@@ -127,11 +118,11 @@ function generatePackCards(packType) {
     case PACK_TYPES.NATURE_PACK:
       pool = generalPool.filter(c => c.element === ELEMENTS.NATURE);
       break;
-    case PACK_TYPES.WILD_PACK:
-      pool = generalPool.filter(c => c.element === ELEMENTS.CHAOS);
-      break;
     case PACK_TYPES.ELEMENTAL_PACK:
       pool = generalPool.filter(c => [ELEMENTS.FIRE, ELEMENTS.WATER, ELEMENTS.NATURE].includes(c.element));
+      break;
+    case PACK_TYPES.HYBRID_PACK:
+      pool = generalPool.filter(c => [ELEMENTS.FIRE, ELEMENTS.WATER, ELEMENTS.NATURE, ELEMENTS.CHAOS].includes(c.element));
       break;
     case PACK_TYPES.UNIVERSAL_PACK:
       pool = generalPool;
@@ -184,10 +175,16 @@ function generatePackCards(packType) {
         return inf && (inf.damage > 0 || inf.shield > 0 || inf.heal > 0 || (inf.applyStatus && Object.keys(inf.applyStatus).length > 0));
       });
       break;
+    case PACK_TYPES.RISK_PACK:
+      pool = generalPool.filter(c => {
+        const outcomes = Object.values(c.outcomes);
+        return outcomes.some(o => o.selfDamage > 0 || (o.applyStatus && o.applyStatus.self && Object.keys(o.applyStatus.self).length > 0));
+      });
+      break;
     case PACK_TYPES.GAMBLER_PACK:
       pool = generalPool.filter(c => {
         const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.selfDamage > 0);
+        return outcomes.some(o => o.selfDamage > 0) || c.element === ELEMENTS.CHAOS;
       });
       break;
     case PACK_TYPES.REVENGE_PACK:
