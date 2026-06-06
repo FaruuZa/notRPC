@@ -65,7 +65,7 @@ const Animations = {
       translateY: deltaY,
       rotate: 0,
       scale: scaleVal,
-      duration: 500,
+      duration: 300,
       easing: 'easeOutQuint',
       complete: () => {
         cardElement.style.transition = '';
@@ -89,7 +89,7 @@ const Animations = {
       rotateY: [180, 180],   // Keep at 180deg (face-down) throughout arrival
       opacity: [0, 1],
       scale: [0.85, 1],
-      duration: 550,
+      duration: 350,
       easing: 'easeOutCubic',
       complete: () => {
         // Ensure the card remains face-down for the flip animation
@@ -107,7 +107,7 @@ const Animations = {
     anime({
       targets: cardElement,
       rotateY: [180, 360],
-      duration: 700,
+      duration: 400,
       easing: 'easeInOutQuad',
       complete: () => {
         cardElement.style.transform = 'rotateY(0deg)';
@@ -141,7 +141,7 @@ const Animations = {
             targets: cardA,
             translateX: distanceX * 0.55,
             translateY: -15,
-            duration: 250,
+            duration: 150,
             easing: 'easeInBack',
             complete: () => {
               if (onImpact) onImpact();
@@ -151,29 +151,29 @@ const Animations = {
             targets: cardB,
             translateX: 20,
             rotate: 4,
-            duration: 80,
+            duration: 50,
             easing: 'easeOutQuint'
-          }, '-=40')
+          }, '-=25')
           .add({
             targets: cardB,
             translateX: [20, -5, 3, 0],
             rotate: 0,
-            duration: 250,
+            duration: 150,
             easing: 'linear'
           })
           .add({
             targets: cardA,
             translateX: 0,
             translateY: 0,
-            duration: 250,
+            duration: 150,
             easing: 'easeOutBack'
-          }, '-=200');
+          }, '-=120');
       } else {
         // Player card is superior but doesn't damage. Stay stationary, invoke impact after a buffer.
         timeline
           .add({
             targets: {},
-            duration: 250,
+            duration: 150,
             complete: () => {
               if (onImpact) onImpact();
             }
@@ -187,7 +187,7 @@ const Animations = {
             targets: cardB,
             translateX: -distanceX * 0.55,
             translateY: -15,
-            duration: 250,
+            duration: 150,
             easing: 'easeInBack',
             complete: () => {
               if (onImpact) onImpact();
@@ -197,29 +197,29 @@ const Animations = {
             targets: cardA,
             translateX: -20,
             rotate: -4,
-            duration: 80,
+            duration: 50,
             easing: 'easeOutQuint'
-          }, '-=40')
+          }, '-=25')
           .add({
             targets: cardA,
             translateX: [-20, 5, -3, 0],
             rotate: 0,
-            duration: 250,
+            duration: 150,
             easing: 'linear'
           })
           .add({
             targets: cardB,
             translateX: 0,
             translateY: 0,
-            duration: 250,
+            duration: 150,
             easing: 'easeOutBack'
-          }, '-=200');
+          }, '-=120');
       } else {
         // Opponent card is inferior but doesn't damage. Stay stationary, invoke impact after a buffer.
         timeline
           .add({
             targets: {},
-            duration: 250,
+            duration: 150,
             complete: () => {
               if (onImpact) onImpact();
             }
@@ -233,7 +233,7 @@ const Animations = {
             targets: cardA,
             translateX: distanceX * 0.28,
             translateY: -10,
-            duration: 250,
+            duration: 150,
             easing: 'easeInBack',
             complete: () => {
               if (onImpact) onImpact();
@@ -243,20 +243,20 @@ const Animations = {
             targets: cardB,
             translateX: -distanceX * 0.28,
             translateY: -10,
-            duration: 250,
+            duration: 150,
             easing: 'easeInBack'
-          }, '-=250')
+          }, '-=150')
           .add({
             targets: [cardA, cardB],
             translateX: (el, i) => i === 0 ? distanceX * 0.28 - 10 : -distanceX * 0.28 + 10,
-            duration: 80,
+            duration: 50,
             easing: 'easeOutQuint'
           })
           .add({
             targets: [cardA, cardB],
             translateX: 0,
             translateY: 0,
-            duration: 250,
+            duration: 150,
             easing: 'easeOutBack'
           });
       } else if (playerDamaging) {
@@ -266,7 +266,7 @@ const Animations = {
             targets: cardA,
             translateX: distanceX * 0.4,
             translateY: -10,
-            duration: 250,
+            duration: 150,
             easing: 'easeInBack',
             complete: () => {
               if (onImpact) onImpact();
@@ -278,21 +278,21 @@ const Animations = {
             rotate: 3,
             duration: 80,
             easing: 'easeOutQuint'
-          }, '-=40')
+          }, '-=25')
           .add({
             targets: cardB,
             translateX: [15, -3, 0],
             rotate: 0,
-            duration: 250,
+            duration: 150,
             easing: 'linear'
           })
           .add({
             targets: cardA,
             translateX: 0,
             translateY: 0,
-            duration: 250,
+            duration: 150,
             easing: 'easeOutBack'
-          }, '-=200');
+          }, '-=120');
       } else if (opponentDamaging) {
         // Opponent only lunges
         timeline
@@ -300,7 +300,7 @@ const Animations = {
             targets: cardB,
             translateX: -distanceX * 0.4,
             translateY: -10,
-            duration: 250,
+            duration: 150,
             easing: 'easeInBack',
             complete: () => {
               if (onImpact) onImpact();
@@ -312,27 +312,27 @@ const Animations = {
             rotate: -3,
             duration: 80,
             easing: 'easeOutQuint'
-          }, '-=40')
+          }, '-=25')
           .add({
             targets: cardA,
             translateX: [-15, 3, 0],
             rotate: 0,
-            duration: 250,
+            duration: 150,
             easing: 'linear'
           })
           .add({
             targets: cardB,
             translateX: 0,
             translateY: 0,
-            duration: 250,
+            duration: 150,
             easing: 'easeOutBack'
-          }, '-=200');
+          }, '-=120');
       } else {
         // Neither damages. Stationary.
         timeline
           .add({
             targets: {},
-            duration: 250,
+            duration: 150,
             complete: () => {
               if (onImpact) onImpact();
             }
@@ -344,7 +344,7 @@ const Animations = {
   /**
    * Animates HP Bar reduction
    */
-  animateHpReduction(fillElement, textElement, startHp, endHp, duration = 700) {
+  animateHpReduction(fillElement, textElement, startHp, endHp, duration = 400) {
     const obj = { hp: startHp };
     
     anime({
@@ -405,7 +405,7 @@ const Animations = {
       translateY: [0, targetY],
       scale: [0.6, 1.1, 1],
       opacity: [0, 1, 1, 0],
-      duration: 1000,
+      duration: 600,
       easing: 'easeOutQuad',
       complete: () => {
         popup.remove();

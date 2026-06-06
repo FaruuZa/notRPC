@@ -596,12 +596,12 @@ function resolveRound(roomId, io) {
         winnerName: winnerId ? room.players[winnerId].username : 'DRAW'
       });
       cleanupRoom(roomId);
-    }, 6000);
+    }, 3500);
   } else {
     room.round += 1;
     room.nextRoundTimeout = setTimeout(() => {
       startRound(roomId, io);
-    }, 6000);
+    }, 3500);
   }
 }
 

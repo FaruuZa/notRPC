@@ -416,7 +416,7 @@ const GameManager = {
           translateX: targetX,
           translateY: targetY,
           scale: scaleVal,
-          duration: 480,
+          duration: 300,
           easing: 'easeOutQuint',
           complete: () => {
             clone.remove();
@@ -497,7 +497,7 @@ const GameManager = {
             anime({
               targets: playerCard,
               translateY: -35,
-              duration: 400,
+              duration: 250,
               easing: 'easeOutQuad',
               direction: 'alternate',
               loop: 1,
@@ -525,7 +525,7 @@ const GameManager = {
             anime({
               targets: opponentCard,
               translateY: -35,
-              duration: 400,
+              duration: 250,
               easing: 'easeOutQuad',
               direction: 'alternate',
               loop: 1,
@@ -644,7 +644,7 @@ const GameManager = {
               if (p1Poison > 0) {
                 setTimeout(() => {
                   Animations.animateDamagePopup(playerHudEl, p1Poison, 'poison');
-                }, p1Burn > 0 ? 300 : 0);
+                }, p1Burn > 0 ? 150 : 0);
               }
               if (p1Burn > 0 || p1Poison > 0) {
                 Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, this.myHp, result.newHp);
@@ -656,7 +656,7 @@ const GameManager = {
               if (p2Poison > 0) {
                 setTimeout(() => {
                   Animations.animateDamagePopup(enemyHudEl, p2Poison, 'poison');
-                }, p2Burn > 0 ? 300 : 0);
+                }, p2Burn > 0 ? 150 : 0);
               }
               if (p2Burn > 0 || p2Poison > 0) {
                 Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, this.opponentHp, result.opponentNewHp);
@@ -673,7 +673,7 @@ const GameManager = {
               // Sync updated status badges in HUD
               UI.renderStatuses(UI.playerStatusContainer, result.newStatuses);
               UI.renderStatuses(UI.enemyStatusContainer, result.opponentNewStatuses);
-            }, 600);
+            }, 350);
 
             // Fade out cards in arena to clear slots
             setTimeout(() => {
@@ -685,7 +685,7 @@ const GameManager = {
                   targets: targets,
                   opacity: 0,
                   scale: 0.8,
-                  duration: 500,
+                  duration: 300,
                   easing: 'easeInQuad',
                   complete: () => {
                     UI.clearArenaSlots();
@@ -694,7 +694,7 @@ const GameManager = {
               } else {
                 UI.clearArenaSlots();
               }
-            }, 2600);
+            }, 1400);
           });
         });
       });

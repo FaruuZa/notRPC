@@ -123,6 +123,29 @@ const CARD_POOL = [
       INFERIOR: { damage: 0,  shield: 0, selfDamage: 12 }
     }
   },
+  {
+    id: 'cauterize',
+    name: 'Cauterize',
+    element: ELEMENTS.FIRE,
+    description: 'Superior: 8 <span class="kw-heal">HEAL</span> & <span class="kw-cleanse">CLEANSE</span>. Neutral: <span class="kw-cleanse">CLEANSE</span>. Inferior: 4 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 0, heal: 8, selfDamage: 0, applyStatus: { self: { cleanse: 1 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { cleanse: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 4 }
+    }
+  },
+  {
+    id: 'blinding_flare',
+    name: 'Blinding Flare',
+    element: ELEMENTS.FIRE,
+    description: 'Superior: 8 dmg & <span class="kw-weak">WEAK [2]</span>. Neutral: <span class="kw-weak">WEAK [1]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { opponent: { weakness: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { weakness: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+
 
   // ─── WATER CARDS ───────────────────────────────────────────────────────────
   // Water: beats FIRE, loses to NATURE and CHAOS, ties WATER and NEUTRAL
@@ -173,6 +196,29 @@ const CARD_POOL = [
       INFERIOR: { damage: 0,  shield: 0, selfDamage: 8, applyStatus: { opponent: { weakness: 3 } } }
     }
   },
+  {
+    id: 'hydro_cannon',
+    name: 'Hydro Cannon',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 16 dmg. Neutral: 4 dmg. Inferior: 6 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 16, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 4,  shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 6 }
+    }
+  },
+  {
+    id: 'scalding_steam',
+    name: 'Scalding Steam',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 8 dmg & <span class="kw-burn">BURN [2]</span>. Neutral: <span class="kw-burn">BURN [1]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+
 
   // ─── NATURE CARDS ──────────────────────────────────────────────────────────
   // Nature: beats WATER, loses to FIRE and CHAOS, ties NATURE and NEUTRAL
@@ -236,6 +282,29 @@ const CARD_POOL = [
       INFERIOR: { damage: 10, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 3 } } }
     }
   },
+  {
+    id: 'savage_growth',
+    name: 'Savage Growth',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 6 dmg & <span class="kw-buff">BUFF [3]</span>. Neutral: <span class="kw-buff">BUFF [1]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 6, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 3 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'leech_seed',
+    name: 'Leech Seed',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 6 dmg & 6 <span class="kw-heal">HEAL</span>. Neutral: 3 <span class="kw-heal">HEAL</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 6, shield: 0, heal: 6, selfDamage: 0 },
+      NEUTRAL:  { damage: 0, shield: 0, heal: 3, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+
 
   // ─── NEUTRAL CARDS ─────────────────────────────────────────────────────────
   // Neutral: ties against all elements. SUPERIOR against CHAOS (stability > chaos).
@@ -301,6 +370,29 @@ const CARD_POOL = [
       INFERIOR: { damage: 0,  shield: 0, selfDamage: 0 }
     }
   },
+  {
+    id: 'zen_meditation',
+    name: 'Zen Meditation',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 8 <span class="kw-heal">HEAL</span> & <span class="kw-cleanse">CLEANSE</span>. Neutral: 4 <span class="kw-heal">HEAL</span> & <span class="kw-cleanse">CLEANSE</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 0, heal: 8, selfDamage: 0, applyStatus: { self: { cleanse: 1 } } },
+      NEUTRAL:  { damage: 0, shield: 0, heal: 4, selfDamage: 0, applyStatus: { self: { cleanse: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'adrenaline_rush',
+    name: 'Adrenaline Rush',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 6 dmg & <span class="kw-buff">BUFF [3]</span>. Neutral: <span class="kw-buff">BUFF [2]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 6, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 3 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+
 
   // ─── CHAOS CARDS ────────────────────────────────────────────────────────────
   // Chaos: SUPERIOR vs FIRE, WATER, NATURE. NEUTRAL vs CHAOS.
@@ -367,6 +459,28 @@ const CARD_POOL = [
       SUPERIOR: { damage: 6,  shield: 0, selfDamage: 0 },
       NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 3 },
       INFERIOR: { damage: 14, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } }
+    }
+  },
+  {
+    id: 'entropy',
+    name: 'Entropy',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 4 dmg & <span class="kw-poison">POISON [3]</span>. Neutral: <span class="kw-poison">POISON [2]</span> to All. Inferior: <span class="kw-poison">POISON [3]</span> to self.',
+    outcomes: {
+      SUPERIOR: { damage: 4, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 3 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 2 }, self: { poison: 2 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { poison: 3 } } }
+    }
+  },
+  {
+    id: 'unstable_shield',
+    name: 'Unstable Shield',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 18 <span class="kw-shield">SHIELD</span> & 3 self dmg. Neutral: 10 <span class="kw-shield">SHIELD</span> & 6 self dmg. Inferior: 8 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 18, selfDamage: 3 },
+      NEUTRAL:  { damage: 0, shield: 10, selfDamage: 6 },
+      INFERIOR: { damage: 0, shield: 0,  selfDamage: 8 }
     }
   }
 ];
