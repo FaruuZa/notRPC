@@ -259,7 +259,19 @@ function generateBonusPickCards() {
  * @param {Object} statusesB Player B's status effects
  * @returns {Object} Complete details of the clash outcomes and damage calculations
  */
-function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, statusesB = {}) {
+/**
+ * Evaluates the outcome of a clash between two cards considering active status effects and relics
+ * @param {Object} cardA Player A's chosen card
+ * @param {Object} cardB Player B's chosen card
+ * @param {number} shieldA Player A's current shield
+ * @param {number} shieldB Player B's current shield
+ * @param {Object} statusesA Player A's status effects
+ * @param {Object} statusesB Player B's status effects
+ * @param {Object} relicsA Player A's active relics
+ * @param {Object} relicsB Player B's active relics
+ * @returns {Object} Complete details of the clash outcomes and damage calculations
+ */
+function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, statusesB = {}, relicsA = {}, relicsB = {}) {
   // Determine clash outcome based on elements
   const outcomeA = CLASH_RULES[cardA.element][cardB.element];
   const outcomeB = CLASH_RULES[cardB.element][cardA.element];
@@ -268,17 +280,90 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   const effectA = cardA.outcomes[outcomeA];
   const effectB = cardB.outcomes[outcomeB];
   
-  const shieldGainA = effectA.shield || 0;
-  const shieldGainB = effectB.shield || 0;
+  let shieldGainA = effectA.shield || 0;
+  let shieldGainB = effectB.shield || 0;
   
-  const healGainA = effectA.heal || 0;
-  const healGainB = effectB.heal || 0;
+  let healGainA = effectA.heal || 0;
+  let healGainB = effectB.heal || 0;
   
   let damageDealtByA = effectA.damage || 0;
   let damageDealtByB = effectB.damage || 0;
   
-  const selfDamageA = effectA.selfDamage || 0;
-  const selfDamageB = effectB.selfDamage || 0;
+  let selfDamageA = effectA.selfDamage || 0;
+  let selfDamageB = effectB.selfDamage || 0;
+
+  // --- RELICS PASSIVES PRE-MODIFICATIONS ---
+  // 1. Element specific damage (Mastery relics)
+  if (cardA.element === 'FIRE') {
+    damageDealtByA += 2 * (relicsA.fire_mastery || 0);
+  } else if (cardA.element === 'WATER') {
+    damageDealtByA += 2 * (relicsA.water_mastery || 0);
+  } else if (cardA.element === 'NATURE') {
+    damageDealtByA += 2 * (relicsA.nature_mastery || 0);
+  } else if (cardA.element === 'CHAOS') {
+    damageDealtByA += 3 * (relicsA.chaos_engine || 0);
+  }
+
+  if (['FIRE', 'WATER', 'NATURE'].includes(cardA.element)) {
+    damageDealtByA += 1 * (relicsA.elemental_harmony || 0);
+  }
+
+  if (cardB.element === 'FIRE') {
+    damageDealtByB += 2 * (relicsB.fire_mastery || 0);
+  } else if (cardB.element === 'WATER') {
+    damageDealtByB += 2 * (relicsB.water_mastery || 0);
+  } else if (cardB.element === 'NATURE') {
+    damageDealtByB += 2 * (relicsB.nature_mastery || 0);
+  } else if (cardB.element === 'CHAOS') {
+    damageDealtByB += 3 * (relicsB.chaos_engine || 0);
+  }
+
+  if (['FIRE', 'WATER', 'NATURE'].includes(cardB.element)) {
+    damageDealtByB += 1 * (relicsB.elemental_harmony || 0);
+  }
+
+  // 2. Outcome based modifications (Superior, Neutral)
+  if (outcomeA === 'SUPERIOR') {
+    damageDealtByA += 2 * (relicsA.aggressive_momentum || 0);
+  } else if (outcomeA === 'NEUTRAL') {
+    shieldGainA += 3 * (relicsA.steady_resolve || 0);
+  }
+
+  if (cardA.element === 'WATER' && outcomeA === 'SUPERIOR') {
+    shieldGainA += 2 * (relicsA.frozen_shield || 0);
+  }
+  if (cardA.element === 'NEUTRAL' && outcomeA === 'NEUTRAL') {
+    shieldGainA += 2 * (relicsA.iron_grit || 0);
+  }
+
+  if (outcomeB === 'SUPERIOR') {
+    damageDealtByB += 2 * (relicsB.aggressive_momentum || 0);
+  } else if (outcomeB === 'NEUTRAL') {
+    shieldGainB += 3 * (relicsB.steady_resolve || 0);
+  }
+
+  if (cardB.element === 'WATER' && outcomeB === 'SUPERIOR') {
+    shieldGainB += 2 * (relicsB.frozen_shield || 0);
+  }
+  if (cardB.element === 'NEUTRAL' && outcomeB === 'NEUTRAL') {
+    shieldGainB += 2 * (relicsB.iron_grit || 0);
+  }
+
+  // 3. Heal modifications (Nature Affinity)
+  if (cardA.element === 'NATURE') {
+    healGainA += 2 * (relicsA.nature_affinity || 0);
+  }
+  if (cardB.element === 'NATURE') {
+    healGainB += 2 * (relicsB.nature_affinity || 0);
+  }
+
+  // 4. Self damage modifications (Chaos Engine)
+  if (cardA.element === 'CHAOS' && outcomeA === 'INFERIOR') {
+    selfDamageA += 3 * (relicsA.chaos_engine || 0);
+  }
+  if (cardB.element === 'CHAOS' && outcomeB === 'INFERIOR') {
+    selfDamageB += 3 * (relicsB.chaos_engine || 0);
+  }
 
   // Apply active attack-modifying statuses (Attack Buff / Weakness)
   const buffA = statusesA ? (statusesA.attackBuff || 0) : 0;

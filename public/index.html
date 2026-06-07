@@ -147,7 +147,10 @@
       </div>
       <div class="hp-bar-container">
         <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%;"></div>
-        <div class="hp-text"><span id="player-hp-val">100</span> / 100 HP</div>
+        <div class="hp-text"><span id="player-hp-val">100</span> / <span id="player-max-hp-val">100</span> HP</div>
+      </div>
+      <div class="hud-relics-row" id="player-relics-row">
+        <!-- Relic icons will be rendered here dynamically -->
       </div>
       <div class="hud-bottom-row">
         <div class="points-indicator" id="player-points">
@@ -155,8 +158,8 @@
           <span class="point-dot"></span>
           <span class="point-dot"></span>
         </div>
-        <button id="view-deck-btn" class="hud-deck-btn" title="Inspect your current deck">
-          <i class="fa-solid fa-layer-group"></i> DECK (<span id="deck-count-val">4</span>)
+        <button id="view-deck-btn" class="hud-deck-btn" title="Inspect your inventory & deck">
+          <i class="fa-solid fa-briefcase"></i> INVENTORY
         </button>
       </div>
     </div>
@@ -172,7 +175,10 @@
       </div>
       <div class="hp-bar-container">
         <div class="hp-bar-fill" id="enemy-hp-fill" style="width: 100%;"></div>
-        <div class="hp-text"><span id="enemy-hp-val">100</span> / 100 HP</div>
+        <div class="hp-text"><span id="enemy-hp-val">100</span> / <span id="enemy-max-hp-val">100</span> HP</div>
+      </div>
+      <div class="hud-relics-row" id="enemy-relics-row">
+        <!-- Relic icons will be rendered here dynamically -->
       </div>
       <div class="points-indicator" id="enemy-points">
         <span class="point-dot"></span>
@@ -184,6 +190,19 @@
           <!-- Dots representing cards in enemy hand -->
         </span>
       </div>
+    </div>
+
+    <!-- Active Quest Tracker Widget -->
+    <div id="battle-quest-tracker" class="quest-tracker-widget glass hidden">
+      <div class="tracker-header">
+        <i class="fa-solid fa-scroll"></i> ACTIVE QUEST
+      </div>
+      <div id="tracker-quest-text" class="tracker-text">No active quest</div>
+      <div class="tracker-progress-container">
+        <div id="tracker-progress-fill" class="tracker-progress-fill" style="width: 0%;"></div>
+        <div id="tracker-progress-text" class="tracker-progress-text">0 / 0</div>
+      </div>
+      <div id="tracker-reward-text" class="tracker-reward">Reward: -</div>
     </div>
 
     <!-- Central Arena -->
@@ -285,6 +304,14 @@
           <span id="score-p2-name" class="score-pname" style="font-family: var(--font-title); font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Opponent</span>
           <span id="score-p2-val" class="score-pval" style="font-family: var(--font-title); font-size: 2.4rem; font-weight: 800; color: #fff;">0</span>
         </div>
+      </div>
+
+      <!-- Quest completion reward alert banner -->
+      <div id="round-quest-reward-banner" class="glass hidden" style="margin-bottom: 1.5rem; padding: 0.75rem 1.25rem; border-radius: 6px; border: 1.5px solid #ffd700; background: rgba(255, 215, 0, 0.08); text-align: center; width: 100%; box-sizing: border-box;">
+        <div style="font-family: var(--font-title); font-size: 0.8rem; font-weight: 800; color: #ffd700; letter-spacing: 1px; margin-bottom: 0.25rem; text-transform: uppercase;">
+          <i class="fa-solid fa-trophy" style="margin-right: 0.35rem;"></i> QUEST COMPLETED!
+        </div>
+        <div id="round-quest-reward-text" style="font-size: 0.9rem; color: #fff; font-weight: 600; line-height: 1.4;">-</div>
       </div>
       
       <p class="next-phase-tip" style="font-size: 0.85rem; color: var(--text-secondary); font-style: italic; animation: pulseText 1.5s infinite alternate;">Draft Phase starting in a few seconds...</p>
@@ -391,15 +418,29 @@
     </div>
   </div>
 
-  <!-- Screen 10: Deck Inspection Modal -->
+  <!-- Screen 10: Inventory Modal (formerly Deck Inspection) -->
   <div id="deck-modal" class="overlay">
     <div class="deck-modal-content game-over-card glass">
-      <h2 class="deck-modal-title"><i class="fa-solid fa-box-archive"></i> YOUR DECK</h2>
-      <p class="deck-modal-desc">These are the cards currently in your deck:</p>
+      <!-- Tab Headers -->
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" id="tab-cards-btn"><i class="fa-solid fa-layer-group"></i> MY CARDS (<span id="tab-cards-count">0</span>)</button>
+        <button class="modal-tab-btn" id="tab-relics-btn"><i class="fa-solid fa-circle-nodes"></i> MY RELICS (<span id="tab-relics-count">0</span>)</button>
+      </div>
       
-      <!-- A scrollable container of cards in the deck -->
-      <div id="deck-cards-list">
-        <!-- Card elements will be dynamically rendered here -->
+      <!-- Cards Tab Content -->
+      <div class="tab-content active" id="tab-cards-content">
+        <p class="deck-modal-desc">These are the cards currently in your deck:</p>
+        <div id="deck-cards-list">
+          <!-- Card elements will be dynamically rendered here -->
+        </div>
+      </div>
+
+      <!-- Relics Tab Content -->
+      <div class="tab-content" id="tab-relics-content" style="display: none;">
+        <p class="deck-modal-desc">These are the passive relics you currently own:</p>
+        <div id="deck-relics-list" class="relics-modal-grid">
+          <!-- Relic elements will be dynamically rendered here -->
+        </div>
       </div>
       
       <div class="deck-modal-footer">
@@ -407,6 +448,65 @@
           CLOSE
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Screen 11: Quest Selection Screen -->
+  <div id="quest-selection-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub">CHOOSE YOUR PATH</span>
+        <h2 class="draft-title">SELECT <span class="accent-text">QUEST</span></h2>
+        <p class="draft-subtitle">Choose exactly <strong>1 Quest</strong> to active during this round. Earn rewards on completion!</p>
+        
+        <div class="draft-meta-row">
+          <div class="draft-meta-badge glass" id="quest-reroll-box">
+            <i class="fa-solid fa-rotate"></i>
+            <span>REROLLS LEFT: <strong id="quest-rerolls-val">1</strong></span>
+          </div>
+        </div>
+      </header>
+      
+      <div class="quest-selection-grid" id="quest-cards-grid">
+        <!-- 3 quest cards will be rendered dynamically here -->
+      </div>
+      
+      <div id="quest-keyword-info" class="keyword-info-box glass hidden" style="margin-top: 1rem;"></div>
+      
+      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 1.5rem;">
+        <button id="quest-reroll-btn" class="btn btn-secondary">
+          REROLL QUESTS
+        </button>
+        <button id="quest-confirm-btn" class="btn btn-primary disabled" disabled>
+          CONFIRM QUEST
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Screen 12: Card Removal Screen -->
+  <div id="card-removal-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub">DECK PURIFICATION</span>
+        <h2 class="draft-title">CARD <span class="accent-text">REMOVAL</span></h2>
+        <p class="draft-subtitle">Select a card to **remove permanently** from your deck, or skip if you want to keep all cards.</p>
+      </header>
+      
+      <div class="deck-grid" id="removal-cards-grid" style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; max-height: 50vh; overflow-y: auto; padding: 1rem;">
+        <!-- cards to choose from for removal -->
+      </div>
+      
+      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center;">
+        <button id="removal-skip-btn" class="btn btn-secondary">
+          SKIP REMOVAL
+        </button>
+        <button id="removal-confirm-btn" class="btn btn-primary disabled" disabled>
+          REMOVE CARD
+        </button>
+      </footer>
     </div>
   </div>
 

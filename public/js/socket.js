@@ -70,6 +70,49 @@ socket.on('packRevealStart', (data) => {
   }
 });
 
+// Quest & Card Removal socket event handlers
+socket.on('questSelectionStart', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onQuestSelectionStart(data);
+  }
+});
+
+socket.on('questLocked', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onQuestLocked(data);
+  }
+});
+
+socket.on('waitingForOpponentQuest', () => {
+  if (window.gameManager) {
+    window.gameManager.onWaitingForOpponentQuest();
+  }
+});
+
+socket.on('cardRemovalStart', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onCardRemovalStart(data);
+  }
+});
+
+socket.on('removalConfirmed', () => {
+  if (window.gameManager) {
+    window.gameManager.onRemovalConfirmed();
+  }
+});
+
+socket.on('waitingForOpponentRemoval', () => {
+  if (window.gameManager) {
+    window.gameManager.onWaitingForOpponentRemoval();
+  }
+});
+
+socket.on('opponentRemovalConfirmed', () => {
+  if (window.gameManager) {
+    window.gameManager.onOpponentRemovalConfirmed();
+  }
+});
+
 // Battle socket event handlers
 socket.on('roundStart', (data) => {
   if (window.gameManager) {
@@ -179,6 +222,18 @@ const SocketService = {
   },
   clashFinished() {
     socket.emit('clashFinished');
+  },
+  selectQuest(questId) {
+    socket.emit('selectQuest', questId);
+  },
+  rerollQuests() {
+    socket.emit('rerollQuests');
+  },
+  removeCard(cardInstanceId) {
+    socket.emit('removeCard', cardInstanceId);
+  },
+  skipCardRemoval() {
+    socket.emit('skipCardRemoval');
   }
 };
 

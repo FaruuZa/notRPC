@@ -9,8 +9,10 @@ const GameManager = {
   round: 0,
   hand: [],
   myHp: 100,
+  myMaxHp: 100,
   myShield: 0,
   opponentHp: 100,
+  opponentMaxHp: 100,
   opponentShield: 0,
   myStatuses: {},
   opponentStatuses: {},
@@ -19,6 +21,14 @@ const GameManager = {
   myPoints: 0,
   opponentPoints: 0,
   selectedBonusCardTemplateId: null,
+  
+  // Relics & Quests states
+  myRelics: {},
+  opponentRelics: {},
+  activeQuest: null,
+  offeredQuests: [],
+  selectedQuestId: null,
+  selectedRemovalCardInstanceId: null,
   
   // Animation sync helpers
   currentRoundReveal: null,
@@ -175,9 +185,40 @@ const GameManager = {
     const deckModal = document.getElementById('deck-modal');
     const deckCloseBtn = document.getElementById('deck-close-btn');
 
+    // Tabs in inventory modal
+    const tabCardsBtn = document.getElementById('tab-cards-btn');
+    const tabRelicsBtn = document.getElementById('tab-relics-btn');
+    const tabCardsContent = document.getElementById('tab-cards-content');
+    const tabRelicsContent = document.getElementById('tab-relics-content');
+
+    if (tabCardsBtn && tabRelicsBtn && tabCardsContent && tabRelicsContent) {
+      tabCardsBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        tabCardsBtn.classList.add('active');
+        tabRelicsBtn.classList.remove('active');
+        tabCardsContent.style.display = 'block';
+        tabRelicsContent.style.display = 'none';
+      });
+
+      tabRelicsBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        tabRelicsBtn.classList.add('active');
+        tabCardsBtn.classList.remove('active');
+        tabRelicsContent.style.display = 'block';
+        tabCardsContent.style.display = 'none';
+      });
+    }
+
     if (viewDeckBtn && deckModal) {
       viewDeckBtn.addEventListener('click', () => {
         window.AudioSynth.playClick();
+        // Reset tabs to Cards active
+        if (tabCardsBtn && tabRelicsBtn && tabCardsContent && tabRelicsContent) {
+          tabCardsBtn.classList.add('active');
+          tabRelicsBtn.classList.remove('active');
+          tabCardsContent.style.display = 'block';
+          tabRelicsContent.style.display = 'none';
+        }
         this.renderDeckModal();
         deckModal.classList.add('active');
       });
@@ -196,6 +237,58 @@ const GameManager = {
           window.AudioSynth.playClick();
           deckModal.classList.remove('active');
         }
+      });
+    }
+
+    // Quest Confirm Button
+    const questConfirmBtn = document.getElementById('quest-confirm-btn');
+    if (questConfirmBtn) {
+      questConfirmBtn.addEventListener('click', () => {
+        if (this.selectedQuestId) {
+          window.AudioSynth.playClick();
+          questConfirmBtn.classList.add('disabled');
+          questConfirmBtn.disabled = true;
+          window.SocketService.selectQuest(this.selectedQuestId);
+        }
+      });
+    }
+
+    // Quest Reroll Button
+    const questRerollBtn = document.getElementById('quest-reroll-btn');
+    if (questRerollBtn) {
+      questRerollBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        questRerollBtn.classList.add('disabled');
+        questRerollBtn.disabled = true;
+        window.SocketService.rerollQuests();
+      });
+    }
+
+    // Card Removal Confirm Button
+    const removalConfirmBtn = document.getElementById('removal-confirm-btn');
+    if (removalConfirmBtn) {
+      removalConfirmBtn.addEventListener('click', () => {
+        if (this.selectedRemovalCardInstanceId) {
+          window.AudioSynth.playClick();
+          removalConfirmBtn.classList.add('disabled');
+          removalConfirmBtn.disabled = true;
+          window.SocketService.removeCard(this.selectedRemovalCardInstanceId);
+        }
+      });
+    }
+
+    // Card Removal Skip Button
+    const removalSkipBtn = document.getElementById('removal-skip-btn');
+    if (removalSkipBtn) {
+      removalSkipBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        if (removalConfirmBtn) {
+          removalConfirmBtn.classList.add('disabled');
+          removalConfirmBtn.disabled = true;
+        }
+        removalSkipBtn.classList.add('disabled');
+        removalSkipBtn.disabled = true;
+        window.SocketService.skipCardRemoval();
       });
     }
 
@@ -259,8 +352,10 @@ const GameManager = {
     this.round = 0;
     this.hand = [];
     this.myHp = 100;
+    this.myMaxHp = 100;
     this.myShield = 0;
     this.opponentHp = 100;
+    this.opponentMaxHp = 100;
     this.opponentShield = 0;
     this.myStatuses = {};
     this.opponentStatuses = {};
@@ -337,6 +432,11 @@ const GameManager = {
     this.myId = data.yourId;
     this.myName = data.yourName;
     
+    this.myMaxHp = 100;
+    this.opponentMaxHp = 100;
+    UI.playerMaxHpVal.innerText = 100;
+    UI.enemyMaxHpVal.innerText = 100;
+    
     // Sound FX matchmaking
     window.AudioSynth.playMatchFound();
     
@@ -349,10 +449,10 @@ const GameManager = {
     UI.setHudName(UI.playerName, this.myName);
     UI.setHudName(UI.enemyName, this.opponentName);
     
-    // Transition Screen to draft screen after a small buffer delay
+    // Transition Screen and orientations after a small buffer delay.
+    // The server will trigger 'questSelectionStart' which handles the screen transition.
     setTimeout(() => {
       this.enterLandscapeImmersive();
-      UI.showScreen('draft');
       UI.clearArenaSlots();
     }, 1500);
   },
@@ -929,11 +1029,11 @@ const GameManager = {
         const clashEndHp = result.newHp + p1TickTotal;
         const clashEndHpOpponent = result.opponentNewHp + p2TickTotal;
 
-        const currentHpSelf = Math.min(100, startHpSelf + (result.healGain || 0));
-        const currentHpOpp = Math.min(100, startHpOpp + (result.opponentHealGain || 0));
+        const currentHpSelf = Math.min(this.myMaxHp, startHpSelf + (result.healGain || 0));
+        const currentHpOpp = Math.min(this.opponentMaxHp, startHpOpp + (result.opponentHealGain || 0));
 
-        Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, currentHpSelf, clashEndHp);
-        Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, currentHpOpp, clashEndHpOpponent);
+        Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, currentHpSelf, clashEndHp, this.myMaxHp);
+        Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, currentHpOpp, clashEndHpOpponent, this.opponentMaxHp);
 
         // Update shields post clash (pre-tick) dynamically in HUD
         this.myShield = Math.max(0, this.myShield - result.shieldDamage);
@@ -1034,10 +1134,10 @@ const GameManager = {
     }
 
     if (p1BurnHpDmg > 0 || p1Poison > 0) {
-      Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, this.myHp, result.newHp);
+      Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, this.myHp, result.newHp, this.myMaxHp);
     }
     if (p2BurnHpDmg > 0 || p2Poison > 0) {
-      Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, this.opponentHp, result.opponentNewHp);
+      Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, this.opponentHp, result.opponentNewHp, this.opponentMaxHp);
     }
 
     // Sync values post ticks
@@ -1047,6 +1147,12 @@ const GameManager = {
     this.opponentShield = result.opponentNewShield;
     UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
     UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+
+    // Update active quest progress tracker post ticks
+    if (result.activeQuest !== undefined) {
+      this.activeQuest = result.activeQuest;
+      UI.updateQuestTracker(this.activeQuest);
+    }
 
     if (dotPromises.length > 0) {
       await Promise.all(dotPromises);
@@ -1140,6 +1246,107 @@ const GameManager = {
     UI.arenaCombatText.innerText = 'Opponent disconnected!';
   },
 
+  onQuestSelectionStart(data) {
+    const UI = window.UI;
+    UI.showScreen('questSelection');
+    
+    this.offeredQuests = data.quests;
+    this.selectedQuestId = null;
+    
+    const rerollsVal = document.getElementById('quest-rerolls-val');
+    if (rerollsVal) rerollsVal.innerText = data.rerollsLeft;
+    
+    const rerollBtn = document.getElementById('quest-reroll-btn');
+    if (rerollBtn) {
+      if (data.rerollsLeft > 0) {
+        rerollBtn.classList.remove('disabled');
+        rerollBtn.disabled = false;
+      } else {
+        rerollBtn.classList.add('disabled');
+        rerollBtn.disabled = true;
+      }
+    }
+    
+    const confirmBtn = document.getElementById('quest-confirm-btn');
+    if (confirmBtn) {
+      confirmBtn.classList.add('disabled');
+      confirmBtn.disabled = true;
+    }
+    
+    UI.renderQuestCards(data.quests, (questId) => {
+      this.selectedQuestId = questId;
+      if (confirmBtn) {
+        confirmBtn.classList.remove('disabled');
+        confirmBtn.disabled = false;
+      }
+    });
+  },
+
+  onQuestLocked(chosenQuest) {
+    const UI = window.UI;
+    const waitingText = document.querySelector('#waiting-screen p');
+    if (waitingText) {
+      waitingText.innerText = 'Waiting for opponent to choose their quest...';
+    }
+    UI.showScreen('waiting');
+  },
+
+  onWaitingForOpponentQuest() {
+    const UI = window.UI;
+    UI.showToast("Opponent has chosen their quest!");
+  },
+
+  onCardRemovalStart(data) {
+    const UI = window.UI;
+    UI.showScreen('cardRemoval');
+    
+    this.deck = data.deck || [];
+    this.selectedRemovalCardInstanceId = null;
+    
+    const confirmBtn = document.getElementById('removal-confirm-btn');
+    if (confirmBtn) {
+      confirmBtn.classList.add('disabled');
+      confirmBtn.disabled = true;
+    }
+    
+    const skipBtn = document.getElementById('removal-skip-btn');
+    if (skipBtn) {
+      skipBtn.classList.remove('disabled');
+      skipBtn.disabled = false;
+    }
+    
+    UI.renderRemovalCards(data.deck, (cardInstanceId) => {
+      this.selectedRemovalCardInstanceId = cardInstanceId;
+      if (confirmBtn) {
+        confirmBtn.classList.remove('disabled');
+        confirmBtn.disabled = false;
+      }
+    });
+  },
+
+  onRemovalConfirmed() {
+    const UI = window.UI;
+    const waitingText = document.querySelector('#waiting-screen p');
+    if (waitingText) {
+      waitingText.innerText = 'Waiting for opponent to complete their card removal phase...';
+    }
+    UI.showScreen('waiting');
+  },
+
+  onWaitingForOpponentRemoval() {
+    const UI = window.UI;
+    const waitingText = document.querySelector('#waiting-screen p');
+    if (waitingText) {
+      waitingText.innerText = 'Waiting for opponent to complete their card removal phase...';
+    }
+    UI.showScreen('waiting');
+  },
+
+  onOpponentRemovalConfirmed() {
+    const UI = window.UI;
+    UI.showToast("Opponent has completed card removal!");
+  },
+
   /**
    * Triggers at the start of a round
    */
@@ -1170,9 +1377,11 @@ const GameManager = {
     this.round = data.round;
     this.hand = data.hand;
     this.myHp = data.selfStatus.hp;
+    this.myMaxHp = data.selfStatus.maxHp || 100;
     this.myShield = data.selfStatus.shield;
     this.myStatuses = data.selfStatus.statuses || {};
     this.opponentHp = data.opponentStatus.hp;
+    this.opponentMaxHp = data.opponentStatus.maxHp || 100;
     this.opponentShield = data.opponentStatus.shield;
     this.opponentStatuses = data.opponentStatus.statuses || {};
     
@@ -1199,13 +1408,15 @@ const GameManager = {
 
     // Sync HUD status bars, active badges, and points immediately
     UI.playerHpVal.innerText = this.myHp;
-    UI.playerHpFill.style.width = `${this.myHp}%`;
+    UI.playerMaxHpVal.innerText = this.myMaxHp;
+    UI.playerHpFill.style.width = `${(this.myHp / this.myMaxHp) * 100}%`;
     UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
     UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
     UI.renderPoints(UI.playerPoints, this.myPoints);
 
     UI.enemyHpVal.innerText = this.opponentHp;
-    UI.enemyHpFill.style.width = `${this.opponentHp}%`;
+    UI.enemyMaxHpVal.innerText = this.opponentMaxHp;
+    UI.enemyHpFill.style.width = `${(this.opponentHp / this.opponentMaxHp) * 100}%`;
     UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
     UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
     UI.renderPoints(UI.enemyPoints, this.opponentPoints);
@@ -1214,6 +1425,18 @@ const GameManager = {
     this.deck = data.selfStatus.deck || [];
     const deckCountEl = document.getElementById('deck-count-val');
     if (deckCountEl) deckCountEl.innerText = this.deck.length;
+
+    // Relics & Active Quest State
+    this.myRelics = data.selfStatus.relics || {};
+    this.opponentRelics = data.opponentStatus.relics || {};
+    this.activeQuest = data.selfStatus.activeQuest || null;
+
+    // Render Relics in HUD
+    UI.renderRelicsHUD(UI.playerRelicsRow, this.myRelics);
+    UI.renderRelicsHUD(UI.enemyRelicsRow, this.opponentRelics);
+
+    // Update active quest tracker widget
+    UI.updateQuestTracker(this.activeQuest);
   },
 
   /**
@@ -1298,12 +1521,32 @@ const GameManager = {
     if (scoreP1Name) scoreP1Name.innerText = this.myName || 'You';
     if (scoreP2Name) scoreP2Name.innerText = this.opponentName || 'Opponent';
 
+    // Show / hide quest reward banner
+    const isPlayer1 = data.p1Id === this.myId;
+    const myQuest = isPlayer1 ? data.p1Quest : data.p2Quest;
+
+    if (myQuest && myQuest.completed) {
+      if (UI.roundQuestRewardBanner) {
+        UI.roundQuestRewardBanner.classList.remove('hidden');
+      }
+      if (UI.roundQuestRewardText) {
+        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br>Reward: <strong style="color: #ffd700;">${myQuest.reward}</strong>`;
+      }
+      if (window.AudioSynth && window.AudioSynth.playQuestComplete) {
+        window.AudioSynth.playQuestComplete();
+      }
+    } else {
+      if (UI.roundQuestRewardBanner) {
+        UI.roundQuestRewardBanner.classList.add('hidden');
+      }
+    }
+
     // Show round result overlay with animation
     const cardEl = UI.roundResultOverlay.querySelector('.round-result-card');
     Animations.animateOverlayReveal(UI.roundResultOverlay, cardEl);
 
-    // Play round-finished sound
-    if (window.AudioSynth) {
+    // Play round-finished sound if we didn't play a quest completion sound
+    if (window.AudioSynth && !(myQuest && myQuest.completed)) {
       if (isRoundWinner) {
         window.AudioSynth.playVictory();
       } else {
@@ -1311,7 +1554,8 @@ const GameManager = {
       }
     }
 
-    // Keep round completed overlay visible for a minimum of 2.2 seconds
+    // Keep round completed overlay visible for a minimum of 2.2 seconds (or 3.7 seconds if a quest is completed)
+    const displayDuration = (myQuest && myQuest.completed) ? 3700 : 2200;
     this.roundFinishedShowing = true;
     setTimeout(() => {
       this.roundFinishedShowing = false;
@@ -1324,7 +1568,7 @@ const GameManager = {
       }
 
       this.checkAndTriggerEndPhase();
-    }, 2200);
+    }, displayDuration);
   },
 
   /**
@@ -1680,22 +1924,42 @@ const GameManager = {
   },
 
   /**
-   * Renders the cards in the player's deck inside the inspection modal.
+   * Renders the cards and relics in the player's deck/inventory inside the inspection modal.
    */
   renderDeckModal() {
     const listContainer = document.getElementById('deck-cards-list');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
+    const relicsContainer = document.getElementById('deck-relics-list');
+    const cardsCountEl = document.getElementById('tab-cards-count');
+    const relicsCountEl = document.getElementById('tab-relics-count');
     
-    if (!this.deck || this.deck.length === 0) {
-      listContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Your deck is empty.</p>';
-      return;
+    // Update card list
+    if (listContainer) {
+      listContainer.innerHTML = '';
+      if (!this.deck || this.deck.length === 0) {
+        listContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Your deck is empty.</p>';
+      } else {
+        this.deck.forEach(card => {
+          const cardEl = window.UI.createCardElement(card);
+          listContainer.appendChild(cardEl);
+        });
+      }
     }
     
-    this.deck.forEach(card => {
-      const cardEl = window.UI.createCardElement(card);
-      listContainer.appendChild(cardEl);
-    });
+    // Update cards count
+    if (cardsCountEl) {
+      cardsCountEl.innerText = this.deck ? this.deck.length : 0;
+    }
+    
+    // Render relics list
+    if (relicsContainer) {
+      window.UI.renderRelicsGrid(relicsContainer, this.myRelics);
+    }
+    
+    // Update relics count (sum of stacks)
+    if (relicsCountEl) {
+      const totalRelicsCount = Object.values(this.myRelics || {}).reduce((a, b) => a + b, 0);
+      relicsCountEl.innerText = totalRelicsCount;
+    }
   }
 };
 

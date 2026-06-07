@@ -199,8 +199,178 @@ const AudioSynth = {
     
     osc.start();
     osc.stop(this.ctx.currentTime + 0.18);
+  },
+
+  playQuestComplete() {
+    this.init();
+    if (!this.ctx) return;
+    
+    const playTone = (freq, delay, dur, type = 'sine') => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+      
+      gain.gain.setValueAtTime(0, this.ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(0.06, this.ctx.currentTime + delay + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + dur);
+      
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      
+      osc.start(this.ctx.currentTime + delay);
+      osc.stop(this.ctx.currentTime + delay + dur);
+    };
+
+    // A sparkling, rewarding sound
+    playTone(523.25, 0.0, 0.25, 'triangle');  // C5
+    playTone(659.25, 0.08, 0.25, 'triangle'); // E5
+    playTone(783.99, 0.16, 0.25, 'triangle'); // G5
+    playTone(1046.50, 0.24, 0.5, 'sine');    // C6
   }
 };
+
+const RELIC_DATABASE = {
+  steady_resolve: {
+    name: 'Steady Resolve',
+    quality: 'COMMON',
+    icon: 'fa-shield-halved',
+    description: 'When obtaining Neutral outcome: gain 3 Shield per stack.'
+  },
+  nature_affinity: {
+    name: 'Nature Affinity',
+    quality: 'COMMON',
+    icon: 'fa-heart-pulse',
+    description: 'All Nature cards: +2 Heal per stack.'
+  },
+  frozen_shield: {
+    name: 'Frozen Shield',
+    quality: 'COMMON',
+    icon: 'fa-snowflake',
+    description: 'All Water cards: gain 2 Shield on Superior outcome per stack.'
+  },
+  iron_grit: {
+    name: 'Iron Grit',
+    quality: 'COMMON',
+    icon: 'fa-dumbbell',
+    description: 'All Neutral cards: gain 2 Shield on Neutral outcome per stack.'
+  },
+  fire_mastery: {
+    name: 'Fire Mastery',
+    quality: 'RARE',
+    icon: 'fa-fire',
+    description: 'All Fire cards: +2 Damage per stack.'
+  },
+  water_mastery: {
+    name: 'Water Mastery',
+    quality: 'RARE',
+    icon: 'fa-droplet',
+    description: 'All Water cards: +2 Damage per stack.'
+  },
+  nature_mastery: {
+    name: 'Nature Mastery',
+    quality: 'RARE',
+    icon: 'fa-leaf',
+    description: 'All Nature cards: +2 Damage per stack.'
+  },
+  ember_spark: {
+    name: 'Ember Spark',
+    quality: 'RARE',
+    icon: 'fa-fire-flame-curved',
+    description: 'All Fire cards apply +1 Burn on Superior outcome per stack.'
+  },
+  venomous_brambles: {
+    name: 'Venomous Brambles',
+    quality: 'RARE',
+    icon: 'fa-wheat-awn-circle-exclamation',
+    description: 'All Nature cards apply +1 Poison on Superior outcome per stack.'
+  },
+  tidal_wisdom: {
+    name: 'Tidal Wisdom',
+    quality: 'EPIC',
+    icon: 'fa-water',
+    description: 'At the start of each round: gain 4 Shield per stack.'
+  },
+  burning_core: {
+    name: 'Burning Core',
+    quality: 'EPIC',
+    icon: 'fa-sun',
+    description: 'Burn deals +1 damage per stack of burn, per stack of relic.'
+  },
+  toxic_catalyst: {
+    name: 'Toxic Catalyst',
+    quality: 'EPIC',
+    icon: 'fa-biohazard',
+    description: 'Poison deals +1 damage per stack of poison, per stack of relic.'
+  },
+  aggressive_momentum: {
+    name: 'Aggressive Momentum',
+    quality: 'EPIC',
+    icon: 'fa-bolt',
+    description: 'When obtaining Superior outcome: deal 2 extra damage per stack.'
+  },
+  elemental_harmony: {
+    name: 'Elemental Harmony',
+    quality: 'EPIC',
+    icon: 'fa-circle-nodes',
+    description: 'All Fire, Water, and Nature cards: +1 Damage per stack.'
+  },
+  chaos_engine: {
+    name: 'Chaos Engine',
+    quality: 'LEGENDARY',
+    icon: 'fa-gear',
+    description: 'Chaos cards: +3 Damage per stack. Inferior outcome: take 3 self damage per stack.'
+  },
+  last_stand: {
+    name: 'Last Stand',
+    quality: 'LEGENDARY',
+    icon: 'fa-shield-heart',
+    description: 'When obtaining Inferior outcome: gain Buff(1) per stack.'
+  },
+  relic_vitality_common: {
+    name: 'Vitality Boost',
+    quality: 'COMMON',
+    icon: 'fa-heart-pulse',
+    description: 'Permanent +15 Max HP and HP per stack.'
+  },
+  relic_shield_regen_common: {
+    name: 'Fortress Shell',
+    quality: 'COMMON',
+    icon: 'fa-shield',
+    description: 'At the start of each turn: gain 3 Shield per stack.'
+  },
+  relic_vitality_rare: {
+    name: 'Iron Vitality',
+    quality: 'RARE',
+    icon: 'fa-heart-circle-plus',
+    description: 'Permanent +25 Max HP and HP per stack.'
+  },
+  relic_shield_regen_rare: {
+    name: 'Bastion Shield',
+    quality: 'RARE',
+    icon: 'fa-shield-halved',
+    description: 'At the start of each turn: gain 5 Shield per stack.'
+  },
+  relic_vitality_epic: {
+    name: 'Godly Vitality',
+    quality: 'EPIC',
+    icon: 'fa-heart-circle-bolt',
+    description: 'Permanent +40 Max HP and HP per stack.'
+  },
+  relic_shield_regen_epic: {
+    name: 'Aegis Shield',
+    quality: 'EPIC',
+    icon: 'fa-shield-halved',
+    description: 'At the start of each turn: gain 8 Shield per stack.'
+  },
+  relic_focused_soul: {
+    name: 'Focused Soul',
+    quality: 'EPIC',
+    icon: 'fa-bolt',
+    description: 'At the start of each round: gain 1 Attack Buff per stack.'
+  }
+};
+
 
 // UI Manager holding states and DOM bindings
 const UI = {
@@ -210,10 +380,17 @@ const UI = {
   battleScreen: document.getElementById('battle-screen'),
   gameOverScreen: document.getElementById('game-over-screen'),
   roundResultOverlay: document.getElementById('round-result-overlay'),
+  roundQuestRewardBanner: document.getElementById('round-quest-reward-banner'),
+  roundQuestRewardText: document.getElementById('round-quest-reward-text'),
   bonusPickScreen: document.getElementById('bonus-pick-screen'),
   waitingScreen: document.getElementById('waiting-screen'),
   packSelectionScreen: document.getElementById('pack-selection-screen'),
   packRevealScreen: document.getElementById('pack-reveal-screen'),
+  questSelectionScreen: document.getElementById('quest-selection-screen'),
+  cardRemovalScreen: document.getElementById('card-removal-screen'),
+  playerRelicsRow: document.getElementById('player-relics-row'),
+  enemyRelicsRow: document.getElementById('enemy-relics-row'),
+  
   
   // Matchmaking elements
   usernameInput: document.getElementById('username-input'),
@@ -233,6 +410,7 @@ const UI = {
   // Battle HUD elements
   playerName: document.getElementById('player-name'),
   playerHpVal: document.getElementById('player-hp-val'),
+  playerMaxHpVal: document.getElementById('player-max-hp-val'),
   playerHpFill: document.getElementById('player-hp-fill'),
   playerShieldVal: document.getElementById('player-shield-val'),
   playerShieldBox: document.getElementById('player-shield-box'),
@@ -241,6 +419,7 @@ const UI = {
   
   enemyName: document.getElementById('enemy-name'),
   enemyHpVal: document.getElementById('enemy-hp-val'),
+  enemyMaxHpVal: document.getElementById('enemy-max-hp-val'),
   enemyHpFill: document.getElementById('enemy-hp-fill'),
   enemyShieldVal: document.getElementById('enemy-shield-val'),
   enemyShieldBox: document.getElementById('enemy-shield-box'),
@@ -297,6 +476,9 @@ const UI = {
     if (this.waitingScreen) this.waitingScreen.classList.remove('active');
     if (this.packSelectionScreen) this.packSelectionScreen.classList.remove('active');
     if (this.packRevealScreen) this.packRevealScreen.classList.remove('active');
+    if (this.questSelectionScreen) this.questSelectionScreen.classList.remove('active');
+    if (this.cardRemovalScreen) this.cardRemovalScreen.classList.remove('active');
+
 
     // Hide round overlay if switching screens
     if (this.roundResultOverlay) {
@@ -321,6 +503,10 @@ const UI = {
       if (this.packSelectionScreen) this.packSelectionScreen.classList.add('active');
     } else if (screenName === 'packReveal') {
       if (this.packRevealScreen) this.packRevealScreen.classList.add('active');
+    } else if (screenName === 'questSelection') {
+      if (this.questSelectionScreen) this.questSelectionScreen.classList.add('active');
+    } else if (screenName === 'cardRemoval') {
+      if (this.cardRemovalScreen) this.cardRemovalScreen.classList.add('active');
     }
   },
 
@@ -1007,6 +1193,140 @@ const UI = {
       toast.style.transform = 'translateX(-50%) translateY(-120px)';
       toast.style.opacity = '0';
     }, 3200);
+  },
+
+  renderRelicsHUD(container, relics = {}) {
+    if (!container) return;
+    container.innerHTML = '';
+    
+    Object.entries(relics).forEach(([relicId, count]) => {
+      if (count <= 0) return;
+      const def = RELIC_DATABASE[relicId];
+      if (!def) return;
+      
+      const badge = document.createElement('div');
+      badge.className = `hud-relic-badge ${def.quality}`;
+      badge.setAttribute('title', `${def.name} (Stack: ${count})\n${def.description}`);
+      
+      badge.innerHTML = `
+        <i class="fa-solid ${def.icon}"></i>
+        ${count > 1 ? `<span class="relic-stack-indicator">${count}</span>` : ''}
+      `;
+      container.appendChild(badge);
+    });
+  },
+
+  renderRelicsGrid(container, relics = {}) {
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const activeEntries = Object.entries(relics).filter(([_, count]) => count > 0);
+    
+    if (activeEntries.length === 0) {
+      container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic; grid-column: 1/-1; text-align: center;">You do not own any relics yet.</p>';
+      return;
+    }
+    
+    activeEntries.forEach(([relicId, count]) => {
+      const def = RELIC_DATABASE[relicId];
+      if (!def) return;
+      
+      const itemEl = document.createElement('div');
+      itemEl.className = `relic-card-item ${def.quality}`;
+      
+      itemEl.innerHTML = `
+        <div class="relic-header-row">
+          <div class="relic-title-name">
+            <i class="fa-solid ${def.icon}" style="margin-right: 0.5rem;"></i>
+            ${def.name}
+          </div>
+          <span class="relic-stack-badge">x${count}</span>
+        </div>
+        <div class="relic-quality-tag ${def.quality}">${def.quality} RELIC</div>
+        <p class="relic-card-desc">${def.description}</p>
+      `;
+      container.appendChild(itemEl);
+    });
+  },
+
+  renderQuestCards(quests, onQuestClick) {
+    const grid = document.getElementById('quest-cards-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    quests.forEach(q => {
+      const card = document.createElement('div');
+      card.className = `quest-card ${q.difficulty}`;
+      card.dataset.questId = q.id;
+      
+      card.innerHTML = `
+        <div class="quest-card-difficulty ${q.difficulty}">${q.difficulty}</div>
+        <div class="quest-card-text">${q.text}</div>
+        <div class="quest-card-reward-box">
+          <div class="quest-card-reward-label">REWARD</div>
+          <div class="quest-card-reward-text">${q.reward.text}</div>
+        </div>
+      `;
+      
+      card.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        grid.querySelectorAll('.quest-card').forEach(c => {
+          c.classList.remove('selected');
+        });
+        card.classList.add('selected');
+        onQuestClick(q.id);
+      });
+      
+      grid.appendChild(card);
+    });
+  },
+
+  updateQuestTracker(activeQuest) {
+    const tracker = document.getElementById('battle-quest-tracker');
+    if (!tracker) return;
+    
+    if (!activeQuest) {
+      tracker.classList.add('hidden');
+      return;
+    }
+    
+    tracker.classList.remove('hidden');
+    
+    const textEl = document.getElementById('tracker-quest-text');
+    const fillEl = document.getElementById('tracker-progress-fill');
+    const progressTextEl = document.getElementById('tracker-progress-text');
+    const rewardEl = document.getElementById('tracker-reward-text');
+    
+    if (textEl) textEl.innerText = activeQuest.text;
+    
+    const progress = activeQuest.progress || 0;
+    const target = activeQuest.target || 1;
+    const percent = Math.min(100, Math.floor((progress / target) * 100));
+    
+    if (fillEl) fillEl.style.width = `${percent}%`;
+    if (progressTextEl) progressTextEl.innerText = `${progress} / ${target}`;
+    if (rewardEl) rewardEl.innerText = `Reward: ${activeQuest.reward.text}`;
+  },
+
+  renderRemovalCards(deck, onCardClick) {
+    const grid = document.getElementById('removal-cards-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    deck.forEach(card => {
+      const cardEl = this.createCardElement(card);
+      
+      cardEl.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        grid.querySelectorAll('.card').forEach(c => {
+          c.classList.remove('selected');
+        });
+        cardEl.classList.add('selected');
+        onCardClick(card.instanceId);
+      });
+      
+      grid.appendChild(cardEl);
+    });
   }
 };
 

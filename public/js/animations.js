@@ -250,7 +250,7 @@ const Animations = {
   /**
    * Animates HP Bar reduction
    */
-  animateHpReduction(fillElement, textElement, startHp, endHp, duration = 400) {
+  animateHpReduction(fillElement, textElement, startHp, endHp, maxHp = 100, duration = 400) {
     const obj = { hp: startHp };
     
     anime({
@@ -261,7 +261,7 @@ const Animations = {
       easing: 'easeOutQuad',
       update: () => {
         textElement.innerText = obj.hp;
-        fillElement.style.width = `${Math.max(0, obj.hp)}%`;
+        fillElement.style.width = `${Math.max(0, (obj.hp / maxHp) * 100)}%`;
       }
     });
   },

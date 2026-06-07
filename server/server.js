@@ -53,6 +53,26 @@ const express = require('express');
     socket.on('selectPack', (packId) => {
       roomManager.handleSelectPack(socket, packId, io);
     });
+
+    // Player selects a quest in quest selection phase
+    socket.on('selectQuest', (questId) => {
+      roomManager.handleSelectQuest(socket, questId, io);
+    });
+
+    // Player rerolls quests
+    socket.on('rerollQuests', () => {
+      roomManager.handleRerollQuests(socket, io);
+    });
+
+    // Player removes a card from deck
+    socket.on('removeCard', (cardInstanceId) => {
+      roomManager.handleRemoveCard(socket, cardInstanceId, io);
+    });
+
+    // Player skips card removal
+    socket.on('skipCardRemoval', () => {
+      roomManager.handleSkipCardRemoval(socket, io);
+    });
   
     // Player confirms their pack reveal animation is finished
     socket.on('packRevealConfirm', () => {
