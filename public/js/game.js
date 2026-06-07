@@ -362,13 +362,7 @@ const GameManager = {
    */
   onOpponentSelect(data) {
     const UI = window.UI;
-    if (UI.isLocked) {
-      UI.arenaCombatText.innerText = 'Waiting for opponent to lock selection...';
-    } else if (data.opponentSelected) {
-      UI.arenaCombatText.innerText = 'Opponent is choosing a card...';
-    } else {
-      UI.arenaCombatText.innerText = 'Select your card!';
-    }
+    UI.arenaCombatText.innerText = '';
   },
 
   /**
@@ -376,10 +370,26 @@ const GameManager = {
    */
   onOpponentLock(data) {
     const UI = window.UI;
-    if (UI.isLocked) {
-      UI.arenaCombatText.innerText = 'Both players locked. Simulating clash...';
-    } else {
-      UI.arenaCombatText.innerText = 'Opponent locked card choice!';
+    UI.arenaCombatText.innerText = '';
+
+    // Immediately show the opponent's card face-down in their slot (without element border)
+    const opponentSlot = UI.enemyPlaySlot;
+    if (opponentSlot && !opponentSlot.querySelector('.card')) {
+      const opponentCardEl = document.createElement('div');
+      opponentCardEl.className = 'card';
+      opponentCardEl.style.cssText = 'position: relative; transform: rotateY(180deg); width: 100%; height: 100%; cursor: default;';
+      opponentCardEl.innerHTML = `
+        <div class="card-face card-front"></div>
+        <div class="card-face card-back"></div>
+      `;
+      opponentSlot.innerHTML = '';
+      opponentSlot.appendChild(opponentCardEl);
+      opponentSlot.classList.add('filled');
+
+      // Animate its arrival from above and store the promise
+      window.opponentCardArrivalPromise = new Promise(resolve => {
+        Animations.animateOpponentCardArrival(opponentCardEl, resolve);
+      });
     }
   },
 
@@ -508,22 +518,36 @@ const GameManager = {
       UI.playerPlaySlot.classList.add('filled');
     }
 
-    const opponentCardEl = document.createElement('div');
-    opponentCardEl.className = 'card';
-    opponentCardEl.setAttribute('data-element', reveal.opponentCard.element);
-    opponentCardEl.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
-    opponentCardEl.innerHTML = `
-      <div class="card-face card-front"></div>
-      <div class="card-face card-back"></div>
-    `;
-    UI.enemyPlaySlot.innerHTML = '';
-    UI.enemyPlaySlot.appendChild(opponentCardEl);
-    UI.enemyPlaySlot.classList.add('filled');
-    UI.vsBadge.style.opacity = '0.2';
+    let opponentCardEl = UI.enemyPlaySlot.querySelector('.card');
+    const opponentCardAlreadyInSlot = opponentCardEl !== null;
 
-    await new Promise(resolve => {
-      Animations.animateOpponentCardArrival(opponentCardEl, resolve);
-    });
+    if (opponentCardAlreadyInSlot) {
+      // Wait for any running arrival animation to finish first!
+      if (window.opponentCardArrivalPromise) {
+        await window.opponentCardArrivalPromise;
+        window.opponentCardArrivalPromise = null;
+      }
+      // Add data-element outline now that it is revealed
+      opponentCardEl.setAttribute('data-element', reveal.opponentCard.element);
+      opponentCardEl.style.transform = 'rotateY(180deg)';
+    } else {
+      opponentCardEl = document.createElement('div');
+      opponentCardEl.className = 'card';
+      opponentCardEl.setAttribute('data-element', reveal.opponentCard.element);
+      opponentCardEl.style.cssText = 'position: relative; transform: rotateY(180deg); width: 100%; height: 100%; cursor: default;';
+      opponentCardEl.innerHTML = `
+        <div class="card-face card-front"></div>
+        <div class="card-face card-back"></div>
+      `;
+      UI.enemyPlaySlot.innerHTML = '';
+      UI.enemyPlaySlot.appendChild(opponentCardEl);
+      UI.enemyPlaySlot.classList.add('filled');
+      
+      await new Promise(resolve => {
+        Animations.animateOpponentCardArrival(opponentCardEl, resolve);
+      });
+    }
+    UI.vsBadge.style.opacity = '0.2';
 
     const iconClass = UI.getElementIconClass(reveal.opponentCard.element);
     const frontFace = opponentCardEl.querySelector('.card-front');
@@ -1125,6 +1149,7 @@ const GameManager = {
     this.roundFinishedShowing = false;
     this.pendingDraftPhase = null;
     this.pendingRoundFinished = null;
+    window.opponentCardArrivalPromise = null;
     
     // Enter landscape full screen on mobile
     this.enterLandscapeImmersive();
@@ -1164,7 +1189,7 @@ const GameManager = {
 
     // Wipe arena slots clean
     UI.clearArenaSlots();
-    UI.arenaCombatText.innerText = `Round ${this.round}: Select your card!`;
+    UI.arenaCombatText.innerText = '';
 
     // Render cards and trigger draw animation
     UI.renderHand(this.hand, true, isNewRound);

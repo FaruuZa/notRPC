@@ -613,9 +613,20 @@ const UI = {
         cardEl.style.setProperty('--total', total);
         cardEl.style.zIndex = index + 1;
         if (!this.isLocked) {
-          cardEl.addEventListener('click', () => {
-            AudioSynth.playClick();
-            this.selectCard(card.instanceId);
+          let lastClickTime = 0;
+          cardEl.addEventListener('click', (e) => {
+            const currentTime = new Date().getTime();
+            const clickDelay = currentTime - lastClickTime;
+            lastClickTime = currentTime;
+
+            if (clickDelay < 300) {
+              AudioSynth.playClick();
+              this.selectCard(card.instanceId, true);
+              this.lockSelection();
+            } else {
+              AudioSynth.playClick();
+              this.selectCard(card.instanceId);
+            }
           });
         }
       });
@@ -646,9 +657,20 @@ const UI = {
         const cardEl = this.createCardElement(card);
         this.playerHand.appendChild(cardEl);
         if (!this.isLocked) {
+          let lastClickTime = 0;
           cardEl.addEventListener('click', () => {
-            AudioSynth.playClick();
-            this.selectCard(card.instanceId);
+            const currentTime = new Date().getTime();
+            const clickDelay = currentTime - lastClickTime;
+            lastClickTime = currentTime;
+
+            if (clickDelay < 300) {
+              AudioSynth.playClick();
+              this.selectCard(card.instanceId, true);
+              this.lockSelection();
+            } else {
+              AudioSynth.playClick();
+              this.selectCard(card.instanceId);
+            }
           });
         }
       }
@@ -676,6 +698,19 @@ const UI = {
   },
 
   /**
+   * Realigns index and total properties of remaining hand cards in DOM immediately when a card is locked
+   */
+  realignRemainingHand(lockedCardEl) {
+    const remainingCards = Array.from(this.playerHand.querySelectorAll('.card')).filter(c => c !== lockedCardEl && c.style.display !== 'none');
+    const total = remainingCards.length;
+    remainingCards.forEach((cardEl, index) => {
+      cardEl.style.setProperty('--index', index);
+      cardEl.style.setProperty('--total', total);
+      cardEl.style.zIndex = index + 1;
+    });
+  },
+
+  /**
    * Updates opponent hand indicator card count dots
    * @param {number} size Hand size count
    */
@@ -690,11 +725,11 @@ const UI = {
   /**
    * Selects a card from the hand
    */
-  selectCard(instanceId) {
+  selectCard(instanceId, forceSelect = false) {
     if (this.isLocked) return;
 
     // Deselect if clicking already selected
-    if (this.selectedCardInstanceId === instanceId) {
+    if (!forceSelect && this.selectedCardInstanceId === instanceId) {
       this.selectedCardInstanceId = null;
       this.lockBtn.classList.add('disabled');
       this.lockBtn.disabled = true;
@@ -750,7 +785,7 @@ const UI = {
     this.isLocked = true;
     this.lockBtn.classList.add('locked-state');
     this.lockBtn.disabled = true;
-    this.lockBtn.querySelector('.lock-btn-text').innerText = 'LOCKED';
+    this.lockBtn.querySelector('.lock-btn-text').innerText = 'WAITING FOR OPPONENT';
     
     // Add locked state border to card and animate it to play slot
     const selectedCard = this.playerHand.querySelector('.card.selected');
@@ -781,6 +816,8 @@ const UI = {
         // Hide original card
         selectedCard.style.opacity = '0';
         selectedCard.style.pointerEvents = 'none';
+        selectedCard.style.display = 'none';
+        this.realignRemainingHand(selectedCard);
 
         const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
         const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
@@ -822,6 +859,8 @@ const UI = {
         this.playerPlaySlot.classList.add('filled');
         selectedCard.style.opacity = '0';
         selectedCard.style.pointerEvents = 'none';
+        selectedCard.style.display = 'none';
+        this.realignRemainingHand(selectedCard);
       }
     }
 
