@@ -294,6 +294,9 @@ const Animations = {
     } else if (type === 'shield-decay') {
       colorClass = 'shield-decay';
       text = `<i class="fa-solid fa-shield-halved"></i> -${value} DECAY`;
+    } else if (type === 'self-damage') {
+      colorClass = 'self-dmg';
+      text = `<i class="fa-solid fa-heart-crack"></i> -${value} SELF`;
     } else {
       colorClass = 'red';
       text = `-${value} HP`;
@@ -309,8 +312,8 @@ const Animations = {
     
     container.appendChild(popup);
 
-    const isDot = (type === 'burn' || type === 'poison');
-    const targetY = isDot ? 60 : -60;
+    const isDotOrDecay = (type === 'burn' || type === 'poison' || type === 'shield-decay');
+    const targetY = isDotOrDecay ? 60 : -60;
 
     anime({
       targets: popup,
@@ -376,8 +379,11 @@ const Animations = {
   /**
    * Animates a floating overlay over a card to signify actions like buffing, debuffing, healing, self damage
    */
-  animateCardActionOverlay(cardEl, actionType, text) {
-    if (!cardEl) return;
+  animateCardActionOverlay(cardEl, actionType, text, callback) {
+    if (!cardEl) {
+      if (callback) callback();
+      return;
+    }
 
     // Create action overlay element
     const overlay = document.createElement('div');
@@ -425,6 +431,30 @@ const Animations = {
       border = '3px solid #f1f2f6';
       bg = 'rgba(241, 242, 246, 0.28)';
       glow = '0 0 20px rgba(241, 242, 246, 0.6)';
+    } else if (actionType === 'dispel') {
+      iconHtml = '<i class="fa-solid fa-bolt-slash"></i>';
+      color = '#ff9f43';
+      border = '3px solid #ff9f43';
+      bg = 'rgba(255, 159, 67, 0.28)';
+      glow = '0 0 20px rgba(255, 159, 67, 0.6)';
+    } else if (actionType === 'burn') {
+      iconHtml = '<i class="fa-solid fa-fire"></i>';
+      color = '#ff4d4d';
+      border = '3px solid #ff4d4d';
+      bg = 'rgba(255, 77, 77, 0.28)';
+      glow = '0 0 20px rgba(255, 77, 77, 0.6)';
+    } else if (actionType === 'poison') {
+      iconHtml = '<i class="fa-solid fa-skull-crossbones"></i>';
+      color = '#2ecc71';
+      border = '3px solid #2ecc71';
+      bg = 'rgba(46, 204, 113, 0.28)';
+      glow = '0 0 20px rgba(46, 204, 113, 0.6)';
+    } else if (actionType === 'weak') {
+      iconHtml = '<i class="fa-solid fa-shield-halved" style="transform: rotate(180deg);"></i>';
+      color = '#7f8c8d';
+      border = '3px solid #7f8c8d';
+      bg = 'rgba(127, 140, 141, 0.28)';
+      glow = '0 0 20px rgba(127, 140, 141, 0.6)';
     }
 
     overlay.style.cssText = `
@@ -469,10 +499,11 @@ const Animations = {
       targets: overlay,
       opacity: [0, 1, 1, 0],
       scale: [0.75, 1.05, 1],
-      duration: 650,
+      duration: 400,
       easing: 'easeOutBack',
       complete: () => {
         overlay.remove();
+        if (callback) callback();
       }
     });
   },
@@ -577,6 +608,45 @@ const Animations = {
         if (callback) callback();
       }
     });
+  },
+
+  /**
+   * Shakes the HUD panel when taking damage (e.g. burn/poison tick or attack damage)
+   */
+  animateHudDamageShake(hudEl) {
+    if (!hudEl) return;
+    anime({
+      targets: hudEl,
+      translateX: [0, -6, 6, -4, 4, -2, 2, 0],
+      duration: 350,
+      easing: 'easeInOutSine'
+    });
+  },
+
+  /**
+   * Triggers a temporary flash overlay/background effect on HUD for Burn damage
+   */
+  triggerBurnFlash(hudEl) {
+    if (!hudEl) return;
+    hudEl.classList.remove('burn-flash');
+    void hudEl.offsetWidth; // force reflow
+    hudEl.classList.add('burn-flash');
+    setTimeout(() => {
+      hudEl.classList.remove('burn-flash');
+    }, 500);
+  },
+
+  /**
+   * Triggers a temporary flash overlay/background effect on HUD for Poison damage
+   */
+  triggerPoisonFlash(hudEl) {
+    if (!hudEl) return;
+    hudEl.classList.remove('poison-flash');
+    void hudEl.offsetWidth; // force reflow
+    hudEl.classList.add('poison-flash');
+    setTimeout(() => {
+      hudEl.classList.remove('poison-flash');
+    }, 500);
   }
 };
 

@@ -69,6 +69,11 @@ const express = require('express');
       roomManager.handleLockSelection(socket, io);
     });
 
+    // Player has finished the visual clash animation
+    socket.on('clashFinished', () => {
+      roomManager.handleClashFinished(socket, io);
+    });
+
     // Player surrenders the match
     socket.on('surrender', () => {
       roomManager.handleSurrender(socket, io);

@@ -23,6 +23,11 @@ const GameManager = {
   // Animation sync helpers
   currentRoundReveal: null,
   currentRoundResult: null,
+  pendingRoundFinished: null,
+  pendingGameOver: null,
+  pendingDraftPhase: null,
+  roundFinishedShowing: false,
+  isVisualPipelineRunning: false,
 
   init() {
     // Logo floating animations in lobby
@@ -320,6 +325,12 @@ const GameManager = {
   onMatchFound(data) {
     const UI = window.UI;
     
+    this.isVisualPipelineRunning = false;
+    this.roundFinishedShowing = false;
+    this.pendingRoundFinished = null;
+    this.pendingGameOver = null;
+    this.pendingDraftPhase = null;
+    
     this.currentRoomId = data.roomId;
     this.opponentId = data.opponentId;
     this.opponentName = data.opponentName;
@@ -413,91 +424,90 @@ const GameManager = {
     this.currentRoundReveal = null;
     this.currentRoundResult = null;
 
-    // Lock controls UI text
-    UI.arenaCombatText.innerText = 'CLASH!';
+    // Set state running
+    this.isVisualPipelineRunning = true;
 
-    // 1. Locate player card inside fanned hand DOM
+    try {
+      // Lock controls UI text
+      UI.arenaCombatText.innerText = 'CLASH!';
+
+    // --- STEP 0: CARD PREPARATION & FLIGHT TO ARENA ---
     const playedCardId = reveal.yourCard.instanceId;
     const playerCardEl = UI.playerHand.querySelector(`.card[data-instance-id="${playedCardId}"]`);
-
-    // Check if the card is already in the player play slot
     const alreadyInSlot = UI.playerPlaySlot.querySelector(`.card[data-instance-id="${playedCardId}"]`) !== null;
 
     if (alreadyInSlot) {
-      // Card is already in slot, ensure hand element is hidden cleanly
       if (playerCardEl) {
         playerCardEl.style.opacity = '0';
         playerCardEl.style.pointerEvents = 'none';
       }
     } else {
-      // --- Player Card: Clone-based flight to avoid CSS transform interference ---
-      if (playerCardEl) {
-        const cardRect = playerCardEl.getBoundingClientRect();
-        const slotRect = UI.playerPlaySlot.getBoundingClientRect();
+      await new Promise(resolve => {
+        if (playerCardEl) {
+          const cardRect = playerCardEl.getBoundingClientRect();
+          const slotRect = UI.playerPlaySlot.getBoundingClientRect();
 
-        if (cardRect.width > 0 && slotRect.width > 0) {
-          // Create a clone that flies in page-coordinate space
-          const clone = playerCardEl.cloneNode(true);
-          clone.removeAttribute('id'); // Remove id from flight clone
-          clone.style.cssText = `
-            position: fixed;
-            left: ${cardRect.left}px;
-            top: ${cardRect.top}px;
-            width: ${cardRect.width}px;
-            height: ${cardRect.height}px;
-            margin: 0;
-            z-index: 200;
-            pointer-events: none;
-            transform: none;
-            transition: none;
-          `;
-          document.body.appendChild(clone);
+          if (cardRect.width > 0 && slotRect.width > 0) {
+            const clone = playerCardEl.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.style.cssText = `
+              position: fixed;
+              left: ${cardRect.left}px;
+              top: ${cardRect.top}px;
+              width: ${cardRect.width}px;
+              height: ${cardRect.height}px;
+              margin: 0;
+              z-index: 200;
+              pointer-events: none;
+              transform: none;
+              transition: none;
+            `;
+            document.body.appendChild(clone);
 
-          // Hide original card immediately
-          playerCardEl.style.opacity = '0';
-          playerCardEl.style.pointerEvents = 'none';
+            playerCardEl.style.opacity = '0';
+            playerCardEl.style.pointerEvents = 'none';
 
-          const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
-          const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
-          const scaleVal = Math.min(slotRect.width / cardRect.width, slotRect.height / cardRect.height);
+            const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
+            const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
+            const scaleVal = Math.min(slotRect.width / cardRect.width, slotRect.height / cardRect.height);
 
-          anime({
-            targets: clone,
-            translateX: targetX,
-            translateY: targetY,
-            scale: scaleVal,
-            duration: 300,
-            easing: 'easeOutQuint',
-            complete: () => {
-              clone.remove();
-              // Place a proper fresh card into the slot
-              const slotCard = UI.createCardElement(reveal.yourCard);
-              slotCard.removeAttribute('id'); // Remove duplicate ID
-              slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
-              UI.playerPlaySlot.innerHTML = '';
-              UI.playerPlaySlot.appendChild(slotCard);
-            }
-          });
+            anime({
+              targets: clone,
+              translateX: targetX,
+              translateY: targetY,
+              scale: scaleVal,
+              duration: 300,
+              easing: 'easeOutQuint',
+              complete: () => {
+                clone.remove();
+                const slotCard = UI.createCardElement(reveal.yourCard);
+                slotCard.removeAttribute('id');
+                slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
+                UI.playerPlaySlot.innerHTML = '';
+                UI.playerPlaySlot.appendChild(slotCard);
+                resolve();
+              }
+            });
+          } else {
+            const fallbackCard = UI.createCardElement(reveal.yourCard);
+            fallbackCard.removeAttribute('id');
+            fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
+            UI.playerPlaySlot.innerHTML = '';
+            UI.playerPlaySlot.appendChild(fallbackCard);
+            resolve();
+          }
         } else {
-          // Fallback: no valid rects, just place card
           const fallbackCard = UI.createCardElement(reveal.yourCard);
-          fallbackCard.removeAttribute('id'); // Remove duplicate ID
+          fallbackCard.removeAttribute('id');
           fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
           UI.playerPlaySlot.innerHTML = '';
           UI.playerPlaySlot.appendChild(fallbackCard);
+          resolve();
         }
-      } else {
-        // Card element not found — render directly
-        const fallbackCard = UI.createCardElement(reveal.yourCard);
-        fallbackCard.removeAttribute('id'); // Remove duplicate ID
-        fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
-        UI.playerPlaySlot.innerHTML = '';
-        UI.playerPlaySlot.appendChild(fallbackCard);
-      }
+      });
       UI.playerPlaySlot.classList.add('filled');
     }
 
-    // 2. Create face-down opponent card in arena slot and slide it in
     const opponentCardEl = document.createElement('div');
     opponentCardEl.className = 'card';
     opponentCardEl.setAttribute('data-element', reveal.opponentCard.element);
@@ -511,353 +521,583 @@ const GameManager = {
     UI.enemyPlaySlot.classList.add('filled');
     UI.vsBadge.style.opacity = '0.2';
 
-    Animations.animateOpponentCardArrival(opponentCardEl, () => {
-      // 3. Inject details into face front structure of opponent card right before flip
-      const iconClass = UI.getElementIconClass(reveal.opponentCard.element);
-      const frontFace = opponentCardEl.querySelector('.card-front');
-      frontFace.innerHTML = `
-        <div class="card-header">
-          <span class="card-name">${reveal.opponentCard.name}</span>
-        </div>
-        <div class="card-middle">
-          <i class="card-element-icon fa-solid ${iconClass}"></i>
-          <p class="card-desc">${reveal.opponentCard.description}</p>
-        </div>
-        <div class="card-footer">
-          <span class="card-element-name">${reveal.opponentCard.element}</span>
-        </div>
-      `;
-
-      Animations.animateCardFlip(opponentCardEl, () => {
-        const playerCard = UI.playerPlaySlot.querySelector('.card');
-        const opponentCard = UI.enemyPlaySlot.querySelector('.card');
-        
-        const playerHasActivation = (result.shieldGain > 0 || result.healGain > 0);
-        const opponentHasActivation = (result.opponentShieldGain > 0 || result.opponentHealGain > 0);
-        
-        const startHpSelf = this.myHp;
-        const startHpOpp = this.opponentHp;
-
-        // 1. Run Effect Activation Animations (Buff / Heal / Shield)
-        const runActivation = (onComplete) => {
-          let animCount = 0;
-          const checkDone = () => {
-            animCount--;
-            if (animCount <= 0) onComplete();
-          };
-          
-          if (playerHasActivation && playerCard) {
-            animCount++;
-            anime({
-              targets: playerCard,
-              translateY: -35,
-              duration: 250,
-              easing: 'easeOutQuad',
-              direction: 'alternate',
-              loop: 1,
-              begin: () => {
-                if (result.shieldGain > 0) {
-                  Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldGain, true);
-                  Animations.animateCardActionOverlay(playerCard, 'shield-gain', `+${result.shieldGain} shield`);
-                }
-                if (result.healGain > 0) {
-                  Animations.animateDamagePopup(UI.playerPlaySlot, result.healGain, 'heal');
-                  Animations.animateCardActionOverlay(playerCard, 'heal', `+${result.healGain} hp`);
-                }
-
-                // Check other status applications
-                if (result.cardA && result.cardA.outcomes) {
-                  const p1Effect = result.cardA.outcomes[result.outcome];
-                  if (p1Effect && p1Effect.applyStatus) {
-                    if (p1Effect.applyStatus.self) {
-                      if (p1Effect.applyStatus.self.attackBuff > 0) {
-                        Animations.animateCardActionOverlay(playerCard, 'buff', `buff self`);
-                      }
-                      if (p1Effect.applyStatus.self.cleanse > 0) {
-                        Animations.animateCardActionOverlay(playerCard, 'cleanse', `cleanse`);
-                      }
-                    }
-                    if (p1Effect.applyStatus.opponent) {
-                      if (p1Effect.applyStatus.opponent.burn > 0 || p1Effect.applyStatus.opponent.poison > 0 || p1Effect.applyStatus.opponent.weakness > 0) {
-                        Animations.animateCardActionOverlay(playerCard, 'debuff', `debuff enemy`);
-                      }
-                    }
-                  }
-                }
-              },
-              complete: () => {
-                UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, result.newShield);
-                if (result.healGain > 0) {
-                  const intermediateHp = Math.min(100, startHpSelf + result.healGain);
-                  Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, startHpSelf, intermediateHp);
-                }
-                checkDone();
-              }
-            });
-          }
-          
-          if (opponentHasActivation && opponentCard) {
-            animCount++;
-            anime({
-              targets: opponentCard,
-              translateY: -35,
-              duration: 250,
-              easing: 'easeOutQuad',
-              direction: 'alternate',
-              loop: 1,
-              begin: () => {
-                if (result.opponentShieldGain > 0) {
-                  Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldGain, true);
-                  Animations.animateCardActionOverlay(opponentCard, 'shield-gain', `+${result.opponentShieldGain} shield`);
-                }
-                if (result.opponentHealGain > 0) {
-                  Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHealGain, 'heal');
-                  Animations.animateCardActionOverlay(opponentCard, 'heal', `+${result.opponentHealGain} hp`);
-                }
-
-                if (result.cardB && result.cardB.outcomes) {
-                  const p2Effect = result.cardB.outcomes[result.opponentOutcome];
-                  if (p2Effect && p2Effect.applyStatus) {
-                    if (p2Effect.applyStatus.self) {
-                      if (p2Effect.applyStatus.self.attackBuff > 0) {
-                        Animations.animateCardActionOverlay(opponentCard, 'buff', `buff self`);
-                      }
-                      if (p2Effect.applyStatus.self.cleanse > 0) {
-                        Animations.animateCardActionOverlay(opponentCard, 'cleanse', `cleanse`);
-                      }
-                    }
-                    if (p2Effect.applyStatus.opponent) {
-                      if (p2Effect.applyStatus.opponent.burn > 0 || p2Effect.applyStatus.opponent.poison > 0 || p2Effect.applyStatus.opponent.weakness > 0) {
-                        Animations.animateCardActionOverlay(opponentCard, 'debuff', `debuff enemy`);
-                      }
-                    }
-                  }
-                }
-              },
-              complete: () => {
-                UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, result.opponentNewShield);
-                if (result.opponentHealGain > 0) {
-                  const intermediateHpOpp = Math.min(100, startHpOpp + result.opponentHealGain);
-                  Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, startHpOpp, intermediateHpOpp);
-                }
-                checkDone();
-              }
-            });
-          }
-          
-          if (animCount === 0) {
-            onComplete();
-          }
-        };
-
-        // 2. Trigger lunge strike after effect animations resolve
-        runActivation(() => {
-          if (!playerCard || !opponentCard) {
-            // Fallback if elements not ready
-            this.myHp = result.newHp;
-            this.myShield = result.newShield;
-            this.opponentHp = result.opponentNewHp;
-            this.opponentShield = result.opponentNewShield;
-            return;
-          }
-
-          const playerDamaging = (result.damageDealt > 0);
-          const opponentDamaging = (result.opponentDamageDealt > 0);
-
-          Animations.animateClashImpact(playerCard, opponentCard, result.outcome, playerDamaging, opponentDamaging, () => {
-            // --- ON IMPACT ---
-            window.AudioSynth.playClash(result.outcome);
-
-            // Display outcome message
-            let outcomeMsg = '';
-            if (result.outcome === 'SUPERIOR') {
-              outcomeMsg = `<span class="accent-text" style="color: #2ecc71;">SUPERIOR</span>`;
-            } else if (result.outcome === 'INFERIOR') {
-              outcomeMsg = `<span class="accent-text" style="color: #ff3333;">INFERIOR</span>`;
-            } else {
-              outcomeMsg = `<span class="accent-text" style="color: #a0aec0;">TIE</span>`;
-            }
-            UI.arenaCombatText.innerHTML = outcomeMsg;
-
-            // Show HP damage popups
-            if (result.hpDamage > 0) {
-              Animations.animateDamagePopup(UI.playerPlaySlot, result.hpDamage, false);
-            }
-            if (result.opponentHpDamage > 0) {
-              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHpDamage, false);
-            }
-
-            // Show Shield damage popups and trigger card shield absorb overlay effects
-            if (result.shieldDamage > 0) {
-              Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldDamage, 'shield-damage');
-              if (playerCard) {
-                Animations.animateShieldAbsorb(playerCard);
-              }
-            }
-            if (result.opponentShieldDamage > 0) {
-              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldDamage, 'shield-damage');
-              if (opponentCard) {
-                Animations.animateShieldAbsorb(opponentCard);
-              }
-            }
-
-            // Show self damage popups
-            if (result.selfDamage > 0) {
-              Animations.animateDamagePopup(UI.playerPlaySlot, result.selfDamage, false);
-              if (playerCard) {
-                Animations.animateCardActionOverlay(playerCard, 'self-damage', `-${result.selfDamage} self dmg`);
-              }
-            }
-            if (result.opponentSelfDamage > 0) {
-              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentSelfDamage, false);
-              if (opponentCard) {
-                Animations.animateCardActionOverlay(opponentCard, 'self-damage', `-${result.opponentSelfDamage} self dmg`);
-              }
-            }
-
-            // Calculate HP values after clash damage but before status tick damage
-            const p1TickTotal = (result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : (result.statusDamage.burn || 0)) + (result.statusDamage.poison || 0);
-            const p2TickTotal = (result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : (result.opponentStatusDamage.burn || 0)) + (result.opponentStatusDamage.poison || 0);
-
-            const clashEndHp = result.newHp + p1TickTotal;
-            const clashEndHpOpponent = result.opponentNewHp + p2TickTotal;
-
-            const currentHpSelf = Math.min(100, startHpSelf + (result.healGain || 0));
-            const currentHpOpp = Math.min(100, startHpOpp + (result.opponentHealGain || 0));
-
-            // Reduce HP bars for clash strike damage
-            Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, currentHpSelf, clashEndHp);
-            Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, currentHpOpp, clashEndHpOpponent);
-
-            // Update shield displays to final state
-            UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, result.newShield);
-            UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, result.opponentNewShield);
-
-            // Deduct opponent card count dot indicator
-            const currentDots = UI.enemyCardDots.querySelectorAll('span');
-            if (currentDots.length > 0) {
-              currentDots[0].remove();
-            }
-
-            // Store values after clash damage (starting point for status ticks)
-            this.myHp = clashEndHp;
-            this.opponentHp = clashEndHpOpponent;
-
-          }, () => {
-            // --- ON CLASH ANIMATION COMPLETED ---
-            // Wait slightly, then show status damage ticks (debuff calculations)
-            setTimeout(() => {
-              const p1Burn = result.statusDamage.burn || 0;
-              const p1Poison = result.statusDamage.poison || 0;
-              const p1BurnHpDmg = result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : p1Burn;
-              const p1BurnShieldDmg = result.statusDamage.burnShieldDmg || 0;
-
-              const p2Burn = result.opponentStatusDamage.burn || 0;
-              const p2Poison = result.opponentStatusDamage.poison || 0;
-              const p2BurnHpDmg = result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : p2Burn;
-              const p2BurnShieldDmg = result.opponentStatusDamage.burnShieldDmg || 0;
-
-              const playerHudEl = document.querySelector('.player-hud');
-              const enemyHudEl = document.querySelector('.enemy-hud');
-
-              if (p1Burn > 0) {
-                Animations.animateDamagePopup(playerHudEl, p1Burn, 'burn');
-                if (p1BurnShieldDmg > 0) {
-                  setTimeout(() => {
-                    Animations.animateDamagePopup(playerHudEl, p1BurnShieldDmg, 'shield-damage');
-                  }, 150);
-                }
-              }
-              if (p1Poison > 0) {
-                setTimeout(() => {
-                  Animations.animateDamagePopup(playerHudEl, p1Poison, 'poison');
-                }, p1Burn > 0 ? 150 : 0);
-              }
-              if (p1BurnHpDmg > 0 || p1Poison > 0) {
-                Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, this.myHp, result.newHp);
-              }
-
-              if (p2Burn > 0) {
-                Animations.animateDamagePopup(enemyHudEl, p2Burn, 'burn');
-                if (p2BurnShieldDmg > 0) {
-                  setTimeout(() => {
-                    Animations.animateDamagePopup(enemyHudEl, p2BurnShieldDmg, 'shield-damage');
-                  }, 150);
-                }
-              }
-              if (p2Poison > 0) {
-                setTimeout(() => {
-                  Animations.animateDamagePopup(enemyHudEl, p2Poison, 'poison');
-                }, p2Burn > 0 ? 150 : 0);
-              }
-              if (p2BurnHpDmg > 0 || p2Poison > 0) {
-                Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, this.opponentHp, result.opponentNewHp);
-              }
-
-              // Update shield numbers visually immediately if they absorbed burn damage
-              const p1ShieldPostTicks = result.newShield - p1BurnShieldDmg;
-              const p2ShieldPostTicks = result.opponentNewShield - p2BurnShieldDmg;
-              if (p1BurnShieldDmg > 0) {
-                UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, p1ShieldPostTicks);
-              }
-              if (p2BurnShieldDmg > 0) {
-                UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, p2ShieldPostTicks);
-              }
-
-              // Play Shield Decay animations 600ms later (after status damage ticks and HP reductions resolve)
-              setTimeout(() => {
-                const p1Decay = result.shieldDecay || 0;
-                const p2Decay = result.opponentShieldDecay || 0;
-
-                if (p1Decay > 0) {
-                  Animations.animateDamagePopup(playerHudEl, p1Decay, 'shield-decay');
-                  UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, result.finalShield);
-                }
-                if (p2Decay > 0) {
-                  Animations.animateDamagePopup(enemyHudEl, p2Decay, 'shield-decay');
-                  UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, result.opponentFinalShield);
-                }
-
-                // Sync final shield values locally
-                this.myShield = result.finalShield !== undefined ? result.finalShield : result.newShield;
-                this.opponentShield = result.opponentFinalShield !== undefined ? result.opponentFinalShield : result.opponentNewShield;
-              }, 600);
-
-              // Sync final HP and status values locally
-              this.myHp = result.newHp;
-              this.myStatuses = result.newStatuses || {};
-              this.opponentHp = result.opponentNewHp;
-              this.opponentStatuses = result.opponentNewStatuses || {};
-
-              // Sync updated status badges in HUD
-              UI.renderStatuses(UI.playerStatusContainer, result.newStatuses);
-              UI.renderStatuses(UI.enemyStatusContainer, result.opponentNewStatuses);
-            }, 350);
-
-            // Fade out cards in arena to clear slots
-            setTimeout(() => {
-              const playerSlotCard = UI.playerPlaySlot.children[0];
-              const enemySlotCard = UI.enemyPlaySlot.children[0];
-              const targets = [playerSlotCard, enemySlotCard].filter(Boolean);
-              if (targets.length > 0) {
-                anime({
-                  targets: targets,
-                  opacity: 0,
-                  scale: 0.8,
-                  duration: 300,
-                  easing: 'easeInQuad',
-                  complete: () => {
-                    UI.clearArenaSlots();
-                  }
-                });
-              } else {
-                UI.clearArenaSlots();
-              }
-            }, 1400);
-          });
-        });
-      });
+    await new Promise(resolve => {
+      Animations.animateOpponentCardArrival(opponentCardEl, resolve);
     });
+
+    const iconClass = UI.getElementIconClass(reveal.opponentCard.element);
+    const frontFace = opponentCardEl.querySelector('.card-front');
+    const formattedOpponentDesc = UI.formatDescription(reveal.opponentCard.description);
+    
+    frontFace.innerHTML = `
+      <div class="card-header">
+        <span class="card-name">${reveal.opponentCard.name}</span>
+      </div>
+      <div class="card-middle">
+        <i class="card-element-icon fa-solid ${iconClass}"></i>
+        <p class="card-desc">${formattedOpponentDesc}</p>
+      </div>
+      <div class="card-footer">
+        <span class="card-element-name">${reveal.opponentCard.element}</span>
+      </div>
+    `;
+
+    const playerCard = UI.playerPlaySlot.querySelector('.card');
+    const opponentCard = UI.enemyPlaySlot.querySelector('.card');
+
+
+    // --- STEP 1: REVEAL CARD, Hasil & Sorotan (Combined) ---
+    let outcomeMsg = '';
+    if (result.outcome === 'SUPERIOR') {
+      outcomeMsg = `<span class="accent-text" style="color: #2ecc71;">SUPERIOR</span>`;
+    } else if (result.outcome === 'INFERIOR') {
+      outcomeMsg = `<span class="accent-text" style="color: #ff3333;">INFERIOR</span>`;
+    } else {
+      outcomeMsg = `<span class="accent-text" style="color: #a0aec0;">TIE</span>`;
+    }
+    UI.arenaCombatText.innerHTML = outcomeMsg;
+
+    // Apply outcome highlight immediately together with reveal
+    if (playerCard) {
+      const outcomeKey = result.outcome.toUpperCase() === 'DRAW' ? 'neutral' : result.outcome.toLowerCase();
+      playerCard.setAttribute('data-active-outcome', outcomeKey);
+      const descEl = playerCard.querySelector('.card-desc');
+      scrollToActiveOutcome(descEl, outcomeKey);
+    }
+    if (opponentCard) {
+      const outcomeKey = result.opponentOutcome.toUpperCase() === 'DRAW' ? 'neutral' : result.opponentOutcome.toLowerCase();
+      opponentCard.setAttribute('data-active-outcome', outcomeKey);
+      const descEl = opponentCard.querySelector('.card-desc');
+      scrollToActiveOutcome(descEl, outcomeKey);
+    }
+
+    await new Promise(resolve => {
+      Animations.animateCardFlip(opponentCardEl, resolve);
+    });
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // --- STEP 2: SOROTAN HASIL KARTU CLASH (Merged into Step 1) ---
+    // Kept as structural placeholder
+
+
+    // --- STEP 3: SHIELDING ---
+    const shieldingPromises = [];
+    if (result.shieldGain > 0 && playerCard) {
+      shieldingPromises.push(new Promise(resolve => {
+        Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldGain, true);
+        Animations.animateCardActionOverlay(playerCard, 'shield-gain', `+${result.shieldGain} shield`);
+        anime({
+          targets: playerCard,
+          translateY: -35,
+          duration: 150,
+          easing: 'easeOutQuad',
+          direction: 'alternate',
+          loop: 1,
+          complete: () => {
+            this.myShield += result.shieldGain;
+            UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
+            resolve();
+          }
+        });
+      }));
+    }
+    if (result.opponentShieldGain > 0 && opponentCard) {
+      shieldingPromises.push(new Promise(resolve => {
+        Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldGain, true);
+        Animations.animateCardActionOverlay(opponentCard, 'shield-gain', `+${result.opponentShieldGain} shield`);
+        anime({
+          targets: opponentCard,
+          translateY: -35,
+          duration: 150,
+          easing: 'easeOutQuad',
+          direction: 'alternate',
+          loop: 1,
+          complete: () => {
+            this.opponentShield += result.opponentShieldGain;
+            UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+            resolve();
+          }
+        });
+      }));
+    }
+    if (shieldingPromises.length > 0) {
+      await Promise.all(shieldingPromises);
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+
+    // --- STEP 4: BUFFING & DEBUFFING ---
+    const buffDebuffPromises = [];
+    const p1Effect = reveal.yourCard.outcomes[result.outcome];
+    const p2Effect = reveal.opponentCard.outcomes[result.opponentOutcome];
+
+    // Player 1 (you) card effects
+    if (playerCard && p1Effect && p1Effect.applyStatus) {
+      // Self Buffs
+      if (p1Effect.applyStatus.self && p1Effect.applyStatus.self.attackBuff > 0) {
+        buffDebuffPromises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(playerCard, 'buff', `buff self`, resolve);
+        }));
+      }
+      // Self Debuffs (typically on Chaos cards)
+      if (p1Effect.applyStatus.self) {
+        if (p1Effect.applyStatus.self.burn > 0) {
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(playerCard, 'burn', `burn self`, resolve);
+          }));
+        }
+        if (p1Effect.applyStatus.self.poison > 0) {
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(playerCard, 'poison', `poison self`, resolve);
+          }));
+        }
+        if (p1Effect.applyStatus.self.weakness > 0) {
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(playerCard, 'weak', `weak self`, resolve);
+          }));
+        }
+      }
+      // Debuffs to Opponent
+      if (p1Effect.applyStatus.opponent) {
+        const hasBurn = p1Effect.applyStatus.opponent.burn > 0;
+        const hasPoison = p1Effect.applyStatus.opponent.poison > 0;
+        const hasWeakness = p1Effect.applyStatus.opponent.weakness > 0;
+        if (hasBurn || hasPoison || hasWeakness) {
+          // Own card shows "debuff enemy"
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(playerCard, 'debuff', `debuff enemy`, resolve);
+          }));
+          // Enemy card shows specific debuff overlay
+          if (opponentCard) {
+            if (hasBurn) {
+              buffDebuffPromises.push(new Promise(resolve => {
+                Animations.animateCardActionOverlay(opponentCard, 'burn', `burn`, resolve);
+              }));
+            }
+            if (hasPoison) {
+              buffDebuffPromises.push(new Promise(resolve => {
+                Animations.animateCardActionOverlay(opponentCard, 'poison', `poison`, resolve);
+              }));
+            }
+            if (hasWeakness) {
+              buffDebuffPromises.push(new Promise(resolve => {
+                Animations.animateCardActionOverlay(opponentCard, 'weak', `weakness`, resolve);
+              }));
+            }
+          }
+        }
+      }
+    }
+
+    // Player 2 (opponent) card effects
+    if (opponentCard && p2Effect && p2Effect.applyStatus) {
+      // Self Buffs
+      if (p2Effect.applyStatus.self && p2Effect.applyStatus.self.attackBuff > 0) {
+        buffDebuffPromises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(opponentCard, 'buff', `buff self`, resolve);
+        }));
+      }
+      // Self Debuffs
+      if (p2Effect.applyStatus.self) {
+        if (p2Effect.applyStatus.self.burn > 0) {
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(opponentCard, 'burn', `burn self`, resolve);
+          }));
+        }
+        if (p2Effect.applyStatus.self.poison > 0) {
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(opponentCard, 'poison', `poison self`, resolve);
+          }));
+        }
+        if (p2Effect.applyStatus.self.weakness > 0) {
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(opponentCard, 'weak', `weak self`, resolve);
+          }));
+        }
+      }
+      // Debuffs to Opponent
+      if (p2Effect.applyStatus.opponent) {
+        const hasBurn = p2Effect.applyStatus.opponent.burn > 0;
+        const hasPoison = p2Effect.applyStatus.opponent.poison > 0;
+        const hasWeakness = p2Effect.applyStatus.opponent.weakness > 0;
+        if (hasBurn || hasPoison || hasWeakness) {
+          // Opponent card shows "debuff enemy"
+          buffDebuffPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(opponentCard, 'debuff', `debuff enemy`, resolve);
+          }));
+          // Player card shows specific debuff overlay
+          if (playerCard) {
+            if (hasBurn) {
+              buffDebuffPromises.push(new Promise(resolve => {
+                Animations.animateCardActionOverlay(playerCard, 'burn', `burn`, resolve);
+              }));
+            }
+            if (hasPoison) {
+              buffDebuffPromises.push(new Promise(resolve => {
+                Animations.animateCardActionOverlay(playerCard, 'poison', `poison`, resolve);
+              }));
+            }
+            if (hasWeakness) {
+              buffDebuffPromises.push(new Promise(resolve => {
+                Animations.animateCardActionOverlay(playerCard, 'weak', `weakness`, resolve);
+              }));
+            }
+          }
+        }
+      }
+    }
+
+    // Apply Buff/Debuff status changes dynamically to Client-side HUD state
+    const addStatuses = (target, source) => {
+      if (!source) return;
+      Object.keys(source).forEach(key => {
+        if (key === 'cleanse' || key === 'dispel') return;
+        target[key] = (target[key] || 0) + source[key];
+      });
+    };
+
+    if (p1Effect && p1Effect.applyStatus) {
+      if (p1Effect.applyStatus.self) addStatuses(this.myStatuses, p1Effect.applyStatus.self);
+      if (p1Effect.applyStatus.opponent) addStatuses(this.opponentStatuses, p1Effect.applyStatus.opponent);
+    }
+    if (p2Effect && p2Effect.applyStatus) {
+      if (p2Effect.applyStatus.self) addStatuses(this.opponentStatuses, p2Effect.applyStatus.self);
+      if (p2Effect.applyStatus.opponent) addStatuses(this.myStatuses, p2Effect.applyStatus.opponent);
+    }
+
+    if (buffDebuffPromises.length > 0) {
+      await Promise.all(buffDebuffPromises);
+      // Update HUD status visuals in real-time
+      UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+      UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+
+    // --- STEP 5: CLEANSE & DISPEL ---
+    const cleanseDispelPromises = [];
+
+    // Player 1 (you) card effects
+    if (playerCard && p1Effect && p1Effect.applyStatus) {
+      if (p1Effect.applyStatus.self && p1Effect.applyStatus.self.cleanse > 0) {
+        cleanseDispelPromises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(playerCard, 'cleanse', `cleanse`, resolve);
+        }));
+      }
+      if (p1Effect.applyStatus.opponent && p1Effect.applyStatus.opponent.dispel > 0) {
+        cleanseDispelPromises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(playerCard, 'dispel', `dispel`, resolve);
+        }));
+        if (opponentCard) {
+          cleanseDispelPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(opponentCard, 'dispel', `dispelled`, resolve);
+          }));
+        }
+      }
+    }
+
+    // Player 2 (opponent) card effects
+    if (opponentCard && p2Effect && p2Effect.applyStatus) {
+      if (p2Effect.applyStatus.self && p2Effect.applyStatus.self.cleanse > 0) {
+        cleanseDispelPromises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(opponentCard, 'cleanse', `cleanse`, resolve);
+        }));
+      }
+      if (p2Effect.applyStatus.opponent && p2Effect.applyStatus.opponent.dispel > 0) {
+        cleanseDispelPromises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(opponentCard, 'dispel', `dispel`, resolve);
+        }));
+        if (playerCard) {
+          cleanseDispelPromises.push(new Promise(resolve => {
+            Animations.animateCardActionOverlay(playerCard, 'dispel', `dispelled`, resolve);
+          }));
+        }
+      }
+    }
+
+    // Apply Cleanse / Dispel status changes dynamically to Client-side HUD state
+    if (p1Effect && p1Effect.applyStatus) {
+      if (p1Effect.applyStatus.self && p1Effect.applyStatus.self.cleanse > 0) {
+        this.myStatuses.burn = 0;
+        this.myStatuses.poison = 0;
+        this.myStatuses.weakness = 0;
+      }
+      if (p1Effect.applyStatus.opponent && p1Effect.applyStatus.opponent.dispel > 0) {
+        this.opponentStatuses.attackBuff = 0;
+      }
+    }
+    if (p2Effect && p2Effect.applyStatus) {
+      if (p2Effect.applyStatus.self && p2Effect.applyStatus.self.cleanse > 0) {
+        this.opponentStatuses.burn = 0;
+        this.opponentStatuses.poison = 0;
+        this.opponentStatuses.weakness = 0;
+      }
+      if (p2Effect.applyStatus.opponent && p2Effect.applyStatus.opponent.dispel > 0) {
+        this.myStatuses.attackBuff = 0;
+      }
+    }
+
+    if (cleanseDispelPromises.length > 0) {
+      await Promise.all(cleanseDispelPromises);
+      // Update HUD status visuals in real-time
+      UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+      UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+
+    // --- STEP 6: ATTACKING (Lunge strike and HP reductions) ---
+    const playerDamaging = (result.damageDealt > 0);
+    const opponentDamaging = (result.opponentDamageDealt > 0);
+    const startHpSelf = this.myHp;
+    const startHpOpp = this.opponentHp;
+
+    await new Promise(resolve => {
+      Animations.animateClashImpact(playerCard, opponentCard, result.outcome, playerDamaging, opponentDamaging, () => {
+        window.AudioSynth.playClash(result.outcome);
+
+        // HP Damage popups
+        if (result.hpDamage > 0) {
+          Animations.animateDamagePopup(UI.playerPlaySlot, result.hpDamage, false);
+        }
+        if (result.opponentHpDamage > 0) {
+          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHpDamage, false);
+        }
+
+        // Shield damage popups and absorbs
+        if (result.shieldDamage > 0) {
+          Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldDamage, 'shield-damage');
+          if (playerCard) Animations.animateShieldAbsorb(playerCard);
+        }
+        if (result.opponentShieldDamage > 0) {
+          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldDamage, 'shield-damage');
+          if (opponentCard) Animations.animateShieldAbsorb(opponentCard);
+        }
+
+        // Self damage
+        if (result.selfDamage > 0) {
+          Animations.animateDamagePopup(UI.playerPlaySlot, result.selfDamage, 'self-damage');
+          if (playerCard) {
+            Animations.animateCardActionOverlay(playerCard, 'self-damage', `-${result.selfDamage} self dmg`);
+          }
+        }
+        if (result.opponentSelfDamage > 0) {
+          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentSelfDamage, 'self-damage');
+          if (opponentCard) {
+            Animations.animateCardActionOverlay(opponentCard, 'self-damage', `-${result.opponentSelfDamage} self dmg`);
+          }
+        }
+
+        // Healing
+        if (result.healGain > 0 && playerCard) {
+          Animations.animateDamagePopup(UI.playerPlaySlot, result.healGain, 'heal');
+          Animations.animateCardActionOverlay(playerCard, 'heal', `+${result.healGain} hp`);
+        }
+        if (result.opponentHealGain > 0 && opponentCard) {
+          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHealGain, 'heal');
+          Animations.animateCardActionOverlay(opponentCard, 'heal', `+${result.opponentHealGain} hp`);
+        }
+
+        // Calculate HP value after strike but before tick damage
+        const p1TickTotal = (result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : (result.statusDamage.burn || 0)) + (result.statusDamage.poison || 0);
+        const p2TickTotal = (result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : (result.opponentStatusDamage.burn || 0)) + (result.opponentStatusDamage.poison || 0);
+
+        const clashEndHp = result.newHp + p1TickTotal;
+        const clashEndHpOpponent = result.opponentNewHp + p2TickTotal;
+
+        const currentHpSelf = Math.min(100, startHpSelf + (result.healGain || 0));
+        const currentHpOpp = Math.min(100, startHpOpp + (result.opponentHealGain || 0));
+
+        Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, currentHpSelf, clashEndHp);
+        Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, currentHpOpp, clashEndHpOpponent);
+
+        // Update shields post clash (pre-tick) dynamically in HUD
+        this.myShield = Math.max(0, this.myShield - result.shieldDamage);
+        this.opponentShield = Math.max(0, this.opponentShield - result.opponentShieldDamage);
+        UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
+        UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+
+        // Deduct opponent hand dot
+        const currentDots = UI.enemyCardDots.querySelectorAll('span');
+        if (currentDots.length > 0) {
+          currentDots[0].remove();
+        }
+
+        this.myHp = clashEndHp;
+        this.opponentHp = clashEndHpOpponent;
+      }, resolve);
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+
+    // --- STEP 7: DoT (Burn & Poison Ticks) ---
+    const p1Burn = result.statusDamage.burn || 0;
+    const p1Poison = result.statusDamage.poison || 0;
+    const p1BurnHpDmg = result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : p1Burn;
+    const p1BurnShieldDmg = result.statusDamage.burnShieldDmg || 0;
+
+    const p2Burn = result.opponentStatusDamage.burn || 0;
+    const p2Poison = result.opponentStatusDamage.poison || 0;
+    const p2BurnHpDmg = result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : p2Burn;
+    const p2BurnShieldDmg = result.opponentStatusDamage.burnShieldDmg || 0;
+
+    const playerHudEl = document.querySelector('.player-hud');
+    const enemyHudEl = document.querySelector('.enemy-hud');
+
+    const dotPromises = [];
+
+    if (p1Burn > 0) {
+      dotPromises.push(new Promise(resolve => {
+        Animations.animateDamagePopup(playerHudEl, p1Burn, 'burn');
+        Animations.triggerBurnFlash(playerHudEl);
+        Animations.animateHudDamageShake(playerHudEl);
+        if (p1BurnShieldDmg > 0) {
+          setTimeout(() => {
+            Animations.animateDamagePopup(playerHudEl, p1BurnShieldDmg, 'shield-damage');
+            this.myShield = Math.max(0, this.myShield - p1BurnShieldDmg);
+            UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
+          }, 150);
+        }
+        // Burn resets to 0 instantly when ticked
+        this.myStatuses.burn = 0;
+        UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+        resolve();
+      }));
+    }
+    if (p1Poison > 0) {
+      dotPromises.push(new Promise(resolve => {
+        setTimeout(() => {
+          Animations.animateDamagePopup(playerHudEl, p1Poison, 'poison');
+          Animations.triggerPoisonFlash(playerHudEl);
+          Animations.animateHudDamageShake(playerHudEl);
+          // Poison stack decreases by 1 when ticked
+          this.myStatuses.poison = Math.max(0, this.myStatuses.poison - 1);
+          UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+          resolve();
+        }, p1Burn > 0 ? 150 : 0);
+      }));
+    }
+
+    if (p2Burn > 0) {
+      dotPromises.push(new Promise(resolve => {
+        Animations.animateDamagePopup(enemyHudEl, p2Burn, 'burn');
+        Animations.triggerBurnFlash(enemyHudEl);
+        Animations.animateHudDamageShake(enemyHudEl);
+        if (p2BurnShieldDmg > 0) {
+          setTimeout(() => {
+            Animations.animateDamagePopup(enemyHudEl, p2BurnShieldDmg, 'shield-damage');
+            this.opponentShield = Math.max(0, this.opponentShield - p2BurnShieldDmg);
+            UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+          }, 150);
+        }
+        this.opponentStatuses.burn = 0;
+        UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+        resolve();
+      }));
+    }
+    if (p2Poison > 0) {
+      dotPromises.push(new Promise(resolve => {
+        setTimeout(() => {
+          Animations.animateDamagePopup(enemyHudEl, p2Poison, 'poison');
+          Animations.triggerPoisonFlash(enemyHudEl);
+          Animations.animateHudDamageShake(enemyHudEl);
+          this.opponentStatuses.poison = Math.max(0, this.opponentStatuses.poison - 1);
+          UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+          resolve();
+        }, p2Burn > 0 ? 150 : 0);
+      }));
+    }
+
+    if (p1BurnHpDmg > 0 || p1Poison > 0) {
+      Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, this.myHp, result.newHp);
+    }
+    if (p2BurnHpDmg > 0 || p2Poison > 0) {
+      Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, this.opponentHp, result.opponentNewHp);
+    }
+
+    // Sync values post ticks
+    this.myHp = result.newHp;
+    this.opponentHp = result.opponentNewHp;
+    this.myShield = result.newShield;
+    this.opponentShield = result.opponentNewShield;
+    UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
+    UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+
+    if (dotPromises.length > 0) {
+      await Promise.all(dotPromises);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+
+    // --- STEP 8: SHIELD DECAY ---
+    const p1Decay = result.shieldDecay || 0;
+    const p2Decay = result.opponentShieldDecay || 0;
+
+    const decayPromises = [];
+    if (p1Decay > 0) {
+      decayPromises.push(new Promise(resolve => {
+        Animations.animateDamagePopup(playerHudEl, p1Decay, 'shield-decay');
+        UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, result.finalShield);
+        resolve();
+      }));
+    }
+    if (p2Decay > 0) {
+      decayPromises.push(new Promise(resolve => {
+        Animations.animateDamagePopup(enemyHudEl, p2Decay, 'shield-decay');
+        UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, result.opponentFinalShield);
+        resolve();
+      }));
+    }
+
+    this.myShield = result.finalShield !== undefined ? result.finalShield : result.newShield;
+    this.opponentShield = result.opponentFinalShield !== undefined ? result.opponentFinalShield : result.opponentNewShield;
+    this.myStatuses = result.newStatuses || {};
+    this.opponentStatuses = result.opponentNewStatuses || {};
+
+    UI.renderStatuses(UI.playerStatusContainer, result.newStatuses);
+    UI.renderStatuses(UI.enemyStatusContainer, result.opponentNewStatuses);
+
+    if (decayPromises.length > 0) {
+      await Promise.all(decayPromises);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    // A deliberate pause so that players can read the final card/board state before cards vanish
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    // Fade out cards in arena to clear slots
+    await new Promise(resolve => {
+      const playerSlotCard = UI.playerPlaySlot.children[0];
+      const enemySlotCard = UI.enemyPlaySlot.children[0];
+      const targets = [playerSlotCard, enemySlotCard].filter(Boolean);
+      if (targets.length > 0) {
+        anime({
+          targets: targets,
+          opacity: 0,
+          scale: 0.8,
+          duration: 150,
+          easing: 'easeInQuad',
+          complete: () => {
+            UI.clearArenaSlots();
+            resolve();
+          }
+        });
+      } else {
+        UI.clearArenaSlots();
+        resolve();
+      }
+    });
+    } catch (err) {
+      console.error("Error in visual pipeline:", err);
+    } finally {
+      // Mark visual pipeline as complete and check for pending overlays
+      this.isVisualPipelineRunning = false;
+      this.checkAndTriggerEndPhase();
+      if (window.SocketService && window.SocketService.clashFinished) {
+        window.SocketService.clashFinished();
+      }
+    }
   },
 
   /**
@@ -882,6 +1122,10 @@ const GameManager = {
   onRoundStart(data) {
     const UI = window.UI;
     
+    this.roundFinishedShowing = false;
+    this.pendingDraftPhase = null;
+    this.pendingRoundFinished = null;
+    
     // Enter landscape full screen on mobile
     this.enterLandscapeImmersive();
     
@@ -891,9 +1135,13 @@ const GameManager = {
       this.draftTimerInterval = null;
     }
     
+    const wasBattleActive = UI.battleScreen.classList.contains('active');
+
     // Transition to battle screen
     UI.showScreen('battle');
-    
+
+    const currentDomCardCount = UI.playerHand.querySelectorAll('.card').length;
+    const isNewRound = !wasBattleActive || (this.round === 0) || (currentDomCardCount === 0) || (data.hand.length > currentDomCardCount);
     this.round = data.round;
     this.hand = data.hand;
     this.myHp = data.selfStatus.hp;
@@ -919,7 +1167,7 @@ const GameManager = {
     UI.arenaCombatText.innerText = `Round ${this.round}: Select your card!`;
 
     // Render cards and trigger draw animation
-    UI.renderHand(this.hand, true);
+    UI.renderHand(this.hand, true, isNewRound);
     
     // Update Opponent card indicators
     UI.updateOpponentHandSize(data.opponentStatus.handSize);
@@ -947,6 +1195,37 @@ const GameManager = {
    * Triggers when a round ends and transitioning to Draft Phase
    */
   onRoundFinished(data) {
+    this.pendingRoundFinished = data;
+    this.checkAndTriggerEndPhase();
+  },
+
+  /**
+   * Checks if visual pipeline is complete and triggers the queued overlays
+   */
+  checkAndTriggerEndPhase() {
+    if (this.isVisualPipelineRunning || this.roundFinishedShowing) return; // Wait until clash visual pipeline completes
+
+    if (this.pendingGameOver) {
+      const data = this.pendingGameOver;
+      this.pendingGameOver = null;
+      this.pendingRoundFinished = null;
+      this.pendingDraftPhase = null;
+      this.triggerGameOver(data);
+    } else if (this.pendingRoundFinished) {
+      const data = this.pendingRoundFinished;
+      this.pendingRoundFinished = null;
+      this.triggerRoundFinished(data);
+    } else if (this.pendingDraftPhase) {
+      const draft = this.pendingDraftPhase;
+      this.pendingDraftPhase = null;
+      this.triggerDraftPhase(draft);
+    }
+  },
+
+  /**
+   * Actually displays the round finished overlay
+   */
+  triggerRoundFinished(data) {
     const UI = window.UI;
     const Animations = window.Animations;
 
@@ -1006,12 +1285,48 @@ const GameManager = {
         window.AudioSynth.playDefeat();
       }
     }
+
+    // Keep round completed overlay visible for a minimum of 2.2 seconds
+    this.roundFinishedShowing = true;
+    setTimeout(() => {
+      this.roundFinishedShowing = false;
+
+      // Hide round overlay
+      if (UI.roundResultOverlay) {
+        UI.roundResultOverlay.classList.remove('active');
+        UI.roundResultOverlay.style.display = 'none';
+        UI.roundResultOverlay.style.opacity = '0';
+      }
+
+      this.checkAndTriggerEndPhase();
+    }, 2200);
+  },
+
+  /**
+   * Route draft phase screen transitions
+   */
+  triggerDraftPhase(draft) {
+    if (draft.type === 'bonusPick') {
+      this.triggerBonusPickStart(draft.data);
+    } else if (draft.type === 'waiting') {
+      this.triggerWaitingForOpponentBonus();
+    } else if (draft.type === 'packSelection') {
+      this.triggerPackSelectionStart(draft.data);
+    }
   },
 
   /**
    * Starts the Bonus Pick screen for the loser
    */
   onBonusPickStart(data) {
+    if (this.isVisualPipelineRunning || this.roundFinishedShowing) {
+      this.pendingDraftPhase = { type: 'bonusPick', data: data };
+      return;
+    }
+    this.triggerBonusPickStart(data);
+  },
+
+  triggerBonusPickStart(data) {
     const UI = window.UI;
     this.selectedBonusCardTemplateId = null;
 
@@ -1057,6 +1372,14 @@ const GameManager = {
    * Shows a waiting panel for the winner during bonus pick
    */
   onWaitingForOpponentBonus() {
+    if (this.isVisualPipelineRunning || this.roundFinishedShowing) {
+      this.pendingDraftPhase = { type: 'waiting' };
+      return;
+    }
+    this.triggerWaitingForOpponentBonus();
+  },
+
+  triggerWaitingForOpponentBonus() {
     window.UI.showScreen('waiting');
   },
 
@@ -1075,6 +1398,14 @@ const GameManager = {
    * Starts pack selection screen
    */
   onPackSelectionStart(data) {
+    if (this.isVisualPipelineRunning || this.roundFinishedShowing) {
+      this.pendingDraftPhase = { type: 'packSelection', data: data };
+      return;
+    }
+    this.triggerPackSelectionStart(data);
+  },
+
+  triggerPackSelectionStart(data) {
     const UI = window.UI;
     UI.packsSelectionGrid.innerHTML = '';
 
@@ -1164,9 +1495,17 @@ const GameManager = {
 
 
   /**
-   * Triggers when round HP results in Game Over
+   * Triggers when round HP results in Game Over (queued)
    */
   onGameOver(data) {
+    this.pendingGameOver = data;
+    this.checkAndTriggerEndPhase();
+  },
+
+  /**
+   * Actually displays the game over overlay
+   */
+  triggerGameOver(data) {
     const UI = window.UI;
     const Animations = window.Animations;
 
@@ -1281,6 +1620,12 @@ const GameManager = {
    * Rematch accepted and starting
    */
   onRematchStarted() {
+    this.isVisualPipelineRunning = false;
+    this.roundFinishedShowing = false;
+    this.pendingRoundFinished = null;
+    this.pendingGameOver = null;
+    this.pendingDraftPhase = null;
+
     // Hide game over screen overlay
     window.UI.gameOverScreen.classList.remove('active');
     window.UI.gameOverScreen.style.display = 'none';
@@ -1328,6 +1673,38 @@ const GameManager = {
     });
   }
 };
+
+/**
+ * Scrolls the card description container to show the active outcome text element
+ */
+function scrollToActiveOutcome(descEl, outcome) {
+  if (!descEl || !outcome) return;
+  let upper = outcome.toUpperCase();
+  if (upper === 'DRAW' || upper === 'TIE') {
+    upper = 'NEUTRAL';
+  }
+  let activeEl = null;
+  if (upper === 'SUPERIOR') {
+    activeEl = descEl.querySelector('.superior-outcome');
+  } else if (upper === 'INFERIOR') {
+    activeEl = descEl.querySelector('.inferior-outcome');
+  } else if (upper === 'NEUTRAL') {
+    activeEl = descEl.querySelector('.neutral-outcome');
+  }
+  
+  if (activeEl) {
+    const relativeTop = activeEl.offsetTop - descEl.offsetTop;
+    descEl.scrollTop = relativeTop;
+  } else {
+    if (upper === 'SUPERIOR') {
+      descEl.scrollTop = 0;
+    } else if (upper === 'INFERIOR') {
+      descEl.scrollTop = descEl.scrollHeight;
+    } else if (upper === 'NEUTRAL') {
+      descEl.scrollTop = (descEl.scrollHeight - descEl.clientHeight) / 2;
+    }
+  }
+}
 
 // =============================================================================
 // CARD DESCRIPTION AUTOSCROLL HELPER SYSTEM

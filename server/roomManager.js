@@ -211,9 +211,15 @@ function resolveRound(roomId, io) {
       console.log(`[RoomManager] Player ${player.username} cleansed all debuffs.`);
     }
 
+    // Process Dispel if present in the outcome
+    if (statusObj.dispel && statusObj.dispel > 0) {
+      player.statuses.attackBuff = 0;
+      console.log(`[RoomManager] Player ${player.username} was dispelled.`);
+    }
+
     // Now process other statuses (capping removed)
     Object.keys(statusObj).forEach(stat => {
-      if (stat === 'cleanse') return; // already handled
+      if (stat === 'cleanse' || stat === 'dispel') return; // already handled
       player.statuses[stat] = (player.statuses[stat] || 0) + statusObj[stat];
     });
   };
@@ -222,28 +228,47 @@ function resolveRound(roomId, io) {
   const effect1 = card1.outcomes[result.outcomeA];
   const effect2 = card2.outcomes[result.outcomeB];
 
-  // 1. Pre-tick Cleanse check: If player played a Cleanse card, wipe debuffs BEFORE ticks run!
-  if (effect1.applyStatus && effect1.applyStatus.self && effect1.applyStatus.self.cleanse > 0) {
-    p1.statuses.poison = 0;
-    p1.statuses.burn = 0;
-    p1.statuses.weakness = 0;
-    console.log(`[RoomManager] Player ${p1.username} cleansed all debuffs (pre-tick).`);
+  // 1. Pre-tick Cleanse & Dispel check: Wipe debuffs (Cleanse) and opponent buffs (Dispel) BEFORE ticks run!
+  if (effect1.applyStatus) {
+    if (effect1.applyStatus.self && effect1.applyStatus.self.cleanse > 0) {
+      p1.statuses.poison = 0;
+      p1.statuses.burn = 0;
+      p1.statuses.weakness = 0;
+      console.log(`[RoomManager] Player ${p1.username} cleansed all debuffs (pre-tick).`);
+    }
+    if (effect1.applyStatus.opponent && effect1.applyStatus.opponent.cleanse > 0) {
+      p2.statuses.poison = 0;
+      p2.statuses.burn = 0;
+      p2.statuses.weakness = 0;
+    }
+    if (effect1.applyStatus.opponent && effect1.applyStatus.opponent.dispel > 0) {
+      p2.statuses.attackBuff = 0;
+      console.log(`[RoomManager] Player ${p2.username} was dispelled (pre-tick).`);
+    }
+    if (effect1.applyStatus.self && effect1.applyStatus.self.dispel > 0) {
+      p1.statuses.attackBuff = 0;
+    }
   }
-  if (effect2.applyStatus && effect2.applyStatus.self && effect2.applyStatus.self.cleanse > 0) {
-    p2.statuses.poison = 0;
-    p2.statuses.burn = 0;
-    p2.statuses.weakness = 0;
-    console.log(`[RoomManager] Player ${p2.username} cleansed all debuffs (pre-tick).`);
-  }
-  if (effect1.applyStatus && effect1.applyStatus.opponent && effect1.applyStatus.opponent.cleanse > 0) {
-    p2.statuses.poison = 0;
-    p2.statuses.burn = 0;
-    p2.statuses.weakness = 0;
-  }
-  if (effect2.applyStatus && effect2.applyStatus.opponent && effect2.applyStatus.opponent.cleanse > 0) {
-    p1.statuses.poison = 0;
-    p1.statuses.burn = 0;
-    p1.statuses.weakness = 0;
+
+  if (effect2.applyStatus) {
+    if (effect2.applyStatus.self && effect2.applyStatus.self.cleanse > 0) {
+      p2.statuses.poison = 0;
+      p2.statuses.burn = 0;
+      p2.statuses.weakness = 0;
+      console.log(`[RoomManager] Player ${p2.username} cleansed all debuffs (pre-tick).`);
+    }
+    if (effect2.applyStatus.opponent && effect2.applyStatus.opponent.cleanse > 0) {
+      p1.statuses.poison = 0;
+      p1.statuses.burn = 0;
+      p1.statuses.weakness = 0;
+    }
+    if (effect2.applyStatus.opponent && effect2.applyStatus.opponent.dispel > 0) {
+      p1.statuses.attackBuff = 0;
+      console.log(`[RoomManager] Player ${p1.username} was dispelled (pre-tick).`);
+    }
+    if (effect2.applyStatus.self && effect2.applyStatus.self.dispel > 0) {
+      p2.statuses.attackBuff = 0;
+    }
   }
 
   // 2. Process end-of-round status damage ticks
@@ -476,85 +501,36 @@ function resolveRound(roomId, io) {
     // Check if match is fully completed: First To 3 Points
     const matchOver = (p1.points >= 3 || p2.points >= 3);
 
-    if (matchOver) {
-      // Match is fully over!
-      room.state = 'OVER';
-      const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
-      const matchWinnerName = room.players[matchWinnerId].username;
-
-      setTimeout(() => {
-        io.to(roomId).emit('gameOver', {
-          winnerId: matchWinnerId,
-          winnerName: matchWinnerName,
-          reason: 'match_finished',
-          score: {
-            [p1.id]: p1.points,
-            [p2.id]: p2.points
-          }
-        });
-      }, 3500);
-    } else {
-      // Transition to Draft Phase!
-      room.state = 'DRAFT_PHASE';
-      
-      // Initialize draft phase state in room
-      const p1OfferedPacks = generatePacks(3);
-      const p2OfferedPacks = generatePacks(3);
-
-      room.draft = {
-        loserId: loserId,
-        bonusChosen: loserId ? false : true,
-        p1PackChosen: false,
-        p2PackChosen: false,
-        p1RevealConfirmed: false,
-        p2RevealConfirmed: false,
-        p1OfferedPacks: p1OfferedPacks,
-        p2OfferedPacks: p2OfferedPacks,
-        bonusCards: loserId ? generateBonusPickCards() : []
-      };
-
-      // Emit roundFinished to show round result overlay on clients after animations resolve
-      room.nextRoundTimeout = setTimeout(() => {
-        io.to(roomId).emit('roundFinished', {
-          round: room.round,
-          winnerId: roundWinnerId,
-          loserId: loserId,
-          score: {
-            [p1.id]: p1.points,
-            [p2.id]: p2.points
-          }
-        });
-
-        // After a delay for roundFinished overlay display, trigger drafting
-        room.nextRoundTimeout = setTimeout(() => {
-          if (loserId) {
-            // Send bonus pick to loser, and waiting message to winner
-            const loserPlayer = room.players[loserId];
-            const winnerPlayerId = Object.keys(room.players).find(id => id !== loserId);
-            const winnerPlayer = room.players[winnerPlayerId];
-
-            loserPlayer.socket.emit('bonusPickStart', {
-              cards: room.draft.bonusCards
-            });
-            winnerPlayer.socket.emit('waitingForOpponentBonus');
-          } else {
-            // No loser (draw round), transition directly to Pack Selection for both
-            p1.socket.emit('packSelectionStart', {
-              packs: p1OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
-            });
-            p2.socket.emit('packSelectionStart', {
-              packs: p2OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
-            });
-          }
-        }, 4000);
-      }, 3800);
-    }
+    // Save pending clash state
+    room.pendingClashEnd = {
+      roundOver: true,
+      roundWinnerId: roundWinnerId,
+      loserId: loserId,
+      matchOver: matchOver
+    };
   } else {
-    // Round is not over, schedule next card clash turn
-    room.nextRoundTimeout = setTimeout(() => {
-      startRound(roomId, io);
-    }, 3500);
+    room.pendingClashEnd = {
+      roundOver: false
+    };
   }
+
+  // Clear any existing next round timeout
+  if (room.nextRoundTimeout) {
+    clearTimeout(room.nextRoundTimeout);
+    room.nextRoundTimeout = null;
+  }
+
+  // Initialize clash finished set
+  room.clashFinishedPlayers = new Set();
+
+  // Set safety timeout in case a client fails to report clashFinished
+  room.nextRoundTimeout = setTimeout(() => {
+    console.log(`[RoomManager] Safety timeout triggered for clash in room ${roomId}. Proceeding.`);
+    const pEnd = room.pendingClashEnd;
+    if (pEnd) {
+      proceedAfterClash(roomId, io, pEnd.roundOver, pEnd.roundWinnerId, pEnd.loserId, pEnd.matchOver);
+    }
+  }, 12000); // 12 seconds safety margin (max animations is ~11s)
 }
 
 /**
@@ -885,5 +861,119 @@ module.exports = {
   handlePackRevealConfirm,
   handleSurrender,
   handleRequestRematch,
-  handleLeaveRoom
+  handleLeaveRoom,
+  handleClashFinished
 };
+
+/**
+ * Handles a client message indicating they have completed their clash animation
+ */
+function handleClashFinished(socket, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'BATTLE' || !room.pendingClashEnd) return;
+
+  if (!room.clashFinishedPlayers) {
+    room.clashFinishedPlayers = new Set();
+  }
+  room.clashFinishedPlayers.add(socket.id);
+
+  const playerIds = Object.keys(room.players);
+  if (room.clashFinishedPlayers.size >= playerIds.length) {
+    console.log(`[RoomManager] Both players finished clash in room ${roomId}. Proceeding immediately.`);
+    if (room.nextRoundTimeout) {
+      clearTimeout(room.nextRoundTimeout);
+      room.nextRoundTimeout = null;
+    }
+    const pEnd = room.pendingClashEnd;
+    proceedAfterClash(roomId, io, pEnd.roundOver, pEnd.roundWinnerId, pEnd.loserId, pEnd.matchOver);
+  }
+}
+
+/**
+ * Transition logic that triggers after both clients complete clash animations (or safety timeout)
+ */
+function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchOver) {
+  const room = rooms[roomId];
+  if (!room) return;
+
+  // Clean up pending clash state
+  delete room.pendingClashEnd;
+  delete room.clashFinishedPlayers;
+
+  const playerIds = Object.keys(room.players);
+  const p1 = room.players[playerIds[0]];
+  const p2 = room.players[playerIds[1]];
+
+  if (roundOver) {
+    console.log(`[RoomManager] Round ${room.round} Over. Winner: ${roundWinnerId || 'DRAW'}. Current Score: ${p1.username} ${p1.points} - ${p2.points} ${p2.username}`);
+
+    if (matchOver) {
+      room.state = 'OVER';
+      const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
+      const matchWinnerName = room.players[matchWinnerId].username;
+
+      io.to(roomId).emit('gameOver', {
+        winnerId: matchWinnerId,
+        winnerName: matchWinnerName,
+        reason: 'match_finished',
+        score: {
+          [p1.id]: p1.points,
+          [p2.id]: p2.points
+        }
+      });
+    } else {
+      room.state = 'DRAFT_PHASE';
+      
+      const p1OfferedPacks = generatePacks(3);
+      const p2OfferedPacks = generatePacks(3);
+
+      room.draft = {
+        loserId: loserId,
+        bonusChosen: loserId ? false : true,
+        p1PackChosen: false,
+        p2PackChosen: false,
+        p1RevealConfirmed: false,
+        p2RevealConfirmed: false,
+        p1OfferedPacks: p1OfferedPacks,
+        p2OfferedPacks: p2OfferedPacks,
+        bonusCards: loserId ? generateBonusPickCards() : []
+      };
+
+      // Since the clients are ready, we emit roundFinished immediately!
+      io.to(roomId).emit('roundFinished', {
+        round: room.round,
+        winnerId: roundWinnerId,
+        loserId: loserId,
+        score: {
+          [p1.id]: p1.points,
+          [p2.id]: p2.points
+        }
+      });
+
+      // After a delay for the roundFinished overlay to show, trigger drafting
+      room.nextRoundTimeout = setTimeout(() => {
+        if (loserId) {
+          const loserPlayer = room.players[loserId];
+          const winnerPlayerId = Object.keys(room.players).find(id => id !== loserId);
+          const winnerPlayer = room.players[winnerPlayerId];
+
+          loserPlayer.socket.emit('bonusPickStart', {
+            cards: room.draft.bonusCards
+          });
+          winnerPlayer.socket.emit('waitingForOpponentBonus');
+        } else {
+          p1.socket.emit('packSelectionStart', {
+            packs: p1OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
+          });
+          p2.socket.emit('packSelectionStart', {
+            packs: p2OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
+          });
+        }
+      }, 2200); // 2.2s for display
+    }
+  } else {
+    // Round is not over, start next card clash turn immediately!
+    startRound(roomId, io);
+  }
+}

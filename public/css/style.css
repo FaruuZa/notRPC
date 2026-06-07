@@ -839,6 +839,11 @@ body, html {
   text-shadow: 0 0 8px rgba(160, 174, 192, 0.4);
 }
 
+.damage-popup.self-dmg {
+  color: #e040fb; /* bright fuchsia */
+  text-shadow: 0 0 8px rgba(224, 64, 251, 0.45);
+}
+
 /* CARDS DESIGN (TCG PHYSICAL PLAYCARD LOOK - DESKTOP EPIC SCALE) */
 .card {
   width: 140px; /* Epic scale card size */
@@ -1146,6 +1151,10 @@ body, html {
 @media (max-width: 768px), (max-height: 550px) {
   #battle-screen {
     padding: 0.6rem;
+    display: block;
+    position: relative;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .logo-main {
@@ -1218,9 +1227,15 @@ body, html {
 
   /* Compact Mobile Slots & Margins (Completely solves overlapping) */
   .arena-zone {
-    margin-top: 2.2rem; /* Shifted down to clear HUD and separate from top */
-    gap: 1.8rem; /* Enough spacing to clear middle card peak */
-    align-items: center;
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    justify-content: center;
+    gap: 1.8rem;
+    margin-top: 0;
+    z-index: 5;
   }
 
   .slot-label {
@@ -1379,7 +1394,12 @@ body, html {
   }
 
   .player-controls-zone {
-    padding-bottom: 0.8rem;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    padding-bottom: 0.5rem;
   }
 
   /* Compact hand coordinates */
@@ -1609,6 +1629,7 @@ body, html {
 .keyword-title.weak { color: #a0aec0; }
 .keyword-title.shield { color: #00bcd4; }
 .keyword-title.cleanse { color: #9b59b6; }
+.keyword-title.dispel { color: #ff9f43; }
 .keyword-title.heal { color: #00ff88; }
 
 /* Inline Keyword Highlights inside Cards */
@@ -1646,6 +1667,12 @@ body, html {
   color: #9b59b6;
   font-weight: 700;
   text-decoration: underline dotted #9b59b6;
+}
+
+.kw-dispel {
+  color: #ff9f43;
+  font-weight: 700;
+  text-decoration: underline dotted #ff9f43;
 }
 
 .kw-heal {
@@ -2310,7 +2337,7 @@ body, html {
 }
 
 #deck-cards-list .card {
-  pointer-events: none !important;
+  pointer-events: auto !important;
   cursor: default !important;
   transform: none !important;
   transition: none !important;
@@ -2320,9 +2347,17 @@ body, html {
 /* Responsive adjustments for Mobile (Deck Inspection Modal) */
 @media (max-width: 768px) {
   .deck-modal-content {
-    max-width: 95%;
-    padding: 0.6rem 0.8rem;
-    gap: 0.3rem;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    padding: 0.5rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    animation: none !important;
   }
   .deck-modal-title {
     font-size: 1.1rem;
@@ -2331,43 +2366,203 @@ body, html {
     font-size: 0.75rem;
   }
   #deck-cards-list {
-    max-height: calc(85dvh - 100px);
-    gap: 0.6rem;
+    flex-grow: 1;
+    height: auto;
+    max-height: none !important;
+    gap: 0.4rem;
     padding: 0.25rem;
   }
   /* Scale down the cards slightly inside the deck view for mobile screens */
   #deck-cards-list .card {
-    width: 105px !important;
-    height: 147px !important;
-    border-width: 2.5px !important;
-    margin: 0.15rem;
+    width: 85px !important;
+    height: 119px !important;
+    border-width: 2.2px !important;
+    margin: 0.1rem;
+    pointer-events: auto !important;
   }
   #deck-cards-list .card .card-face {
-    padding: 0.4rem;
+    padding: 0.2rem;
   }
   #deck-cards-list .card .card-element-icon {
-    font-size: 1.4rem;
+    font-size: 0.9rem;
   }
   #deck-cards-list .card .card-name {
-    font-size: 0.62rem;
+    font-size: 0.52rem;
+    line-height: 1.05;
   }
   #deck-cards-list .card .card-desc {
-    font-size: 0.55rem;
-    height: 46px; /* Scaled down description container */
-    padding: 0.1rem 0.25rem;
+    font-size: 0.44rem;
+    height: 38px;
+    padding: 0.1rem 0.2rem;
+    pointer-events: auto !important;
   }
   #deck-cards-list .card .card-element-name {
-    font-size: 0.58rem;
+    font-size: 0.52rem;
   }
   #deck-cards-list .card .card-header {
-    padding: 0.15rem 0.3rem;
+    padding: 0.1rem 0.2rem;
   }
   #deck-cards-list .card .card-middle {
-    margin: 0.25rem 0;
-    gap: 0.1rem;
-    padding: 0.18rem 0.1rem;
+    margin: 0.1rem 0;
+    gap: 0.05rem;
+    padding: 0.2rem 0.1rem;
     box-sizing: border-box;
     overflow: hidden;
   }
+}
+
+/* =============================================================================
+   HUD ACTIVE STATUS AURA EFFECTS & ANIMATIONS
+   ============================================================================= */
+
+/* 1. BURN STATUS EFFECT (Fiery orange flickering glow) */
+@keyframes burnGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(255, 87, 34, 0.35), inset 0 0 8px rgba(255, 87, 34, 0.15);
+    border-color: rgba(255, 87, 34, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 87, 34, 0.8), inset 0 0 15px rgba(255, 87, 34, 0.4);
+    border-color: rgba(255, 87, 34, 0.95);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(255, 87, 34, 0.35), inset 0 0 8px rgba(255, 87, 34, 0.15);
+    border-color: rgba(255, 87, 34, 0.45);
+  }
+}
+.hud-panel.status-active-burn {
+  animation: burnGlow 1.5s infinite ease-in-out;
+  background: rgba(44, 22, 22, 0.68) !important;
+}
+
+/* 2. POISON STATUS EFFECT (Venomous green breathing glow) */
+@keyframes poisonGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.3), inset 0 0 8px rgba(46, 204, 113, 0.15);
+    border-color: rgba(46, 204, 113, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.75), inset 0 0 15px rgba(46, 204, 113, 0.35);
+    border-color: rgba(46, 204, 113, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.3), inset 0 0 8px rgba(46, 204, 113, 0.15);
+    border-color: rgba(46, 204, 113, 0.4);
+  }
+}
+.hud-panel.status-active-poison {
+  animation: poisonGlow 1.8s infinite ease-in-out;
+  background: rgba(22, 44, 30, 0.68) !important;
+}
+
+/* 3. BUFF STATUS EFFECT (Sparkling golden electric pulse) */
+@keyframes buffGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(216, 192, 40, 0.3), inset 0 0 8px rgba(216, 192, 40, 0.15);
+    border-color: rgba(216, 192, 40, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(216, 192, 40, 0.78), inset 0 0 15px rgba(216, 192, 40, 0.4);
+    border-color: rgba(216, 192, 40, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(216, 192, 40, 0.3), inset 0 0 8px rgba(216, 192, 40, 0.15);
+    border-color: rgba(216, 192, 40, 0.4);
+  }
+}
+.hud-panel.status-active-buff {
+  animation: buffGlow 1.2s infinite ease-in-out;
+  background: rgba(41, 36, 22, 0.68) !important;
+}
+
+/* 4. WEAK STATUS EFFECT (Faded, shadow-sinking slow glow) */
+@keyframes weakGlow {
+  0% {
+    box-shadow: 0 0 6px rgba(160, 174, 192, 0.15), inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-color: rgba(160, 174, 192, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(160, 174, 192, 0.35), inset 0 0 10px rgba(0, 0, 0, 0.45);
+    border-color: rgba(160, 174, 192, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 6px rgba(160, 174, 192, 0.15), inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-color: rgba(160, 174, 192, 0.25);
+  }
+}
+.hud-panel.status-active-weak {
+  animation: weakGlow 2.0s infinite ease-in-out;
+  background: rgba(26, 29, 34, 0.68) !important;
+}
+
+/* Damage Tick Flash overlays */
+@keyframes burnFlashAnim {
+  0% { background: rgba(255, 87, 34, 0); }
+  25% { background: rgba(255, 87, 34, 0.38); }
+  100% { background: rgba(255, 87, 34, 0); }
+}
+.hud-panel.burn-flash {
+  animation: burnFlashAnim 0.5s ease-out;
+}
+
+@keyframes poisonFlashAnim {
+  0% { background: rgba(46, 204, 113, 0); }
+  25% { background: rgba(46, 204, 113, 0.38); }
+  100% { background: rgba(46, 204, 113, 0); }
+}
+.hud-panel.poison-flash {
+  animation: poisonFlashAnim 0.5s ease-out;
+}
+
+
+/* =============================================================================
+   CARD OUTCOME READABILITY & DIMMING EFFECTS
+   ============================================================================= */
+.outcome-text {
+  display: block;
+  text-align: left;
+  line-height: 1.35;
+  transition: opacity 0.3s ease, filter 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  font-family: inherit;
+  margin-bottom: 2px;
+}
+
+/* Base outcome styles (defaults back to standard description color) */
+.outcome-text.superior-outcome { color: var(--text-secondary); }
+.outcome-text.neutral-outcome { color: var(--text-secondary); }
+.outcome-text.inferior-outcome { color: var(--text-secondary); }
+
+/* Dim other outcomes when a specific clash result occurs */
+.card[data-active-outcome="superior"] .outcome-text:not(.superior-outcome) {
+  opacity: 0.18;
+  filter: grayscale(100%);
+}
+.card[data-active-outcome="neutral"] .outcome-text:not(.neutral-outcome) {
+  opacity: 0.18;
+  filter: grayscale(100%);
+}
+.card[data-active-outcome="inferior"] .outcome-text:not(.inferior-outcome) {
+  opacity: 0.18;
+  filter: grayscale(100%);
+}
+
+/* Highlight the active outcome with soft glow */
+.card[data-active-outcome="superior"] .outcome-text.superior-outcome {
+  color: #2ecc71 !important; /* Soft emerald green */
+  font-weight: 750;
+  text-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
+  transform: scale(1.02);
+}
+.card[data-active-outcome="neutral"] .outcome-text.neutral-outcome {
+  color: #f1c40f !important; /* Soft warm gold */
+  font-weight: 750;
+  text-shadow: 0 0 8px rgba(241, 196, 15, 0.5);
+  transform: scale(1.02);
+}
+.card[data-active-outcome="inferior"] .outcome-text.inferior-outcome {
+  color: #ff4757 !important; /* Soft rose red */
+  font-weight: 750;
+  text-shadow: 0 0 8px rgba(255, 71, 87, 0.5);
+  transform: scale(1.02);
 }
 

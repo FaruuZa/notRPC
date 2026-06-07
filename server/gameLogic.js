@@ -88,7 +88,7 @@ function drawReplacements(totalReplacements, minElementalReq) {
  * Now modified to return a fixed, identical set of cards to reduce RNG.
  */
 function generateStarterDeck() {
-  const starterIds = ['ember_slash', 'tidal_surge', 'nature_shield', 'basic_fist'];
+  const starterIds = ['fire_strike', 'water_strike', 'nature_strike', 'basic_fist'];
   const starter = starterIds.map(id => CARD_POOL.find(c => c.id === id)).filter(Boolean);
   return starter.map(card => createCardInstance(card));
 }
@@ -235,8 +235,9 @@ function generatePackCards(packType) {
  * Generates 3 unique cards for the Loser Bonus Pick
  */
 function generateBonusPickCards() {
+  const loserPool = generalPool.filter(c => c.element === ELEMENTS.NEUTRAL || c.element === ELEMENTS.CHAOS);
   const cards = [];
-  const tempPool = [...generalPool];
+  const tempPool = [...loserPool];
   for (let i = 0; i < 3; i++) {
     if (tempPool.length > 0) {
       const idx = Math.floor(Math.random() * tempPool.length);

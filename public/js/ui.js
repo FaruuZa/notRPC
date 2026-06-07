@@ -354,7 +354,7 @@ const UI = {
       keywords.push({
         title: 'BURN',
         class: 'burn',
-        desc: 'Takes damage equal to stack x2 (bypassing shields). All stacks expire at the end of the round.'
+        desc: 'Takes damage equal to stack x3 (absorbed by shields first). All stacks are consumed at the end of the round.'
       });
     }
     if (cardDescription.includes('kw-poison')) {
@@ -382,7 +382,7 @@ const UI = {
       keywords.push({
         title: 'SHIELD',
         class: 'shield',
-        desc: 'Blocks incoming attack damage. Remaining shield carries over to the next round.'
+        desc: 'Blocks incoming attack damage. Decays by 50% at the end of the round, and the remainder carries over.'
       });
     }
     if (cardDescription.includes('kw-cleanse')) {
@@ -390,6 +390,13 @@ const UI = {
         title: 'CLEANSE',
         class: 'cleanse',
         desc: 'Immediately removes all active debuffs (Poison, Burn, and Weakness).'
+      });
+    }
+    if (cardDescription.includes('kw-dispel')) {
+      keywords.push({
+        title: 'DISPEL',
+        class: 'dispel',
+        desc: 'Immediately removes all active buffs (Attack Buffs) from the opponent.'
       });
     }
     if (cardDescription.includes('kw-heal')) {
@@ -425,7 +432,7 @@ const UI = {
       keywords.push({
         title: 'BURN',
         class: 'burn',
-        desc: `Currently active stack: ${statuses.burn}. Takes damage equal to stack x2 (bypassing shields). All stacks expire at the end of the round.`
+        desc: `Currently active stack: ${statuses.burn}. Takes damage equal to stack x3 (absorbed by shields first). All stacks are consumed at the end of the round.`
       });
     }
     if (statuses && statuses.poison > 0) {
@@ -481,6 +488,21 @@ const UI = {
   },
 
   /**
+   * Helper to format card descriptions dynamically, wrapping outcomes in spans
+   */
+  formatDescription(desc) {
+    if (!desc) return '';
+    let formattedDesc = desc;
+    // Wrap Superior outcome
+    formattedDesc = formattedDesc.replace(/(Superior:.*?)(?=(Neutral:|Inferior:|$))/g, '<span class="outcome-text superior-outcome">$1</span>');
+    // Wrap Neutral outcome
+    formattedDesc = formattedDesc.replace(/(Neutral:.*?)(?=(Superior:|Inferior:|$))/g, '<span class="outcome-text neutral-outcome">$1</span>');
+    // Wrap Inferior outcome
+    formattedDesc = formattedDesc.replace(/(Inferior:.*?)(?=(Superior:|Neutral:|$))/g, '<span class="outcome-text inferior-outcome">$1</span>');
+    return formattedDesc;
+  },
+
+  /**
    * Generates card HTML string (without element badge in header)
    */
   createCardElement(card) {
@@ -491,6 +513,7 @@ const UI = {
     cardDiv.id = `card-${card.instanceId}`;
     
     const iconClass = this.getElementIconClass(card.element);
+    const formattedDesc = this.formatDescription(card.description);
     
     cardDiv.innerHTML = `
       <div class="card-face card-front">
@@ -499,7 +522,7 @@ const UI = {
         </div>
         <div class="card-middle">
           <i class="card-element-icon fa-solid ${iconClass}"></i>
-          <p class="card-desc">${card.description}</p>
+          <p class="card-desc">${formattedDesc}</p>
         </div>
         <div class="card-footer">
           <span class="card-element-name">${card.element}</span>
@@ -514,16 +537,29 @@ const UI = {
   /**
    * Renders active status effect badges in player HUDs
    */
+  /**
+   * Renders active status effect badges in player HUDs and toggles HUD aura classes
+   */
   renderStatuses(container, statuses = {}) {
     container.innerHTML = '';
     if (!statuses) return;
+
+    // Toggle HUD aura classes on parent HUD panel
+    const hudPanel = container.closest('.hud-panel');
+    if (hudPanel) {
+      hudPanel.classList.remove('status-active-burn', 'status-active-poison', 'status-active-buff', 'status-active-weak');
+      if (statuses.burn > 0) hudPanel.classList.add('status-active-burn');
+      if (statuses.poison > 0) hudPanel.classList.add('status-active-poison');
+      if (statuses.attackBuff > 0) hudPanel.classList.add('status-active-buff');
+      if (statuses.weakness > 0) hudPanel.classList.add('status-active-weak');
+    }
 
     // Burn status
     if (statuses.burn > 0) {
       const badge = document.createElement('span');
       badge.className = 'status-badge burn';
       badge.innerHTML = `<i class="fa-solid fa-fire"></i> ${statuses.burn}`;
-      badge.title = `Burned: Takes ${statuses.burn * 2} damage bypassing shields (expires after this round)`;
+      badge.title = `Burned: Takes ${statuses.burn * 3} damage (absorbed by shields first, consumed at the end of the round)`;
       container.appendChild(badge);
     }
 
@@ -560,35 +596,83 @@ const UI = {
    * @param {Array} hand List of card objects
    * @param {boolean} animate Whether to stagger draw animations
    */
-  renderHand(hand, animate = false) {
-    this.playerHand.innerHTML = '';
+  renderHand(hand, animate = false, isNewRound = false) {
+    if (hand.length === 0) {
+      this.playerHand.innerHTML = '';
+      return;
+    }
+
+    // If it's a new round, clear hand completely and animate drawing
+    if (isNewRound) {
+      this.playerHand.innerHTML = '';
+      const total = hand.length;
+      hand.forEach((card, index) => {
+        const cardEl = this.createCardElement(card);
+        this.playerHand.appendChild(cardEl);
+        cardEl.style.setProperty('--index', index);
+        cardEl.style.setProperty('--total', total);
+        cardEl.style.zIndex = index + 1;
+        if (!this.isLocked) {
+          cardEl.addEventListener('click', () => {
+            AudioSynth.playClick();
+            this.selectCard(card.instanceId);
+          });
+        }
+      });
+      if (animate) {
+        const cardEls = this.playerHand.querySelectorAll('.card');
+        Animations.animateCardDraw(cardEls);
+      }
+      return;
+    }
+
+    // Incremental turn progression (non-disruptive update)
+    // 1. Remove cards that are not in the new hand
+    const existingCardEls = Array.from(this.playerHand.querySelectorAll('.card'));
+    const newHandIds = hand.map(c => c.instanceId);
     
-    if (hand.length === 0) return;
-
-    const total = hand.length;
-
-    hand.forEach((card, index) => {
-      const cardEl = this.createCardElement(card);
-      this.playerHand.appendChild(cardEl);
-
-      // Set CSS variables for CSS-only layout calculation (stable & hover-spreadable)
-      cardEl.style.setProperty('--index', index);
-      cardEl.style.setProperty('--total', total);
-      cardEl.style.zIndex = index + 1;
-
-      // Bind events to cards (unless hand locked)
-      if (!this.isLocked) {
-        cardEl.addEventListener('click', () => {
-          AudioSynth.playClick();
-          this.selectCard(card.instanceId);
-        });
+    existingCardEls.forEach(cardEl => {
+      const instId = cardEl.getAttribute('data-instance-id');
+      if (!newHandIds.includes(instId)) {
+        cardEl.remove();
       }
     });
 
-    if (animate) {
-      const cardEls = this.playerHand.querySelectorAll('.card');
-      Animations.animateCardDraw(cardEls);
-    }
+    // 2. Add cards that are in the new hand but not in the DOM
+    const currentDomIds = Array.from(this.playerHand.querySelectorAll('.card')).map(el => el.getAttribute('data-instance-id'));
+    
+    hand.forEach(card => {
+      if (!currentDomIds.includes(card.instanceId)) {
+        const cardEl = this.createCardElement(card);
+        this.playerHand.appendChild(cardEl);
+        if (!this.isLocked) {
+          cardEl.addEventListener('click', () => {
+            AudioSynth.playClick();
+            this.selectCard(card.instanceId);
+          });
+        }
+      }
+    });
+
+    // 3. Sort DOM elements to match the hand array order
+    const finalCardEls = Array.from(this.playerHand.querySelectorAll('.card'));
+    finalCardEls.sort((a, b) => {
+      const idA = a.getAttribute('data-instance-id');
+      const idB = b.getAttribute('data-instance-id');
+      return newHandIds.indexOf(idA) - newHandIds.indexOf(idB);
+    });
+
+    // Re-append in sorted order to maintain proper DOM stacking and index variables
+    finalCardEls.forEach(el => this.playerHand.appendChild(el));
+
+    const total = finalCardEls.length;
+    finalCardEls.forEach((cardEl, index) => {
+      cardEl.style.setProperty('--index', index);
+      cardEl.style.setProperty('--total', total);
+      cardEl.style.zIndex = index + 1;
+      cardEl.style.opacity = '1';
+      cardEl.style.pointerEvents = 'auto';
+    });
   },
 
   /**

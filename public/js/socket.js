@@ -176,6 +176,9 @@ const SocketService = {
   },
   leaveRoom() {
     socket.emit('leaveRoom');
+  },
+  clashFinished() {
+    socket.emit('clashFinished');
   }
 };
 

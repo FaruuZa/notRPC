@@ -62,6 +62,39 @@ const CLASH_RULES = {
 // Inferior outcomes on some cards are intentionally powerful (mind-game cards)
 // =============================================================================
 const CARD_POOL = [
+  {
+    id: 'fire_strike',
+    name: 'Fire Strike',
+    element: ELEMENTS.FIRE,
+    description: 'Superior: 12 dmg. Neutral: 3 dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 3,  shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'water_strike',
+    name: 'Water Strike',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 12 dmg. Neutral: 3 dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 3,  shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'nature_strike',
+    name: 'Nature Strike',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 12 dmg. Neutral: 3 dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 3,  shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 0 }
+    }
+  },
 
   // ─── FIRE CARDS ────────────────────────────────────────────────────────────
   // Fire: beats NATURE, loses to WATER and CHAOS, ties FIRE and NEUTRAL
@@ -177,10 +210,10 @@ const CARD_POOL = [
     id: 'chilling_mist',
     name: 'Chilling Mist',
     element: ELEMENTS.WATER,
-    description: 'Superior: 10 <span class="kw-shield">SHIELD</span> & <span class="kw-weak">WEAK [1]</span>. Neutral: <span class="kw-weak">WEAK [1]</span>.',
+    description: 'Superior: 10 <span class="kw-shield">SHIELD</span> & <span class="kw-dispel">DISPEL</span>. Neutral: <span class="kw-dispel">DISPEL</span>.',
     outcomes: {
-      SUPERIOR: { damage: 0, shield: 10, selfDamage: 0, applyStatus: { opponent: { weakness: 1 } } },
-      NEUTRAL:  { damage: 0, shield: 0,  selfDamage: 0, applyStatus: { opponent: { weakness: 1 } } },
+      SUPERIOR: { damage: 0, shield: 10, selfDamage: 0, applyStatus: { opponent: { dispel: 1 } } },
+      NEUTRAL:  { damage: 0, shield: 0,  selfDamage: 0, applyStatus: { opponent: { dispel: 1 } } },
       INFERIOR: { damage: 0, shield: 0,  selfDamage: 0 }
     }
   },
@@ -332,6 +365,17 @@ const CARD_POOL = [
       SUPERIOR: { damage: 10, shield: 0, selfDamage: 0 },
       NEUTRAL:  { damage: 3,  shield: 0, selfDamage: 0 },
       INFERIOR: { damage: 0,  shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'spellbreaker',
+    name: 'Spellbreaker',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 8 dmg & <span class="kw-dispel">DISPEL</span>. Neutral: <span class="kw-dispel">DISPEL</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { opponent: { dispel: 1 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { dispel: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
     }
   },
   {
