@@ -176,10 +176,10 @@ const RELIC_POOL = {
   relic_focused_soul: {
     id: 'relic_focused_soul',
     name: 'Focused Soul',
-    description: 'At the start of each round: gain 1 Attack Buff per stack.',
+    description: 'At the start of each round: gain 5 Attack Buff per stack.',
     quality: 'EPIC',
     icon: 'fa-bolt',
-    effect: { type: 'start_round_buff', value: 1 }
+    effect: { type: 'start_round_buff', value: 5 }
   },
 
   // NEW RELICS

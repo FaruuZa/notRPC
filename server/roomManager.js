@@ -218,9 +218,9 @@ function startRound(roomId, io) {
   }
 
   // Apply starting shield regen relics
-  const p1StartShield = (p1.relics.relic_shield_regen_common || 0) * 3 + (p1.relics.relic_shield_regen_rare || 0) * 5 + (p1.relics.relic_shield_regen_epic || 0) * 8;
+  const p1StartShield = (p1.relics.relic_shield_regen_common || 0) * 3 + (p1.relics.relic_shield_regen_rare || 0) * 5 + (p1.relics.relic_shield_regen_legendary || 0) * 10;
   p1.shield += p1StartShield;
-  const p2StartShield = (p2.relics.relic_shield_regen_common || 0) * 3 + (p2.relics.relic_shield_regen_rare || 0) * 5 + (p2.relics.relic_shield_regen_epic || 0) * 8;
+  const p2StartShield = (p2.relics.relic_shield_regen_common || 0) * 3 + (p2.relics.relic_shield_regen_rare || 0) * 5 + (p2.relics.relic_shield_regen_legendary || 0) * 10;
   p2.shield += p2StartShield;
 
   // Re-calculate maxHp in case vitality relics were gained
@@ -1809,8 +1809,8 @@ function proceedToQuestPhase(room, io) {
   p1.phoenixUsedThisRound = false;
   p2.phoenixUsedThisRound = false;
 
-  p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 1, weakness: 0 };
-  p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 1, weakness: 0 };
+  p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 5, weakness: 0 };
+  p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 5, weakness: 0 };
 
   p1.hand = drawHandFromDeck(p1.deck, 4);
   p2.hand = drawHandFromDeck(p2.deck, 4);
