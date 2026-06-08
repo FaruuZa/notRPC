@@ -1257,7 +1257,8 @@ const UI = {
     }
     
     activeEntries.forEach(([relicId, count]) => {
-      const def = RELIC_DATABASE[relicId];
+      // Get relic definition from server data (compendiumRelics)
+      const def = window.gameManager?.compendiumRelics?.find(r => r.id === relicId) || RELIC_DATABASE[relicId];
       if (!def) return;
       
       const itemEl = document.createElement('div');
@@ -1266,7 +1267,7 @@ const UI = {
       itemEl.innerHTML = `
         <div class="relic-header-row">
           <div class="relic-title-name">
-            <i class="fa-solid ${def.icon}" style="margin-right: 0.5rem;"></i>
+            <i class="fa-solid ${def.icon || 'fa-gem'}" style="margin-right: 0.5rem;"></i>
             ${def.name}
           </div>
           <span class="relic-stack-badge">x${count}</span>

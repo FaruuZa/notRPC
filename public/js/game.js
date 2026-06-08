@@ -31,6 +31,7 @@ const GameManager = {
   selectedRemovalCardInstanceId: null,
   compendiumCards: [],
   compendiumRelics: [],
+  compendiumQuestTemplates: [],
   
   // Animation sync helpers
   currentRoundReveal: null,
@@ -535,6 +536,7 @@ const GameManager = {
   setCompendiumData(data) {
     this.compendiumCards = data.cards || [];
     this.compendiumRelics = data.relics || [];
+    this.compendiumQuestTemplates = data.questTemplates || [];
     if (window.UI && typeof window.UI.renderCompendium === 'function') {
       window.UI.renderCompendium(this.compendiumCards, this.compendiumRelics);
     }
