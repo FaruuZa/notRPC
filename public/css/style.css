@@ -325,17 +325,129 @@ body, html {
   to { transform: rotate(360deg); }
 }
 
-.lobby-legend {
-  margin-top: 1.5rem;
+/* Game Library / Compendium Trigger Button */
+#open-compendium-btn {
+  margin-top: 1rem;
+  width: 100%;
+  border-color: var(--border-brass);
+}
+
+#open-compendium-btn:hover {
+  background: rgba(245, 207, 112, 0.1);
+  color: #fff;
+  border-color: #ffd700;
+}
+
+/* Compendium Filter Bar styling */
+.compendium-filters {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0.2rem 0.5rem;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   width: 100%;
   box-sizing: border-box;
-  padding: 0.7rem 1rem;
+  justify-content: center;
+}
+
+.compendium-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.filter-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.filter-btn.active {
+  background: rgba(245, 207, 112, 0.15);
+  border-color: #ffd700;
+  color: var(--text-primary);
+}
+
+/* Compendium Relic Grid styling inside modal */
+#compendium-relics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  justify-content: center;
+  max-height: calc(85dvh - 230px);
+  overflow-y: auto;
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.compendium-relic-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
-  border: 1.5px solid var(--border-mat);
+  padding: 0.8rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
+  position: relative;
+  transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  text-align: left;
 }
+
+.compendium-relic-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.compendium-relic-name {
+  font-family: var(--font-title);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compendium-relic-quality {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 0.1rem;
+}
+
+.compendium-relic-quality.COMMON { color: #b2bec3; }
+.compendium-relic-quality.RARE { color: #0984e3; }
+.compendium-relic-quality.EPIC { color: #a29bfe; }
+.compendium-relic-quality.LEGENDARY { color: #fdcb6e; }
+
+.compendium-relic-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+  margin-top: 0.2rem;
+}
+
+.compendium-relic-desc span {
+  font-weight: 700;
+}
+
 
 .lobby-footer {
   margin-top: 1.8rem;
@@ -1450,7 +1562,8 @@ body, html {
 #pack-selection-screen,
 #pack-reveal-screen,
 #quest-selection-screen,
-#card-removal-screen {
+#card-removal-screen,
+#relic-selection-screen {
   background: radial-gradient(circle at center, #1a2233, var(--bg-felt));
   display: flex;
   justify-content: center;
@@ -2301,6 +2414,7 @@ body, html {
   gap: 0.6rem;
   max-height: 85dvh;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .deck-modal-title {
@@ -2324,7 +2438,8 @@ body, html {
   margin-top: 0.2rem;
 }
 
-#deck-cards-list {
+#deck-cards-list,
+.compendium-scroll-container-clean {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
@@ -2336,22 +2451,53 @@ body, html {
   border-radius: 4px;
 }
 
-#deck-cards-list::-webkit-scrollbar {
+.compendium-scroll-container-clean {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 1rem;
+}
+
+#compendium-cards-grid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-height: calc(85dvh - 280px);
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+#deck-cards-list::-webkit-scrollbar,
+#compendium-cards-grid::-webkit-scrollbar,
+#compendium-relics-grid::-webkit-scrollbar,
+.compendium-scroll-container-clean::-webkit-scrollbar {
   width: 8px;
 }
-#deck-cards-list::-webkit-scrollbar-track {
+#deck-cards-list::-webkit-scrollbar-track,
+#compendium-cards-grid::-webkit-scrollbar-track,
+#compendium-relics-grid::-webkit-scrollbar-track,
+.compendium-scroll-container-clean::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
-#deck-cards-list::-webkit-scrollbar-thumb {
+#deck-cards-list::-webkit-scrollbar-thumb,
+#compendium-cards-grid::-webkit-scrollbar-thumb,
+#compendium-relics-grid::-webkit-scrollbar-thumb,
+.compendium-scroll-container-clean::-webkit-scrollbar-thumb {
   background: var(--border-brass);
   border-radius: 4px;
 }
-#deck-cards-list::-webkit-scrollbar-thumb:hover {
+#deck-cards-list::-webkit-scrollbar-thumb:hover,
+#compendium-cards-grid::-webkit-scrollbar-thumb:hover,
+#compendium-relics-grid::-webkit-scrollbar-thumb:hover,
+.compendium-scroll-container-clean::-webkit-scrollbar-thumb:hover {
   background: #fff;
 }
 
-#deck-cards-list .card {
+#deck-cards-list .card,
+#compendium-cards-grid .card {
   pointer-events: auto !important;
   cursor: default !important;
   transform: none !important;
@@ -2373,6 +2519,7 @@ body, html {
     flex-direction: column;
     box-sizing: border-box;
     animation: none !important;
+    overflow: hidden !important;
   }
   .deck-modal-title {
     font-size: 1.1rem;
@@ -2380,44 +2527,79 @@ body, html {
   .deck-modal-desc {
     font-size: 0.75rem;
   }
-  #deck-cards-list {
+  #compendium-modal .modal-tabs {
+    flex-wrap: nowrap !important;
+    justify-content: space-around !important;
+  }
+  #compendium-modal .modal-tab-btn {
+    font-size: 0.72rem !important;
+    padding: 0.3rem 0.4rem !important;
+    gap: 0.2rem !important;
+  }
+  #compendium-modal .modal-tab-btn i {
+    display: none !important;
+  }
+  .compendium-filters {
+    justify-content: flex-start;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  #deck-cards-list,
+  #compendium-cards-grid,
+  .compendium-scroll-container-clean {
     flex-grow: 1;
     height: auto;
-    max-height: none !important;
     gap: 0.4rem;
     padding: 0.25rem;
   }
-  /* Scale down the cards slightly inside the deck view for mobile screens */
-  #deck-cards-list .card {
+  #deck-cards-list,
+  #deck-relics-list,
+  #compendium-relics-grid,
+  .compendium-scroll-container-clean {
+    max-height: calc(100dvh - 150px) !important;
+  }
+  #compendium-cards-grid {
+    max-height: calc(100dvh - 200px) !important;
+  }
+  /* Scale down the cards slightly inside the deck/compendium view for mobile screens */
+  #deck-cards-list .card,
+  #compendium-cards-grid .card {
     width: 85px !important;
     height: 119px !important;
     border-width: 2.2px !important;
     margin: 0.1rem;
     pointer-events: auto !important;
   }
-  #deck-cards-list .card .card-face {
+  #deck-cards-list .card .card-face,
+  #compendium-cards-grid .card .card-face {
     padding: 0.2rem;
   }
-  #deck-cards-list .card .card-element-icon {
+  #deck-cards-list .card .card-element-icon,
+  #compendium-cards-grid .card .card-element-icon {
     font-size: 0.9rem;
   }
-  #deck-cards-list .card .card-name {
+  #deck-cards-list .card .card-name,
+  #compendium-cards-grid .card .card-name {
     font-size: 0.52rem;
     line-height: 1.05;
   }
-  #deck-cards-list .card .card-desc {
+  #deck-cards-list .card .card-desc,
+  #compendium-cards-grid .card .card-desc {
     font-size: 0.44rem;
     height: 38px;
     padding: 0.1rem 0.2rem;
     pointer-events: auto !important;
   }
-  #deck-cards-list .card .card-element-name {
+  #deck-cards-list .card .card-element-name,
+  #compendium-cards-grid .card .card-element-name {
     font-size: 0.52rem;
   }
-  #deck-cards-list .card .card-header {
+  #deck-cards-list .card .card-header,
+  #compendium-cards-grid .card .card-header {
     padding: 0.1rem 0.2rem;
   }
-  #deck-cards-list .card .card-middle {
+  #deck-cards-list .card .card-middle,
+  #compendium-cards-grid .card .card-middle {
     margin: 0.1rem 0;
     gap: 0.05rem;
     padding: 0.2rem 0.1rem;
@@ -3070,6 +3252,29 @@ body, html {
     background: rgba(10, 12, 18, 0.98) !important;
   }
 
+  /* Make game over card full screen on mobile, removing outline borders */
+  #game-over-screen .game-over-card {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    margin: 0;
+    border: none !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    padding: 2rem 1.5rem !important;
+    background: rgba(10, 12, 18, 0.98) !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+  }
+
   .modal-tabs {
     margin-bottom: 0.4rem;
     padding-bottom: 0.2rem;
@@ -3082,42 +3287,60 @@ body, html {
     gap: 0.3rem;
   }
 
+  #compendium-modal .modal-tabs {
+    flex-wrap: nowrap !important;
+    justify-content: space-around !important;
+  }
+  #compendium-modal .modal-tab-btn {
+    font-size: 0.72rem !important;
+    padding: 0.3rem 0.4rem !important;
+    gap: 0.2rem !important;
+  }
+  #compendium-modal .modal-tab-btn i {
+    display: none !important;
+  }
+
   .modal-tab-btn.active::after {
     bottom: -0.3rem;
     height: 2px;
   }
 
-  #deck-cards-list, #deck-relics-list {
-    max-height: calc(100vh - 110px) !important;
+  #deck-cards-list, #deck-relics-list, #compendium-relics-grid, .compendium-scroll-container-clean {
+    max-height: calc(100dvh - 150px) !important;
+    padding: 0.25rem;
+    gap: 0.5rem;
+  }
+  #compendium-cards-grid {
+    max-height: calc(100dvh - 200px) !important;
     padding: 0.25rem;
     gap: 0.5rem;
   }
 
-  /* Shrink cards inside deck list modal on mobile */
-  #deck-cards-list .card {
+  /* Shrink cards inside deck/compendium list modal on mobile */
+  #deck-cards-list .card, #compendium-cards-grid .card {
     width: 60px;
     height: 84px;
     border-width: 1.8px;
   }
-  #deck-cards-list .card-face {
+  #deck-cards-list .card-face, #compendium-cards-grid .card-face {
     padding: 0.1rem;
   }
-  #deck-cards-list .card-name {
+  #deck-cards-list .card-name, #compendium-cards-grid .card-name {
     font-size: 0.42rem;
     line-height: 1.0;
   }
-  #deck-cards-list .card-middle {
+  #deck-cards-list .card-middle, #compendium-cards-grid .card-middle {
     margin: 0.05rem 0;
     padding: 0.05rem;
   }
-  #deck-cards-list .card-element-icon {
+  #deck-cards-list .card-element-icon, #compendium-cards-grid .card-element-icon {
     font-size: 0.6rem;
   }
-  #deck-cards-list .card-desc {
+  #deck-cards-list .card-desc, #compendium-cards-grid .card-desc {
     font-size: 0.35rem;
     line-height: 1.0;
   }
-  #deck-cards-list .card-element-name {
+  #deck-cards-list .card-element-name, #compendium-cards-grid .card-element-name {
     font-size: 0.42rem;
   }
 
@@ -3212,4 +3435,160 @@ body, html {
     font-size: 0.58rem;
     line-height: 1.1;
   }
+
+  /* Shrink round result popup on mobile/landscape to prevent vertical overflow */
+  .round-result-card {
+    padding: 1rem 1.2rem !important;
+    max-width: 380px !important;
+    gap: 0.3rem !important;
+  }
+  
+  .round-result-card .logo-main {
+    font-size: 1.5rem !important;
+    margin: 0.2rem 0 !important;
+  }
+  
+  .round-result-card .result-desc {
+    font-size: 0.85rem !important;
+    margin-bottom: 0.6rem !important;
+  }
+  
+  .round-result-card .round-scores-container {
+    margin-bottom: 0.6rem !important;
+    padding: 0.5rem 1rem !important;
+    gap: 1rem !important;
+  }
+  
+  .round-result-card .score-pval {
+    font-size: 1.8rem !important;
+  }
+  
+  .round-result-card .score-pname {
+    font-size: 0.7rem !important;
+  }
+  
+  .round-result-card #round-quest-reward-banner {
+    margin-bottom: 0.6rem !important;
+    padding: 0.4rem 0.8rem !important;
+  }
+  
+  .round-result-card #round-quest-reward-text {
+    font-size: 0.78rem !important;
+  }
+  
+  .round-result-card .next-phase-tip {
+    font-size: 0.72rem !important;
+  }
 }
+
+/* Relic Choice Selection Highlight */
+#relic-choices-grid .relic-card-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid var(--border-mat);
+  max-width: 220px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+#relic-choices-grid .relic-card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  border-color: #ffd700;
+}
+
+#relic-choices-grid .relic-card-item.selected {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 15px rgba(245, 207, 112, 0.6) !important;
+  background: rgba(245, 207, 112, 0.08) !important;
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* Custom Responsive Tooltip styles */
+.custom-tooltip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  background: rgba(15, 18, 28, 0.95);
+  border: 1.5px solid var(--border-brass);
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  max-width: 240px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--font-body);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.custom-tooltip.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.custom-tooltip .tooltip-title {
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f5cf70;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.custom-tooltip .tooltip-desc {
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.custom-tooltip .tooltip-sub {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 0.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 0.15rem;
+}
+
+/* Prep Timer Banner Styling */
+.prep-timer-banner {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(231, 76, 60, 0.95);
+  color: #fff;
+  padding: 0.6rem 1.5rem;
+  border-radius: 30px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(231, 76, 60, 0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  animation: pulseTimer 1s infinite alternate ease-in-out;
+}
+
+.prep-timer-banner i {
+  color: #fff;
+  font-size: 1.2rem;
+  animation: rotateClock 5s infinite linear;
+}
+
+@keyframes pulseTimer {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.06); }
+}
+
+@keyframes rotateClock {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

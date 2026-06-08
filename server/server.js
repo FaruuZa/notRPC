@@ -1,6 +1,7 @@
 const express = require('express');
   const path = require('path');
-  const { PORT } = require('./constants');
+  const { PORT, CARD_POOL } = require('./constants');
+  const { RELIC_POOL } = require('./relics');
   const matchmaking = require('./matchmaking');
   const roomManager = require('./roomManager');
   
@@ -30,6 +31,9 @@ const express = require('express');
   
     // Emit initial queue count to the newly connected player
     socket.emit('queueCountUpdate', matchmaking.getQueueCount());
+    
+    // Emit compendium database of all cards and relics
+    socket.emit('compendiumData', { cards: CARD_POOL, relics: Object.values(RELIC_POOL) });
     
     // Broadcast updated online count to all clients
     io.emit('onlineCountUpdate', io.engine.clientsCount);
@@ -72,6 +76,11 @@ const express = require('express');
     // Player skips card removal
     socket.on('skipCardRemoval', () => {
       roomManager.handleSkipCardRemoval(socket, io);
+    });
+
+    // Player selects a relic choice
+    socket.on('selectRelic', (relicId) => {
+      roomManager.handleSelectRelic(socket, relicId, io);
     });
   
     // Player confirms their pack reveal animation is finished

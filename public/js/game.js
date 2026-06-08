@@ -29,6 +29,8 @@ const GameManager = {
   offeredQuests: [],
   selectedQuestId: null,
   selectedRemovalCardInstanceId: null,
+  compendiumCards: [],
+  compendiumRelics: [],
   
   // Animation sync helpers
   currentRoundReveal: null,
@@ -277,6 +279,19 @@ const GameManager = {
       });
     }
 
+    // Relic Selection Confirm Button
+    const relicConfirmBtn = document.getElementById('relic-confirm-btn');
+    if (relicConfirmBtn) {
+      relicConfirmBtn.addEventListener('click', () => {
+        if (this.selectedRelicId) {
+          window.AudioSynth.playClick();
+          relicConfirmBtn.classList.add('disabled');
+          relicConfirmBtn.disabled = true;
+          window.SocketService.selectRelic(this.selectedRelicId);
+        }
+      });
+    }
+
     // Card Removal Skip Button
     const removalSkipBtn = document.getElementById('removal-skip-btn');
     if (removalSkipBtn) {
@@ -329,6 +344,106 @@ const GameManager = {
           UI.battleKeywordInfo.dataset.source = 'enemy';
           UI.showPlayerStatusExplanations(this.opponentStatuses, this.opponentName || 'Opponent');
         }
+      });
+    }
+
+    // Game Library / Compendium Modal Bindings
+    const openCompendiumBtn = document.getElementById('open-compendium-btn');
+    const compendiumModal = document.getElementById('compendium-modal');
+    const compendiumCloseBtn = document.getElementById('compendium-close-btn');
+
+    const tabCompendiumCardsBtn = document.getElementById('modal-compendium-tab-cards');
+    const tabCompendiumRelicsBtn = document.getElementById('modal-compendium-tab-relics');
+    const tabCompendiumMatchupsBtn = document.getElementById('modal-compendium-tab-matchups');
+    const tabCompendiumRulesBtn = document.getElementById('modal-compendium-tab-rules');
+
+    const compendiumCardsContent = document.getElementById('modal-compendium-cards-content');
+    const compendiumRelicsContent = document.getElementById('modal-compendium-relics-content');
+    const compendiumMatchupsContent = document.getElementById('modal-compendium-matchups-content');
+    const compendiumRulesContent = document.getElementById('modal-compendium-rules-content');
+    const compendiumFilters = document.getElementById('modal-compendium-filters');
+
+    if (openCompendiumBtn && compendiumModal) {
+      openCompendiumBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        // Reset tabs to Cards active
+        if (tabCompendiumCardsBtn && tabCompendiumRelicsBtn && tabCompendiumMatchupsBtn && tabCompendiumRulesBtn &&
+            compendiumCardsContent && compendiumRelicsContent && compendiumMatchupsContent && compendiumRulesContent) {
+          tabCompendiumCardsBtn.classList.add('active');
+          tabCompendiumRelicsBtn.classList.remove('active');
+          tabCompendiumMatchupsBtn.classList.remove('active');
+          tabCompendiumRulesBtn.classList.remove('active');
+          compendiumCardsContent.style.display = 'block';
+          compendiumRelicsContent.style.display = 'none';
+          compendiumMatchupsContent.style.display = 'none';
+          compendiumRulesContent.style.display = 'none';
+        }
+        // Reset element filter to 'ALL'
+        if (compendiumFilters) {
+          const filterBtns = compendiumFilters.querySelectorAll('.filter-btn');
+          filterBtns.forEach(btn => {
+            if (btn.dataset.element === 'ALL') btn.classList.add('active');
+            else btn.classList.remove('active');
+          });
+        }
+        
+        // Render compendium
+        if (window.UI && typeof window.UI.renderCompendium === 'function') {
+          window.UI.renderCompendium(this.compendiumCards, this.compendiumRelics);
+        }
+        
+        compendiumModal.classList.add('active');
+      });
+    }
+
+    if (compendiumCloseBtn && compendiumModal) {
+      compendiumCloseBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        compendiumModal.classList.remove('active');
+      });
+    }
+
+    if (compendiumModal) {
+      compendiumModal.addEventListener('click', (e) => {
+        if (e.target === compendiumModal) {
+          window.AudioSynth.playClick();
+          compendiumModal.classList.remove('active');
+        }
+      });
+    }
+
+    if (tabCompendiumCardsBtn && tabCompendiumRelicsBtn && tabCompendiumMatchupsBtn && tabCompendiumRulesBtn &&
+        compendiumCardsContent && compendiumRelicsContent && compendiumMatchupsContent && compendiumRulesContent) {
+      
+      const allTabs = [tabCompendiumCardsBtn, tabCompendiumRelicsBtn, tabCompendiumMatchupsBtn, tabCompendiumRulesBtn];
+      const allContents = [compendiumCardsContent, compendiumRelicsContent, compendiumMatchupsContent, compendiumRulesContent];
+      
+      const switchTab = (activeTab, activeContent) => {
+        window.AudioSynth.playClick();
+        allTabs.forEach(t => t.classList.remove('active'));
+        activeTab.classList.add('active');
+        allContents.forEach(c => c.style.display = 'none');
+        activeContent.style.display = 'block';
+      };
+
+      tabCompendiumCardsBtn.addEventListener('click', () => switchTab(tabCompendiumCardsBtn, compendiumCardsContent));
+      tabCompendiumRelicsBtn.addEventListener('click', () => switchTab(tabCompendiumRelicsBtn, compendiumRelicsContent));
+      tabCompendiumMatchupsBtn.addEventListener('click', () => switchTab(tabCompendiumMatchupsBtn, compendiumMatchupsContent));
+      tabCompendiumRulesBtn.addEventListener('click', () => switchTab(tabCompendiumRulesBtn, compendiumRulesContent));
+    }
+
+    if (compendiumFilters) {
+      const filterBtns = compendiumFilters.querySelectorAll('.filter-btn');
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.AudioSynth.playClick();
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const element = btn.dataset.element;
+          if (window.UI && typeof window.UI.renderCompendiumCards === 'function') {
+            window.UI.renderCompendiumCards(this.compendiumCards, element);
+          }
+        });
       });
     }
   },
@@ -415,10 +530,27 @@ const GameManager = {
   },
 
   /**
+   * Sets all available cards and relics for compendium display
+   */
+  setCompendiumData(data) {
+    this.compendiumCards = data.cards || [];
+    this.compendiumRelics = data.relics || [];
+    if (window.UI && typeof window.UI.renderCompendium === 'function') {
+      window.UI.renderCompendium(this.compendiumCards, this.compendiumRelics);
+    }
+  },
+
+  /**
    * Triggers when server pairs client with opponent
    */
   onMatchFound(data) {
     const UI = window.UI;
+    
+    // Automatically close game library modal when match is found
+    const compendiumModal = document.getElementById('compendium-modal');
+    if (compendiumModal) {
+      compendiumModal.classList.remove('active');
+    }
     
     this.isVisualPipelineRunning = false;
     this.roundFinishedShowing = false;
@@ -1248,6 +1380,13 @@ const GameManager = {
 
   onQuestSelectionStart(data) {
     const UI = window.UI;
+    
+    // Hide prep timers
+    const globalTimer = document.getElementById('global-prep-timer');
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    if (globalTimer) globalTimer.classList.add('hidden');
+    if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+
     UI.showScreen('questSelection');
     
     this.offeredQuests = data.quests;
@@ -1326,11 +1465,7 @@ const GameManager = {
 
   onRemovalConfirmed() {
     const UI = window.UI;
-    const waitingText = document.querySelector('#waiting-screen p');
-    if (waitingText) {
-      waitingText.innerText = 'Waiting for opponent to complete their card removal phase...';
-    }
-    UI.showScreen('waiting');
+    UI.showToast("Card removal confirmed!");
   },
 
   onWaitingForOpponentRemoval() {
@@ -1347,12 +1482,60 @@ const GameManager = {
     UI.showToast("Opponent has completed card removal!");
   },
 
+  onRelicChoiceStart(data) {
+    const UI = window.UI;
+    UI.showScreen('relicSelection');
+    
+    this.selectedRelicId = null;
+    
+    const confirmBtn = document.getElementById('relic-confirm-btn');
+    if (confirmBtn) {
+      confirmBtn.classList.add('disabled');
+      confirmBtn.disabled = true;
+    }
+
+    const subtitleEl = document.getElementById('relic-selection-subtitle');
+    if (subtitleEl && data.questText) {
+      subtitleEl.innerHTML = `QUEST REWARD FOR: <span class="accent-text" style="color: #ffd700;">${data.questText}</span>`;
+    } else if (subtitleEl) {
+      subtitleEl.innerText = `QUEST REWARD`;
+    }
+    
+    UI.renderRelicChoices(data.options, (relicId) => {
+      this.selectedRelicId = relicId;
+      if (confirmBtn) {
+        confirmBtn.classList.remove('disabled');
+        confirmBtn.disabled = false;
+      }
+    });
+  },
+
+  onRelicChosen(data) {
+    const UI = window.UI;
+    UI.showToast(`Selected Relic: ${data.name}!`);
+  },
+
+  onWaitingForOpponentRelicChoice() {
+    const UI = window.UI;
+    const waitingText = document.querySelector('#waiting-screen p');
+    if (waitingText) {
+      waitingText.innerText = 'Waiting for opponent to complete their relic choice...';
+    }
+    UI.showScreen('waiting');
+  },
+
   /**
    * Triggers at the start of a round
    */
   onRoundStart(data) {
     const UI = window.UI;
     
+    // Hide prep timers
+    const globalTimer = document.getElementById('global-prep-timer');
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    if (globalTimer) globalTimer.classList.add('hidden');
+    if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+
     this.roundFinishedShowing = false;
     this.pendingDraftPhase = null;
     this.pendingRoundFinished = null;
@@ -1528,12 +1711,34 @@ const GameManager = {
     if (myQuest && myQuest.completed) {
       if (UI.roundQuestRewardBanner) {
         UI.roundQuestRewardBanner.classList.remove('hidden');
+        UI.roundQuestRewardBanner.style.borderColor = '#ffd700';
+        UI.roundQuestRewardBanner.style.background = 'rgba(255, 215, 0, 0.08)';
+      }
+      const titleEl = UI.roundQuestRewardBanner.querySelector('div');
+      if (titleEl) {
+        titleEl.style.color = '#ffd700';
+        titleEl.innerHTML = '<i class="fa-solid fa-trophy" style="margin-right: 0.35rem;"></i> QUEST COMPLETED!';
       }
       if (UI.roundQuestRewardText) {
         UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br>Reward: <strong style="color: #ffd700;">${myQuest.reward}</strong>`;
       }
       if (window.AudioSynth && window.AudioSynth.playQuestComplete) {
         window.AudioSynth.playQuestComplete();
+      }
+    } else if (myQuest && myQuest.text) {
+      // Quest was active but NOT completed by round end (failed)
+      if (UI.roundQuestRewardBanner) {
+        UI.roundQuestRewardBanner.classList.remove('hidden');
+        UI.roundQuestRewardBanner.style.borderColor = '#e74c3c';
+        UI.roundQuestRewardBanner.style.background = 'rgba(231, 76, 60, 0.08)';
+      }
+      const titleEl = UI.roundQuestRewardBanner.querySelector('div');
+      if (titleEl) {
+        titleEl.style.color = '#e74c3c';
+        titleEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="margin-right: 0.35rem;"></i> QUEST NOT COMPLETED';
+      }
+      if (UI.roundQuestRewardText) {
+        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br><span style="color: #e74c3c; font-weight: 600;">Failed to complete requirements this round</span>`;
       }
     } else {
       if (UI.roundQuestRewardBanner) {
@@ -1602,6 +1807,21 @@ const GameManager = {
     // Reset confirm button
     UI.bonusConfirmBtn.classList.add('disabled');
     UI.bonusConfirmBtn.disabled = true;
+
+    // Dynamically update headers to clarify Quest vs Loser Comeback pick
+    const bonusTitle = document.getElementById('bonus-pick-title');
+    const bonusSub = document.getElementById('bonus-pick-logo-sub');
+    const bonusDesc = document.getElementById('bonus-pick-subtitle');
+
+    if (data.isQuestBonus) {
+      if (bonusSub) bonusSub.innerText = 'QUEST REWARD';
+      if (bonusTitle) bonusTitle.innerHTML = 'QUEST <span class="accent-text">BONUS PICK</span>';
+      if (bonusDesc) bonusDesc.innerHTML = 'Choose exactly <strong>1 card</strong> to add directly to your deck as a quest reward.';
+    } else {
+      if (bonusSub) bonusSub.innerText = 'COMEBACK MECHANIC';
+      if (bonusTitle) bonusTitle.innerHTML = 'LOSER <span class="accent-text">BONUS PICK</span>';
+      if (bonusDesc) bonusDesc.innerHTML = 'Choose exactly <strong>1 card</strong> to add directly to your deck.';
+    }
 
     // Clear and render bonus cards fanned
     UI.bonusCardsFan.innerHTML = '';
@@ -1777,6 +1997,12 @@ const GameManager = {
   triggerGameOver(data) {
     const UI = window.UI;
     const Animations = window.Animations;
+
+    // Hide prep timers
+    const globalTimer = document.getElementById('global-prep-timer');
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    if (globalTimer) globalTimer.classList.add('hidden');
+    if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
 
     const isWinner = data.winnerId === this.myId;
     const isDraw = data.winnerId === null;
@@ -1959,6 +2185,73 @@ const GameManager = {
     if (relicsCountEl) {
       const totalRelicsCount = Object.values(this.myRelics || {}).reduce((a, b) => a + b, 0);
       relicsCountEl.innerText = totalRelicsCount;
+    }
+  },
+
+  onPrepFinished() {
+    const UI = window.UI;
+    const waitingText = document.querySelector('#waiting-screen p');
+    if (waitingText) {
+      waitingText.innerText = 'Waiting for opponent to complete their preparation...';
+    }
+    UI.showScreen('waiting');
+  },
+
+  onPrepTimerStarted(data) {
+    const UI = window.UI;
+    const globalTimer = document.getElementById('global-prep-timer');
+    const globalTimerVal = document.getElementById('global-prep-timer-val');
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    const waitingTimerVal = document.getElementById('waiting-timer-val');
+
+    if (globalTimerVal) globalTimerVal.innerText = data.secondsLeft;
+    if (waitingTimerVal) waitingTimerVal.innerText = data.secondsLeft;
+
+    const isWaitingActive = UI.waitingScreen && UI.waitingScreen.classList.contains('active');
+    
+    if (globalTimer) {
+      if (isWaitingActive) {
+        globalTimer.classList.add('hidden');
+      } else {
+        globalTimer.classList.remove('hidden');
+      }
+    }
+
+    if (waitingTimerContainer) {
+      if (isWaitingActive) {
+        waitingTimerContainer.classList.remove('hidden');
+      } else {
+        waitingTimerContainer.classList.add('hidden');
+      }
+    }
+  },
+
+  onPrepTimerTick(data) {
+    const UI = window.UI;
+    const globalTimer = document.getElementById('global-prep-timer');
+    const globalTimerVal = document.getElementById('global-prep-timer-val');
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    const waitingTimerVal = document.getElementById('waiting-timer-val');
+
+    if (globalTimerVal) globalTimerVal.innerText = data.secondsLeft;
+    if (waitingTimerVal) waitingTimerVal.innerText = data.secondsLeft;
+
+    const isWaitingActive = UI.waitingScreen && UI.waitingScreen.classList.contains('active');
+
+    if (globalTimer) {
+      if (isWaitingActive) {
+        globalTimer.classList.add('hidden');
+      } else {
+        globalTimer.classList.remove('hidden');
+      }
+    }
+
+    if (waitingTimerContainer) {
+      if (isWaitingActive) {
+        waitingTimerContainer.classList.remove('hidden');
+      } else {
+        waitingTimerContainer.classList.add('hidden');
+      }
     }
   }
 };

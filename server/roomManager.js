@@ -533,9 +533,9 @@ function resolveRound(roomId, io) {
   let p2BurnTick = 0, p2PoisonTick = 0;
   let p2BurnHpDmg = 0, p2BurnShieldDmg = 0;
 
-  // Player 1 Ticks (incorporating Burning Core and Toxic Catalyst relics)
+  // Player 1 Ticks (incorporating Burning Core and Toxic Catalyst relics from opponent Player 2)
   if (p1.statuses.burn > 0) {
-    const burnCoreVal = p1.relics.burning_core || 0;
+    const burnCoreVal = p2.relics.burning_core || 0;
     const totalBurnDmg = p1.statuses.burn * (3 + burnCoreVal);
     p1BurnTick = totalBurnDmg;
     if (p1.shield >= totalBurnDmg) {
@@ -551,15 +551,15 @@ function resolveRound(roomId, io) {
     p1.statuses.burn = 0; // Burn immediately resets to 0
   }
   if (p1.statuses.poison > 0) {
-    const toxicVal = p1.relics.toxic_catalyst || 0;
+    const toxicVal = p2.relics.toxic_catalyst || 0;
     p1PoisonTick = p1.statuses.poison * (1 + toxicVal);
     p1.hp = Math.max(0, p1.hp - p1PoisonTick);
     p1.statuses.poison = Math.max(0, p1.statuses.poison - 1); // Poison decreases by 1
   }
 
-  // Player 2 Ticks (incorporating Burning Core and Toxic Catalyst relics)
+  // Player 2 Ticks (incorporating Burning Core and Toxic Catalyst relics from opponent Player 1)
   if (p2.statuses.burn > 0) {
-    const burnCoreVal = p2.relics.burning_core || 0;
+    const burnCoreVal = p1.relics.burning_core || 0;
     const totalBurnDmg = p2.statuses.burn * (3 + burnCoreVal);
     p2BurnTick = totalBurnDmg;
     if (p2.shield >= totalBurnDmg) {
@@ -575,7 +575,7 @@ function resolveRound(roomId, io) {
     p2.statuses.burn = 0; // Burn immediately resets to 0
   }
   if (p2.statuses.poison > 0) {
-    const toxicVal = p2.relics.toxic_catalyst || 0;
+    const toxicVal = p1.relics.toxic_catalyst || 0;
     p2PoisonTick = p2.statuses.poison * (1 + toxicVal);
     p2.hp = Math.max(0, p2.hp - p2PoisonTick);
     p2.statuses.poison = Math.max(0, p2.statuses.poison - 1);
@@ -856,91 +856,26 @@ function resolveRound(roomId, io) {
 function handleSelectBonusCard(socket, cardTemplateId, io) {
   const roomId = playerToRoom[socket.id];
   const room = rooms[roomId];
-  if (!room || room.state !== 'DRAFT_PHASE' || !room.draft) return;
-
-  const playerIds = Object.keys(room.players);
-  const p1 = room.players[playerIds[0]];
-  const p2 = room.players[playerIds[1]];
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
 
   const player = room.players[socket.id];
-  const isPlayer1 = (playerIds[0] === socket.id);
+  if (!player || player.prepFinished) return;
 
-  let cardTemplate = null;
-  let isNormalLoserPick = false;
-  let isBonusDraftPick = false;
+  const currentStep = player.prepQueue[0];
+  if (!currentStep || currentStep.type !== 'BONUS_PICK') return;
 
-  // 1. Process normal loser pick first if they are the loser and haven't chosen it yet
-  if (room.draft.loserId === socket.id && !room.draft.bonusChosen) {
-    cardTemplate = room.draft.bonusCards.find(c => c.templateId === cardTemplateId);
-    if (cardTemplate) {
-      isNormalLoserPick = true;
-    }
-  }
-
-  // 2. If it wasn't a normal loser pick, check if it's their quest bonus draft pick
-  if (!cardTemplate) {
-    if (isPlayer1 && room.draft.p1BonusDraft && !room.draft.p1BonusChosen) {
-      cardTemplate = room.draft.p1BonusCards.find(c => c.templateId === cardTemplateId);
-      if (cardTemplate) {
-        isBonusDraftPick = true;
-      }
-    } else if (!isPlayer1 && room.draft.p2BonusDraft && !room.draft.p2BonusChosen) {
-      cardTemplate = room.draft.p2BonusCards.find(c => c.templateId === cardTemplateId);
-      if (cardTemplate) {
-        isBonusDraftPick = true;
-      }
-    }
-  }
-
+  const cardTemplate = currentStep.options.find(c => c.templateId === cardTemplateId);
   if (!cardTemplate) {
     console.log(`[RoomManager] Card template ${cardTemplateId} not found in available draft pools for player ${player.username}`);
     return;
   }
 
   player.deck.push(cardTemplate);
-
-  if (isNormalLoserPick) {
-    room.draft.bonusChosen = true;
-    console.log(`[RoomManager] Player ${player.username} completed normal loser draft pick.`);
-  } else if (isBonusDraftPick) {
-    if (isPlayer1) {
-      room.draft.p1BonusChosen = true;
-    } else {
-      room.draft.p2BonusChosen = true;
-    }
-    console.log(`[RoomManager] Player ${player.username} completed quest bonus draft pick.`);
-  }
-
   socket.emit('bonusPickLocked', cardTemplate);
 
-  // 3. If they just did their normal loser pick, check if they also have a pending quest bonus draft
-  if (isNormalLoserPick) {
-    const hasPendingBonusDraft = isPlayer1
-      ? (room.draft.p1BonusDraft && !room.draft.p1BonusChosen)
-      : (room.draft.p2BonusDraft && !room.draft.p2BonusChosen);
-
-    if (hasPendingBonusDraft) {
-      const bonusCards = isPlayer1 ? room.draft.p1BonusCards : room.draft.p2BonusCards;
-      console.log(`[RoomManager] Player ${player.username} has a pending quest bonus draft. Emitting second bonusPickStart...`);
-      setTimeout(() => {
-        socket.emit('bonusPickStart', { cards: bonusCards });
-      }, 1000);
-      return; // Return early, don't transition to next phase yet
-    }
-  }
-
-  // Transition when all required bonus picks are complete!
-  const p1RequiredFinished = (!room.draft.p1BonusDraft || room.draft.p1BonusChosen) && (room.draft.loserId !== p1.id || room.draft.bonusChosen);
-  const p2RequiredFinished = (!room.draft.p2BonusDraft || room.draft.p2BonusChosen) && (room.draft.loserId !== p2.id || room.draft.bonusChosen);
-
-  if (p1RequiredFinished && p2RequiredFinished) {
-    p1.socket.emit('packSelectionStart', {
-      packs: room.draft.p1OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
-    });
-    p2.socket.emit('packSelectionStart', {
-      packs: room.draft.p2OfferedPacks.map(p => ({ id: p, ...PACK_POOL[p] }))
-    });
-  }
+  // Shift step and advance queue
+  player.prepQueue.shift();
+  advancePlayerPrepQueue(player, room, io);
 }
 
 /**
@@ -949,21 +884,27 @@ function handleSelectBonusCard(socket, cardTemplateId, io) {
 function handleSelectPack(socket, packId, io) {
   const roomId = playerToRoom[socket.id];
   const room = rooms[roomId];
-  if (!room || room.state !== 'DRAFT_PHASE' || !room.draft || !room.draft.bonusChosen) return;
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
 
   const player = room.players[socket.id];
-  const isPlayer1 = (Object.keys(room.players)[0] === socket.id);
-  const offeredPacks = isPlayer1 ? room.draft.p1OfferedPacks : room.draft.p2OfferedPacks;
-  const packChosenKey = isPlayer1 ? 'p1PackChosen' : 'p2PackChosen';
+  if (!player || player.prepFinished) return;
 
-  if (room.draft[packChosenKey]) return;
-  if (!offeredPacks.includes(packId)) return;
+  const currentStep = player.prepQueue[0];
+  if (!currentStep || currentStep.type !== 'PACK_SELECTION') return;
+
+  if (!currentStep.options.includes(packId)) return;
 
   const cards = generatePackCards(packId);
   player.deck.push(...cards);
-  room.draft[packChosenKey] = true;
 
   console.log(`[RoomManager] Player ${player.username} selected pack ${packId}. Added 4 cards.`);
+
+  // Transform PACK_SELECTION step to PACK_REVEAL step
+  player.prepQueue[0] = {
+    type: 'PACK_REVEAL',
+    packId: packId,
+    cards: cards
+  };
 
   socket.emit('packRevealStart', {
     packName: PACK_POOL[packId].name,
@@ -978,42 +919,19 @@ function handleSelectPack(socket, packId, io) {
 function handlePackRevealConfirm(socket, io) {
   const roomId = playerToRoom[socket.id];
   const room = rooms[roomId];
-  if (!room || room.state !== 'DRAFT_PHASE' || !room.draft) return;
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
 
-  const isPlayer1 = (Object.keys(room.players)[0] === socket.id);
-  const confirmKey = isPlayer1 ? 'p1RevealConfirmed' : 'p2RevealConfirmed';
+  const player = room.players[socket.id];
+  if (!player || player.prepFinished) return;
 
-  room.draft[confirmKey] = true;
-  console.log(`[RoomManager] Player ${room.players[socket.id].username} confirmed pack reveal.`);
+  const currentStep = player.prepQueue[0];
+  if (!currentStep || currentStep.type !== 'PACK_REVEAL') return;
 
-  if (room.draft.p1RevealConfirmed && room.draft.p2RevealConfirmed) {
-    const playerIds = Object.keys(room.players);
-    const p1 = room.players[playerIds[0]];
-    const p2 = room.players[playerIds[1]];
+  console.log(`[RoomManager] Player ${player.username} confirmed pack reveal.`);
 
-    p1.maxHp = MAX_HP + (p1.relics.relic_vitality_common || 0) * 15 + (p1.relics.relic_vitality_rare || 0) * 25 + (p1.relics.relic_vitality_epic || 0) * 40;
-    p2.maxHp = MAX_HP + (p2.relics.relic_vitality_common || 0) * 15 + (p2.relics.relic_vitality_rare || 0) * 25 + (p2.relics.relic_vitality_epic || 0) * 40;
-
-    p1.hp = p1.maxHp;
-    p2.hp = p2.maxHp;
-    p1.shield = 0;
-    p2.shield = 0;
-
-    // Apply starting Buff(+1) status if they have starting buff relic
-    p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 1, weakness: 0 };
-    p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 1, weakness: 0 };
-
-    p1.hand = drawHandFromDeck(p1.deck, 4);
-    p2.hand = drawHandFromDeck(p2.deck, 4);
-
-    room.round += 1;
-    room.state = 'QUEST_PHASE';
-
-    console.log(`[RoomManager] Room ${roomId}: Starting Round ${room.round} Quest Phase`);
-    delete room.draft;
-
-    startQuestSelectionPhase(roomId, io);
-  }
+  // Shift step and advance queue
+  player.prepQueue.shift();
+  advancePlayerPrepQueue(player, room, io);
 }
 
 /**
@@ -1033,6 +951,10 @@ function handleDisconnect(socket, io) {
   }
   if (room.nextRoundTimeout) {
     clearTimeout(room.nextRoundTimeout);
+  }
+  if (room.prepTimer) {
+    clearInterval(room.prepTimer);
+    room.prepTimer = null;
   }
 
   const opponentId = Object.keys(room.players).find(id => id !== socket.id);
@@ -1070,6 +992,10 @@ function cleanupRoom(roomId) {
   if (room.nextRoundTimeout) {
     clearTimeout(room.nextRoundTimeout);
   }
+  if (room.prepTimer) {
+    clearInterval(room.prepTimer);
+    room.prepTimer = null;
+  }
 
   Object.keys(room.players).forEach(socketId => {
     delete playerToRoom[socketId];
@@ -1092,7 +1018,7 @@ function isPlayerInActiveRoom(socketId) {
 function handleSurrender(socket, io) {
   const roomId = playerToRoom[socket.id];
   const room = rooms[roomId];
-  if (!room || (room.state !== 'BATTLE' && room.state !== 'DRAFT_PHASE' && room.state !== 'CARD_REMOVAL_PHASE')) return;
+  if (!room || (room.state !== 'BATTLE' && room.state !== 'PREPARATION_PHASE')) return;
 
   const playerIds = Object.keys(room.players);
   const p1 = room.players[playerIds[0]];
@@ -1220,10 +1146,15 @@ function handleLeaveRoom(socket, io) {
 function handleRemoveCard(socket, cardInstanceId, io) {
   const roomId = playerToRoom[socket.id];
   const room = rooms[roomId];
-  if (!room || room.state !== 'CARD_REMOVAL_PHASE') return;
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
 
   const player = room.players[socket.id];
-  if (player.pendingRemoveCardCount <= 0) return;
+  if (!player || player.prepFinished) return;
+
+  const currentStep = player.prepQueue[0];
+  if (!currentStep || currentStep.type !== 'CARD_REMOVAL') return;
+
+  if (currentStep.count <= 0) return;
 
   const idx = player.deck.findIndex(c => c.instanceId === cardInstanceId);
   if (idx !== -1) {
@@ -1231,12 +1162,14 @@ function handleRemoveCard(socket, cardInstanceId, io) {
     console.log(`[RoomManager] Player ${player.username} removed card: ${removed[0].name}`);
   }
 
-  player.pendingRemoveCardCount = Math.max(0, player.pendingRemoveCardCount - 1);
+  currentStep.count = Math.max(0, currentStep.count - 1);
 
-  if (player.pendingRemoveCardCount > 0) {
+  if (currentStep.count > 0) {
     socket.emit('cardRemovalStart', { deck: player.deck });
   } else {
-    confirmRemovalFinished(socket, room, io);
+    socket.emit('removalConfirmed');
+    player.prepQueue.shift();
+    advancePlayerPrepQueue(player, room, io);
   }
 }
 
@@ -1246,33 +1179,18 @@ function handleRemoveCard(socket, cardInstanceId, io) {
 function handleSkipCardRemoval(socket, io) {
   const roomId = playerToRoom[socket.id];
   const room = rooms[roomId];
-  if (!room || room.state !== 'CARD_REMOVAL_PHASE') return;
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
 
   const player = room.players[socket.id];
-  player.pendingRemoveCardCount = 0;
-  confirmRemovalFinished(socket, room, io);
-}
+  if (!player || player.prepFinished) return;
 
-/**
- * Confirms card removal finish and checks if both players are ready to proceed
- */
-function confirmRemovalFinished(socket, room, io) {
-  const isPlayer1 = (Object.keys(room.players)[0] === socket.id);
-  const confirmKey = isPlayer1 ? 'p1Confirmed' : 'p2Confirmed';
+  const currentStep = player.prepQueue[0];
+  if (!currentStep || currentStep.type !== 'CARD_REMOVAL') return;
 
-  room.removal[confirmKey] = true;
+  currentStep.count = 0;
   socket.emit('removalConfirmed');
-
-  const opponentId = Object.keys(room.players).find(id => id !== socket.id);
-  const opponent = room.players[opponentId];
-  opponent.socket.emit('opponentRemovalConfirmed');
-
-  if (room.removal.p1Confirmed && room.removal.p2Confirmed) {
-    delete room.removal;
-    startNormalDraftPhase(room.id, io);
-  } else {
-    socket.emit('waitingForOpponentRemoval');
-  }
+  player.prepQueue.shift();
+  advancePlayerPrepQueue(player, room, io);
 }
 
 /**
@@ -1323,14 +1241,20 @@ function startNormalDraftPhase(roomId, io) {
 
   if (p1NeedsBonus) {
     const cards = (draftLoserId === p1.id) ? room.draft.bonusCards : room.draft.p1BonusCards;
-    p1.socket.emit('bonusPickStart', { cards: cards });
+    p1.socket.emit('bonusPickStart', { 
+      cards: cards,
+      isQuestBonus: (draftLoserId === p1.id) ? false : true
+    });
   } else {
     p1.socket.emit('waitingForOpponentBonus');
   }
 
   if (p2NeedsBonus) {
     const cards = (draftLoserId === p2.id) ? room.draft.bonusCards : room.draft.p2BonusCards;
-    p2.socket.emit('bonusPickStart', { cards: cards });
+    p2.socket.emit('bonusPickStart', { 
+      cards: cards,
+      isQuestBonus: (draftLoserId === p2.id) ? false : true
+    });
   } else {
     p2.socket.emit('waitingForOpponentBonus');
   }
@@ -1363,6 +1287,7 @@ module.exports = {
   handleRerollQuests,
   handleRemoveCard,
   handleSkipCardRemoval,
+  handleSelectRelic,
   rooms,
   playerToRoom,
   updateQuestProgress
@@ -1411,129 +1336,380 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
   if (roundOver) {
     console.log(`[RoomManager] Round ${room.round} Over. Winner: ${roundWinnerId || 'DRAW'}. Current Score: ${p1.username} ${p1.points} - ${p2.points} ${p2.username}`);
 
-    if (matchOver) {
-      room.state = 'OVER';
-      const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
-      const matchWinnerName = room.players[matchWinnerId].username;
+    room.draftLoserId = loserId;
 
-      io.to(roomId).emit('gameOver', {
-        winnerId: matchWinnerId,
-        winnerName: matchWinnerName,
-        reason: 'match_finished',
-        score: {
-          [p1.id]: p1.points,
-          [p2.id]: p2.points
-        }
-      });
-    } else {
-      room.draftLoserId = loserId;
-
-      // Check quests completion for both players and award rewards
-      [p1, p2].forEach(p => {
-        p.questCompletedThisRound = false;
-        p.completedQuestText = '';
-        p.pendingRewardNotification = null;
+    // Check quests completion for both players and award rewards
+    [p1, p2].forEach(p => {
+      p.questCompletedThisRound = false;
+      p.completedQuestText = '';
+      p.pendingRewardNotification = null;
+      
+      if (p.activeQuest) {
+        p.completedQuestText = p.activeQuest.text; // Store quest text so client can render it (completed or not)
+        const progress = p.questProgress || 0;
+        const target = p.activeQuest.target;
         
-        if (p.activeQuest) {
-          const progress = p.questProgress || 0;
-          const target = p.activeQuest.target;
+        if (progress >= target) {
+          p.questCompletedThisRound = true;
           
-          if (progress >= target) {
-            p.questCompletedThisRound = true;
-            p.completedQuestText = p.activeQuest.text;
-            
-            // Hand out rewards
-            const reward = p.activeQuest.reward;
-            
-            if (reward.type === 'relic') {
-              const relicsOfQuality = Object.values(RELIC_POOL).filter(r => r.quality === reward.quality);
-              if (relicsOfQuality.length > 0) {
-                const rolledRelic = relicsOfQuality[Math.floor(Math.random() * relicsOfQuality.length)];
-                p.relics[rolledRelic.id] = (p.relics[rolledRelic.id] || 0) + 1;
-                p.pendingRewardNotification = `Unlocked Relic: ${rolledRelic.name}`;
-                
-                // Apply HP buff immediately if it is a vitality relic
-                if (rolledRelic.id.startsWith('relic_vitality_')) {
-                  const buffVal = rolledRelic.id === 'relic_vitality_common' ? 15 
-                                : rolledRelic.id === 'relic_vitality_rare' ? 25 
-                                : 40; // epic
-                  p.maxHp = (p.maxHp || MAX_HP) + buffVal;
-                  p.hp += buffVal;
-                }
-              } else {
-                p.pendingRewardNotification = `Unlocked ${reward.quality} Relic`;
-              }
-            } else if (reward.type === 'remove_card') {
-              p.pendingRemoveCardCount = (p.pendingRemoveCardCount || 0) + 1;
-              p.pendingRewardNotification = reward.text;
-            } else if (reward.type === 'bonus_draft') {
-              p.pendingBonusDraft = true;
-              p.pendingRewardNotification = reward.text;
+          // Hand out rewards
+          const reward = p.activeQuest.reward;
+          
+          if (reward.type === 'relic') {
+            const relicsOfQuality = Object.values(RELIC_POOL).filter(r => r.quality === reward.quality);
+            if (relicsOfQuality.length > 0) {
+              // Pick 3 unique random relic options to choose from
+              const shuffled = [...relicsOfQuality].sort(() => 0.5 - Math.random());
+              const options = shuffled.slice(0, Math.min(3, shuffled.length));
+              
+              p.pendingRelicChoice = {
+                quality: reward.quality,
+                options: options.map(o => o.id),
+                questText: p.activeQuest.text
+              };
+              p.pendingRewardNotification = `Unlocked: Choose a ${reward.quality} Relic!`;
+            } else {
+              p.pendingRewardNotification = `Unlocked ${reward.quality} Relic`;
             }
+          } else if (reward.type === 'remove_card') {
+            p.pendingRemoveCardCount = (p.pendingRemoveCardCount || 0) + 1;
+            p.pendingRewardNotification = reward.text;
+          } else if (reward.type === 'bonus_draft') {
+            p.pendingBonusDraft = true;
+            p.pendingRewardNotification = reward.text;
           }
-          
-          // Clear active quest after the round ends
-          p.activeQuest = null;
-          p.questProgress = 0;
         }
-      });
+        
+        // Clear active quest after the round ends
+        p.activeQuest = null;
+        p.questProgress = 0;
+      }
+    });
 
-      // Emit roundFinished with quest updates
-      io.to(roomId).emit('roundFinished', {
-        round: room.round,
-        winnerId: roundWinnerId,
-        loserId: loserId,
-        score: {
-          [p1.id]: p1.points,
-          [p2.id]: p2.points
-        },
-        p1Quest: {
-          completed: p1.questCompletedThisRound,
-          text: p1.completedQuestText,
-          reward: p1.pendingRewardNotification
-        },
-        p2Quest: {
-          completed: p2.questCompletedThisRound,
-          text: p2.completedQuestText,
-          reward: p2.pendingRewardNotification
-        },
-        p1Id: p1.id,
-        p2Id: p2.id
-      });
+    // Emit roundFinished with quest updates
+    io.to(roomId).emit('roundFinished', {
+      round: room.round,
+      winnerId: roundWinnerId,
+      loserId: loserId,
+      score: {
+        [p1.id]: p1.points,
+        [p2.id]: p2.points
+      },
+      p1Quest: {
+        completed: p1.questCompletedThisRound,
+        text: p1.completedQuestText,
+        reward: p1.pendingRewardNotification
+      },
+      p2Quest: {
+        completed: p2.questCompletedThisRound,
+        text: p2.completedQuestText,
+        reward: p2.pendingRewardNotification
+      },
+      p1Id: p1.id,
+      p2Id: p2.id
+    });
 
-      const anyQuestCompleted = p1.questCompletedThisRound || p2.questCompletedThisRound;
-      const displayDuration = anyQuestCompleted ? 4000 : 2500;
+    const anyQuestCompleted = p1.questCompletedThisRound || p2.questCompletedThisRound;
+    const displayDuration = anyQuestCompleted ? 4000 : 2500;
 
-      // After a delay for the roundFinished overlay, trigger card removals or drafting
-      room.nextRoundTimeout = setTimeout(() => {
-        const p1HasRemoval = p1.pendingRemoveCardCount > 0;
-        const p2HasRemoval = p2.pendingRemoveCardCount > 0;
+    // After a delay for the roundFinished overlay, trigger next phase
+    room.nextRoundTimeout = setTimeout(() => {
+      if (matchOver) {
+        room.state = 'OVER';
+        const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
+        const matchWinnerName = room.players[matchWinnerId].username;
 
-        if (p1HasRemoval || p2HasRemoval) {
-          room.state = 'CARD_REMOVAL_PHASE';
-          room.removal = {
-            p1Confirmed: !p1HasRemoval,
-            p2Confirmed: !p2HasRemoval
-          };
+        io.to(roomId).emit('gameOver', {
+          winnerId: matchWinnerId,
+          winnerName: matchWinnerName,
+          reason: 'match_finished',
+          score: {
+            [p1.id]: p1.points,
+            [p2.id]: p2.points
+          }
+        });
+      } else {
+        // Transition to PREPARATION_PHASE
+        room.state = 'PREPARATION_PHASE';
+        
+        // Clean up any prep timer in room
+        clearPrepTimer(room);
+        room.prepTimerSeconds = 30;
 
-          if (p1HasRemoval) {
-            p1.socket.emit('cardRemovalStart', { deck: p1.deck });
-          } else {
-            p1.socket.emit('waitingForOpponentRemoval');
+        p1.prepFinished = false;
+        p2.prepFinished = false;
+
+        [p1, p2].forEach(p => {
+          p.prepQueue = [];
+
+          // 1. Relic Choice
+          if (p.pendingRelicChoice) {
+            p.prepQueue.push({
+              type: 'RELIC_CHOICE',
+              quality: p.pendingRelicChoice.quality,
+              options: p.pendingRelicChoice.options,
+              questText: p.pendingRelicChoice.questText
+            });
+            p.pendingRelicChoice = null;
           }
 
-          if (p2HasRemoval) {
-            p2.socket.emit('cardRemovalStart', { deck: p2.deck });
-          } else {
-            p2.socket.emit('waitingForOpponentRemoval');
+          // 2. Card Removal
+          if (p.pendingRemoveCardCount > 0) {
+            p.prepQueue.push({
+              type: 'CARD_REMOVAL',
+              count: p.pendingRemoveCardCount
+            });
+            p.pendingRemoveCardCount = 0;
           }
-        } else {
-          startNormalDraftPhase(roomId, io);
-        }
-      }, displayDuration); // 2.5s for display
-    }
+
+          // 3. Bonus Pick (Loser Comeback / Quest Reward)
+          const isLoser = (room.draftLoserId === p.id);
+          if (isLoser) {
+            p.prepQueue.push({
+              type: 'BONUS_PICK',
+              isQuestBonus: false,
+              options: generateBonusPickCards()
+            });
+          }
+          if (p.pendingBonusDraft) {
+            p.prepQueue.push({
+              type: 'BONUS_PICK',
+              isQuestBonus: true,
+              options: generateBonusPickCards()
+            });
+            p.pendingBonusDraft = false;
+          }
+
+          // 4. Pack Selection (always present at end of round)
+          p.prepQueue.push({
+            type: 'PACK_SELECTION',
+            options: generatePacks(3)
+          });
+        });
+
+        delete room.draftLoserId;
+
+        // Start processing prep queues for both players
+        [p1, p2].forEach(p => {
+          advancePlayerPrepQueue(p, room, io);
+        });
+      }
+    }, displayDuration);
   } else {
     // Round is not over, start next card clash turn immediately!
     startRound(roomId, io);
   }
+}
+
+/**
+ * Handles choosing a relic from the options offered by quest completions
+ */
+function handleSelectRelic(socket, relicId, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
+
+  const player = room.players[socket.id];
+  if (!player || player.prepFinished) return;
+
+  const currentStep = player.prepQueue[0];
+  if (!currentStep || currentStep.type !== 'RELIC_CHOICE') return;
+
+  // Verify the relic is in options
+  if (!currentStep.options.includes(relicId)) return;
+
+  // Award the relic!
+  player.relics[relicId] = (player.relics[relicId] || 0) + 1;
+
+  // Apply HP buff immediately if it is a vitality relic
+  if (relicId.startsWith('relic_vitality_')) {
+    const buffVal = relicId === 'relic_vitality_common' ? 15 
+                  : relicId === 'relic_vitality_rare' ? 25 
+                  : 40; // epic
+    player.maxHp = (player.maxHp || MAX_HP) + buffVal;
+    player.hp += buffVal;
+  }
+
+  const selectedRelic = RELIC_POOL[relicId];
+
+  // Notify client of success
+  socket.emit('relicChosen', { relicId, name: selectedRelic.name });
+
+  // Shift step and advance queue
+  player.prepQueue.shift();
+  advancePlayerPrepQueue(player, room, io);
+}
+
+/**
+ * Helper to advance a player's preparation session queue
+ */
+function advancePlayerPrepQueue(player, room, io) {
+  if (player.prepQueue.length === 0) {
+    player.prepFinished = true;
+    player.socket.emit('prepFinished');
+    
+    // Check if both players are finished
+    const playerIds = Object.keys(room.players);
+    const p1 = room.players[playerIds[0]];
+    const p2 = room.players[playerIds[1]];
+    
+    if (p1.prepFinished && p2.prepFinished) {
+      clearPrepTimer(room);
+      proceedToQuestPhase(room, io);
+    } else {
+      startPrepTimer(room, io);
+    }
+    return;
+  }
+
+  const nextStep = player.prepQueue[0];
+  if (nextStep.type === 'RELIC_CHOICE') {
+    player.socket.emit('relicChoiceStart', {
+      quality: nextStep.quality,
+      options: nextStep.options.map(id => RELIC_POOL[id]),
+      questText: nextStep.questText
+    });
+  } else if (nextStep.type === 'CARD_REMOVAL') {
+    player.socket.emit('cardRemovalStart', {
+      deck: player.deck
+    });
+  } else if (nextStep.type === 'BONUS_PICK') {
+    player.socket.emit('bonusPickStart', {
+      cards: nextStep.options,
+      isQuestBonus: nextStep.isQuestBonus
+    });
+  } else if (nextStep.type === 'PACK_SELECTION') {
+    player.socket.emit('packSelectionStart', {
+      packs: nextStep.options.map(p => ({ id: p, ...PACK_POOL[p] }))
+    });
+  } else if (nextStep.type === 'PACK_REVEAL') {
+    player.socket.emit('packRevealStart', {
+      packName: PACK_POOL[nextStep.packId].name,
+      packColor: PACK_POOL[nextStep.packId].color,
+      cards: nextStep.cards
+    });
+  }
+}
+
+/**
+ * Starts the 30-second countdown timer for preparation phase
+ */
+function startPrepTimer(room, io) {
+  if (room.prepTimer) return; // Already running
+
+  room.prepTimerSeconds = 30;
+  
+  // Notify both players that timer has started
+  io.to(room.id).emit('prepTimerStarted', { secondsLeft: room.prepTimerSeconds });
+
+  room.prepTimer = setInterval(() => {
+    room.prepTimerSeconds -= 1;
+    io.to(room.id).emit('prepTimerTick', { secondsLeft: room.prepTimerSeconds });
+
+    if (room.prepTimerSeconds <= 0) {
+      clearInterval(room.prepTimer);
+      room.prepTimer = null;
+      console.log(`[RoomManager] Prep timer expired for room ${room.id}. Auto-resolving pending player(s).`);
+
+      const playerIds = Object.keys(room.players);
+      playerIds.forEach(id => {
+        const p = room.players[id];
+        if (!p.prepFinished) {
+          autoResolvePlayerPrepQueue(p, room, io);
+        }
+      });
+
+      proceedToQuestPhase(room, io);
+    }
+  }, 1000);
+}
+
+/**
+ * Clears the active preparation timer
+ */
+function clearPrepTimer(room) {
+  if (room.prepTimer) {
+    clearInterval(room.prepTimer);
+    room.prepTimer = null;
+  }
+}
+
+/**
+ * Automatically resolves all remaining choices in a player's preparation queue
+ */
+function autoResolvePlayerPrepQueue(player, room, io) {
+  console.log(`[RoomManager] Auto-resolving prep queue for player ${player.username}. Steps remaining: ${player.prepQueue.length}`);
+
+  while (player.prepQueue.length > 0) {
+    const step = player.prepQueue.shift();
+
+    if (step.type === 'RELIC_CHOICE') {
+      const relicId = step.options[0];
+      if (relicId) {
+        player.relics[relicId] = (player.relics[relicId] || 0) + 1;
+        if (relicId.startsWith('relic_vitality_')) {
+          const buffVal = relicId === 'relic_vitality_common' ? 15 
+                        : relicId === 'relic_vitality_rare' ? 25 
+                        : 40; // epic
+          player.maxHp = (player.maxHp || MAX_HP) + buffVal;
+          player.hp += buffVal;
+        }
+        console.log(`[RoomManager] Auto-resolved relic choice for ${player.username}: selected ${relicId}`);
+      }
+    } else if (step.type === 'CARD_REMOVAL') {
+      console.log(`[RoomManager] Auto-resolved card removal for ${player.username}: skipped`);
+    } else if (step.type === 'BONUS_PICK') {
+      const cardOption = step.options[0];
+      if (cardOption) {
+        player.deck.push(cardOption);
+        console.log(`[RoomManager] Auto-resolved bonus card pick for ${player.username}: selected ${cardOption.name}`);
+      }
+    } else if (step.type === 'PACK_SELECTION') {
+      const packId = step.options[0];
+      if (packId) {
+        const cards = generatePackCards(packId);
+        player.deck.push(...cards);
+        console.log(`[RoomManager] Auto-resolved pack selection for ${player.username}: selected ${packId}`);
+      }
+    } else if (step.type === 'PACK_REVEAL') {
+      console.log(`[RoomManager] Auto-resolved pack reveal for ${player.username}: confirmed`);
+    }
+  }
+
+  player.prepFinished = true;
+}
+
+/**
+ * Transitions both players from preparation to play session (quest selection)
+ */
+function proceedToQuestPhase(room, io) {
+  const playerIds = Object.keys(room.players);
+  const p1 = room.players[playerIds[0]];
+  const p2 = room.players[playerIds[1]];
+
+  p1.maxHp = MAX_HP + (p1.relics.relic_vitality_common || 0) * 15 + (p1.relics.relic_vitality_rare || 0) * 25 + (p1.relics.relic_vitality_epic || 0) * 40;
+  p2.maxHp = MAX_HP + (p2.relics.relic_vitality_common || 0) * 15 + (p2.relics.relic_vitality_rare || 0) * 25 + (p2.relics.relic_vitality_epic || 0) * 40;
+
+  p1.hp = p1.maxHp;
+  p2.hp = p2.maxHp;
+  p1.shield = 0;
+  p2.shield = 0;
+
+  p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 1, weakness: 0 };
+  p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 1, weakness: 0 };
+
+  p1.hand = drawHandFromDeck(p1.deck, 4);
+  p2.hand = drawHandFromDeck(p2.deck, 4);
+
+  room.round += 1;
+  room.state = 'QUEST_PHASE';
+
+  console.log(`[RoomManager] Room ${room.id}: Starting Round ${room.round} Quest Phase`);
+
+  delete p1.prepQueue;
+  delete p2.prepQueue;
+  delete p1.prepFinished;
+  delete p2.prepFinished;
+
+  startQuestSelectionPhase(room.id, io);
 }

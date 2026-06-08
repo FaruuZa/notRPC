@@ -27,6 +27,12 @@ socket.on('onlineCountUpdate', (count) => {
   }
 });
 
+socket.on('compendiumData', (data) => {
+  if (window.gameManager) {
+    window.gameManager.setCompendiumData(data);
+  }
+});
+
 socket.on('matchFound', (data) => {
   if (window.gameManager) {
     window.gameManager.onMatchFound(data);
@@ -110,6 +116,42 @@ socket.on('waitingForOpponentRemoval', () => {
 socket.on('opponentRemovalConfirmed', () => {
   if (window.gameManager) {
     window.gameManager.onOpponentRemovalConfirmed();
+  }
+});
+
+socket.on('relicChoiceStart', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onRelicChoiceStart(data);
+  }
+});
+
+socket.on('relicChosen', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onRelicChosen(data);
+  }
+});
+
+socket.on('waitingForOpponentRelicChoice', () => {
+  if (window.gameManager) {
+    window.gameManager.onWaitingForOpponentRelicChoice();
+  }
+});
+
+socket.on('prepFinished', () => {
+  if (window.gameManager) {
+    window.gameManager.onPrepFinished();
+  }
+});
+
+socket.on('prepTimerStarted', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onPrepTimerStarted(data);
+  }
+});
+
+socket.on('prepTimerTick', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onPrepTimerTick(data);
   }
 });
 
@@ -234,6 +276,9 @@ const SocketService = {
   },
   skipCardRemoval() {
     socket.emit('skipCardRemoval');
+  },
+  selectRelic(relicId) {
+    socket.emit('selectRelic', relicId);
   }
 };
 

@@ -568,6 +568,116 @@ const CARD_POOL = [
       NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 6, applyStatus: { opponent: { burn: 2 }, self: { burn: 2 } } },
       INFERIOR: { damage: 0,  shield: 0, selfDamage: 15, applyStatus: { self: { weakness: 2 } } }
     }
+  },
+  {
+    id: 'flame_ward',
+    name: 'Flame Ward',
+    element: ELEMENTS.FIRE,
+    description: 'Superior: 5 dmg & 8 <span class="kw-shield">SHIELD</span>. Neutral: 4 <span class="kw-shield">SHIELD</span>. Inferior: 2 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 5, shield: 8, selfDamage: 0 },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 2 }
+    }
+  },
+  {
+    id: 'volcanic_ash',
+    name: 'Volcanic Ash',
+    element: ELEMENTS.FIRE,
+    description: 'Superior: 6 dmg & <span class="kw-burn">BURN [2]</span>. Neutral: <span class="kw-burn">BURN [1]</span>. Inferior: <span class="kw-weak">WEAK [1]</span> to self.',
+    outcomes: {
+      SUPERIOR: { damage: 6, shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { weakness: 1 } } }
+    }
+  },
+  {
+    id: 'healing_rain',
+    name: 'Healing Rain',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 10 <span class="kw-heal">HEAL</span> & <span class="kw-cleanse">CLEANSE</span>. Neutral: 4 <span class="kw-heal">HEAL</span>. Inferior: 2 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 0, heal: 10, selfDamage: 0, applyStatus: { self: { cleanse: 1 } } },
+      NEUTRAL:  { damage: 0, shield: 0, heal: 4, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 2 }
+    }
+  },
+  {
+    id: 'frostbite',
+    name: 'Frostbite',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 8 dmg & <span class="kw-weak">WEAK [2]</span>. Neutral: 2 dmg & <span class="kw-weak">WEAK [1]</span>. Inferior: 2 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { opponent: { weakness: 2 } } },
+      NEUTRAL:  { damage: 2, shield: 0, selfDamage: 0, applyStatus: { opponent: { weakness: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 2 }
+    }
+  },
+  {
+    id: 'spore_shroud',
+    name: 'Spore Shroud',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 8 <span class="kw-shield">SHIELD</span> & <span class="kw-poison">POISON [2]</span>. Neutral: 4 <span class="kw-shield">SHIELD</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 8, selfDamage: 0, applyStatus: { opponent: { poison: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'photosynthesis',
+    name: 'Photosynthesis',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 8 <span class="kw-heal">HEAL</span> & <span class="kw-buff">BUFF [2]</span>. Neutral: 3 <span class="kw-heal">HEAL</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 0, heal: 8, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 0, heal: 3, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'balance',
+    name: 'Balance',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 8 dmg & 8 <span class="kw-shield">SHIELD</span>. Neutral: 4 dmg & 4 <span class="kw-shield">SHIELD</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 8, selfDamage: 0 },
+      NEUTRAL:  { damage: 4, shield: 4, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'mirror_shield',
+    name: 'Mirror Shield',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 10 <span class="kw-shield">SHIELD</span> & <span class="kw-buff">BUFF [1]</span>. Neutral: 5 <span class="kw-shield">SHIELD</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 10, selfDamage: 0, applyStatus: { self: { attackBuff: 1 } } },
+      NEUTRAL:  { damage: 0, shield: 5, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'wild_magic',
+    name: 'Wild Magic',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 18 dmg. Neutral: 5 self dmg. Inferior: <span class="kw-buff">BUFF [2]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 18, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 5 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } }
+    }
+  },
+  {
+    id: 'catastrophe',
+    name: 'Catastrophe',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 10 dmg & <span class="kw-burn">BURN [2]</span> & <span class="kw-poison">POISON [2]</span>. Inferior: 6 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 10, shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 2, poison: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 6 }
+    }
   }
 ];
 

@@ -62,15 +62,10 @@
         </button>
       </div>
 
-      <!-- Element Matchup Legend on Lobby Screen -->
-      <div class="lobby-legend glass">
-        <div class="legend-title"><i class="fa-solid fa-circle-nodes"></i> Element Matchups</div>
-        <div class="legend-rows">
-          <div class="legend-row"><span class="el-tag fire">FIRE</span> <span class="arrow">›</span> <span class="el-tag nature">NATURE</span> <span class="arrow">›</span> <span class="el-tag water">WATER</span> <span class="arrow">›</span> <span class="el-tag fire">FIRE</span></div>
-          <div class="legend-row"><span class="el-tag neutral">NEUTRAL</span> <span class="arrow">›</span> <span class="el-tag chaos">CHAOS</span> <span class="arrow">›</span> <span class="el-tag elem">FIRE / WATER / NATURE</span></div>
-          <div class="legend-row legend-note">Same element = TIE &nbsp;|&nbsp; NEUTRAL ties all elements</div>
-        </div>
-      </div>
+      <!-- Game Library Button -->
+      <button id="open-compendium-btn" class="btn btn-secondary">
+        <i class="fa-solid fa-book-open"></i> GAME LIBRARY
+      </button>
 
       <footer class="lobby-footer">
         <div class="queue-counter glass">
@@ -323,9 +318,9 @@
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub">COMEBACK MECHANIC</span>
-        <h2 class="draft-title">LOSER <span class="accent-text">BONUS PICK</span></h2>
-        <p class="draft-subtitle">Choose exactly <strong>1 card</strong> to add directly to your deck</p>
+        <span class="logo-sub" id="bonus-pick-logo-sub">COMEBACK MECHANIC</span>
+        <h2 class="draft-title" id="bonus-pick-title">LOSER <span class="accent-text">BONUS PICK</span></h2>
+        <p class="draft-subtitle" id="bonus-pick-subtitle">Choose exactly <strong>1 card</strong> to add directly to your deck</p>
       </header>
       
       <div class="horizontal-fan-container" id="bonus-cards-fan">
@@ -351,6 +346,9 @@
       <div class="lobby-card glass" style="text-align: center; padding: 3rem 2rem;">
         <span class="loader" style="width: 36px; height: 36px; border-width: 3px; display: inline-block; margin-bottom: 1.5rem;"></span>
         <p style="color: var(--text-secondary); font-size: 1rem; font-weight: 600;">Your opponent is choosing their loser bonus card...</p>
+        <div id="waiting-timer-container" class="hidden" style="margin-top: 1.5rem; font-size: 1.25rem; font-weight: bold; color: #e74c3c;">
+          Opponent has <span id="waiting-timer-val">30</span>s remaining!
+        </div>
       </div>
     </div>
   </div>
@@ -451,6 +449,145 @@
     </div>
   </div>
 
+  <!-- Screen 10.5: Game Library Modal -->
+  <div id="compendium-modal" class="overlay">
+    <div class="deck-modal-content game-over-card glass">
+      <!-- Modal Title -->
+      <h2 class="deck-modal-title"><i class="fa-solid fa-book-open"></i> GAME LIBRARY</h2>
+      
+      <!-- Tab Headers -->
+      <div class="modal-tabs" style="display: flex; justify-content: center; flex-wrap: wrap;">
+        <button class="modal-tab-btn active" id="modal-compendium-tab-cards">
+          <i class="fa-solid fa-layer-group"></i> CARDS
+        </button>
+        <button class="modal-tab-btn" id="modal-compendium-tab-relics">
+          <i class="fa-solid fa-circle-nodes"></i> RELICS
+        </button>
+        <button class="modal-tab-btn" id="modal-compendium-tab-matchups">
+          <i class="fa-solid fa-arrows-spin"></i> MATCHUPS
+        </button>
+        <button class="modal-tab-btn" id="modal-compendium-tab-rules">
+          <i class="fa-solid fa-circle-info"></i> RULES
+        </button>
+      </div>
+
+      <!-- Cards Tab Content -->
+      <div class="tab-content active" id="modal-compendium-cards-content">
+        <div id="modal-compendium-filters" class="compendium-filters" style="margin-bottom: 0.8rem;">
+          <button class="filter-btn active" data-element="ALL">ALL</button>
+          <button class="filter-btn" data-element="FIRE">FIRE</button>
+          <button class="filter-btn" data-element="WATER">WATER</button>
+          <button class="filter-btn" data-element="NATURE">NATURE</button>
+          <button class="filter-btn" data-element="NEUTRAL">NEUTRAL</button>
+          <button class="filter-btn" data-element="CHAOS">CHAOS</button>
+        </div>
+        <div id="compendium-cards-grid">
+          <div class="compendium-loading">Loading cards library...</div>
+        </div>
+      </div>
+
+      <!-- Relics Tab Content -->
+      <div class="tab-content" id="modal-compendium-relics-content" style="display: none;">
+        <div id="compendium-relics-grid">
+          <div class="compendium-loading">Loading relics library...</div>
+        </div>
+      </div>
+
+      <!-- Matchups Tab Content -->
+      <div class="tab-content" id="modal-compendium-matchups-content" style="display: none;">
+        <div class="compendium-scroll-container-clean">
+          <div class="matchup-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.8rem; margin-bottom: 1rem;">
+            <!-- Fire -->
+            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-fire); text-align: left;">
+              <h4 class="el-tag fire" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">FIRE</h4>
+              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
+                <li><strong style="color: var(--color-nature);">SUPERIOR (Counters):</strong> NATURE</li>
+                <li><strong style="color: var(--color-water);">INFERIOR (Loses to):</strong> WATER, CHAOS</li>
+                <li><strong>NEUTRAL (Ties):</strong> FIRE, NEUTRAL</li>
+              </ul>
+            </div>
+            
+            <!-- Water -->
+            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-water); text-align: left;">
+              <h4 class="el-tag water" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">WATER</h4>
+              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
+                <li><strong style="color: var(--color-fire);">SUPERIOR (Counters):</strong> FIRE</li>
+                <li><strong style="color: var(--color-nature);">INFERIOR (Loses to):</strong> NATURE, CHAOS</li>
+                <li><strong>NEUTRAL (Ties):</strong> WATER, NEUTRAL</li>
+              </ul>
+            </div>
+
+            <!-- Nature -->
+            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-nature); text-align: left;">
+              <h4 class="el-tag nature" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">NATURE</h4>
+              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
+                <li><strong style="color: var(--color-water);">SUPERIOR (Counters):</strong> WATER</li>
+                <li><strong style="color: var(--color-fire);">INFERIOR (Loses to):</strong> FIRE, CHAOS</li>
+                <li><strong>NEUTRAL (Ties):</strong> NATURE, NEUTRAL</li>
+              </ul>
+            </div>
+
+            <!-- Neutral -->
+            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-neutral); text-align: left;">
+              <h4 class="el-tag neutral" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">NEUTRAL</h4>
+              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
+                <li><strong style="color: var(--color-chaos);">SUPERIOR (Counters):</strong> CHAOS</li>
+                <li><strong>INFERIOR (Loses to):</strong> None</li>
+                <li><strong>NEUTRAL (Ties):</strong> Ties all elements</li>
+              </ul>
+            </div>
+
+            <!-- Chaos -->
+            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-chaos); text-align: left;">
+              <h4 class="el-tag chaos" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">CHAOS</h4>
+              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
+                <li><strong style="color: #ffd700;">SUPERIOR (Counters):</strong> FIRE, WATER, NATURE</li>
+                <li><strong style="color: var(--color-neutral);">INFERIOR (Loses to):</strong> NEUTRAL</li>
+                <li><strong>NEUTRAL (Ties):</strong> CHAOS</li>
+              </ul>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- Rules Tab Content -->
+      <div class="tab-content" id="modal-compendium-rules-content" style="display: none;">
+        <div class="compendium-scroll-container-clean">
+          
+          <ol style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem; text-align: left; font-size: 0.82rem; line-height: 1.5;">
+            <li><strong>Match Setup:</strong> Enter your battle name and click <strong>FIND MATCH</strong> to search for an opponent.</li>
+            <li><strong>Deck Draft:</strong> Draft exactly <strong>5 cards</strong> to form your battle deck. You must ensure you choose at least 4 unique elements!</li>
+            <li><strong>Quests:</strong> Select 1 Quest at the start of each round. Completing the requirements during the battle round unlocks a choice of passive relics.</li>
+            <li><strong>Card Battles:</strong> Play 1 card each round. The cards clash based on element matchups (see <strong>MATCHUPS</strong> tab):
+              <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary);">
+                <li><strong style="color: #ffd700;">SUPERIOR:</strong> Your card counters the opponent's card. Your card's Superior outcomes trigger.</li>
+                <li><strong style="color: #fff;">NEUTRAL:</strong> The clash is a tie. Neutral outcomes trigger.</li>
+                <li><strong style="color: #ff8888;">INFERIOR:</strong> Your card is countered. Inferior outcomes trigger.</li>
+              </ul>
+            </li>
+            <li><strong>Status Effects:</strong>
+              <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary);">
+                <li><strong style="color: #ff9f43;">BURN:</strong> Deals damage equal to 3x stack size at round end. Absorbed by shields first. Stacks consume after ticking.</li>
+                <li><strong style="color: #2ecc71;">POISON:</strong> Deals damage equal to stack size at start of round, bypassing shields. Ticks down by 1 stack per round.</li>
+                <li><strong style="color: #54a0ff;">BUFF:</strong> Increases all damage dealt by the buff stack size.</li>
+                <li><strong style="color: #ee5253;">WEAKNESS:</strong> Reduces damage dealt by 2 per stack (minimum 0).</li>
+              </ul>
+            </li>
+            <li><strong>Quest Rewards & Relics:</strong> Passive relics stack and provide permanent passive boosts (e.g. increasing Max HP, starting Shield, card removal).</li>
+            <li><strong>Winning:</strong> Reduce your opponent's HP to 0 to win the duel!</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="deck-modal-footer">
+        <button id="compendium-close-btn" class="btn btn-secondary" style="min-width: 140px;">
+          CLOSE
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Screen 11: Quest Selection Screen -->
   <div id="quest-selection-screen" class="screen">
     <div class="stars-bg"></div>
@@ -508,6 +645,40 @@
         </button>
       </footer>
     </div>
+  </div>
+
+  <!-- Screen 13: Relic Selection Screen -->
+  <div id="relic-selection-screen" class="screen">
+    <div class="stars-bg"></div>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
+        <span class="logo-sub" id="relic-selection-subtitle">QUEST REWARD</span>
+        <h2 class="draft-title">RELIC <span class="accent-text">SELECTION</span></h2>
+        <p class="draft-subtitle">Choose exactly <strong>1 passive relic</strong> to add to your collection.</p>
+      </header>
+      
+      <div class="relics-modal-grid" id="relic-choices-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; justify-content: center; margin-bottom: 2rem; max-height: 50vh; overflow-y: auto; padding: 1rem; width: 100%; max-width: 800px; box-sizing: border-box;">
+        <!-- 3 relics to choose from -->
+      </div>
+      
+      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; width: 100%;">
+        <button id="relic-confirm-btn" class="btn btn-primary disabled" disabled style="min-width: 180px;">
+          CONFIRM CHOICE
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Global Tooltip Container -->
+  <div id="game-tooltip" class="custom-tooltip hidden">
+    <div class="tooltip-title">Tooltip Title</div>
+    <div class="tooltip-desc">Tooltip Description</div>
+    <div class="tooltip-sub" style="display: none;">Quality: COMMON Relic</div>
+  </div>
+
+  <!-- Global Preparation Timer Banner -->
+  <div id="global-prep-timer" class="prep-timer-banner hidden">
+    <i class="fa-solid fa-clock"></i> TIME REMAINING: <span id="global-prep-timer-val">30</span>s
   </div>
 
   <!-- Socket.io & Anime.js & Howler.js scripts from CDNs -->

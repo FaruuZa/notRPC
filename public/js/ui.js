@@ -388,6 +388,9 @@ const UI = {
   packRevealScreen: document.getElementById('pack-reveal-screen'),
   questSelectionScreen: document.getElementById('quest-selection-screen'),
   cardRemovalScreen: document.getElementById('card-removal-screen'),
+  relicSelectionScreen: document.getElementById('relic-selection-screen'),
+  relicChoicesGrid: document.getElementById('relic-choices-grid'),
+  relicConfirmBtn: document.getElementById('relic-confirm-btn'),
   playerRelicsRow: document.getElementById('player-relics-row'),
   enemyRelicsRow: document.getElementById('enemy-relics-row'),
   
@@ -478,6 +481,7 @@ const UI = {
     if (this.packRevealScreen) this.packRevealScreen.classList.remove('active');
     if (this.questSelectionScreen) this.questSelectionScreen.classList.remove('active');
     if (this.cardRemovalScreen) this.cardRemovalScreen.classList.remove('active');
+    if (this.relicSelectionScreen) this.relicSelectionScreen.classList.remove('active');
 
 
     // Hide round overlay if switching screens
@@ -507,6 +511,8 @@ const UI = {
       if (this.questSelectionScreen) this.questSelectionScreen.classList.add('active');
     } else if (screenName === 'cardRemoval') {
       if (this.cardRemovalScreen) this.cardRemovalScreen.classList.add('active');
+    } else if (screenName === 'relicSelection') {
+      if (this.relicSelectionScreen) this.relicSelectionScreen.classList.add('active');
     }
   },
 
@@ -695,8 +701,9 @@ const UI = {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
     cardDiv.setAttribute('data-element', card.element);
-    cardDiv.setAttribute('data-instance-id', card.instanceId);
-    cardDiv.id = `card-${card.instanceId}`;
+    const instId = card.instanceId || `library-${card.id || Math.random().toString(36).substr(2, 9)}`;
+    cardDiv.setAttribute('data-instance-id', instId);
+    cardDiv.id = `card-${instId}`;
     
     const iconClass = this.getElementIconClass(card.element);
     const formattedDesc = this.formatDescription(card.description);
@@ -745,8 +752,13 @@ const UI = {
       const badge = document.createElement('span');
       badge.className = 'status-badge burn';
       badge.innerHTML = `<i class="fa-solid fa-fire"></i> ${statuses.burn}`;
-      badge.title = `Burned: Takes ${statuses.burn * 3} damage (absorbed by shields first, consumed at the end of the round)`;
       container.appendChild(badge);
+      this.bindTooltip(
+        badge, 
+        'BURNED', 
+        `Takes <strong>${statuses.burn * 3}</strong> damage at the end of the round. (Burn damage is absorbed by shields first, and the status is fully consumed after ticking).`,
+        `Stacks: ${statuses.burn}`
+      );
     }
 
     // Poison status
@@ -754,8 +766,13 @@ const UI = {
       const badge = document.createElement('span');
       badge.className = 'status-badge poison';
       badge.innerHTML = `<i class="fa-solid fa-skull-crossbones"></i> ${statuses.poison}`;
-      badge.title = `Poisoned: Takes ${statuses.poison} damage bypassing shields (${statuses.poison} rounds left)`;
       container.appendChild(badge);
+      this.bindTooltip(
+        badge, 
+        'POISONED', 
+        `Takes <strong>${statuses.poison}</strong> damage bypassing shields at start of turn. (Ticks down by 1 stack per round).`,
+        `Stacks: ${statuses.poison}`
+      );
     }
 
     // Attack Buff status
@@ -763,8 +780,13 @@ const UI = {
       const badge = document.createElement('span');
       badge.className = 'status-badge attack-buff';
       badge.innerHTML = `<i class="fa-solid fa-bolt"></i>${statuses.attackBuff}`;
-      badge.title = `Buff: Clash damage increased by +${statuses.attackBuff * 10}% (decays when attacking: ${statuses.attackBuff} stacks left)`;
       container.appendChild(badge);
+      this.bindTooltip(
+        badge, 
+        'ATTACK BUFF', 
+        `Clash damage dealt is increased by <strong>+${statuses.attackBuff * 10}%</strong>. (Decays by 1 stack when player attacks).`,
+        `Stacks: ${statuses.attackBuff}`
+      );
     }
 
     // Weakness status
@@ -772,8 +794,13 @@ const UI = {
       const badge = document.createElement('span');
       badge.className = 'status-badge weakness';
       badge.innerHTML = `<i class="fa-solid fa-arrow-down-long"></i> ${statuses.weakness}`;
-      badge.title = `Weakness: Clash damage reduced by -${statuses.weakness * 10}% (decays when attacking: ${statuses.weakness} stacks left)`;
       container.appendChild(badge);
+      this.bindTooltip(
+        badge, 
+        'WEAKENED', 
+        `Clash damage dealt is reduced by <strong>-${statuses.weakness * 10}%</strong>. (Decays by 1 stack when player attacks).`,
+        `Stacks: ${statuses.weakness}`
+      );
     }
   },
 
@@ -1206,13 +1233,15 @@ const UI = {
       
       const badge = document.createElement('div');
       badge.className = `hud-relic-badge ${def.quality}`;
-      badge.setAttribute('title', `${def.name} (Stack: ${count})\n${def.description}`);
       
       badge.innerHTML = `
         <i class="fa-solid ${def.icon}"></i>
         ${count > 1 ? `<span class="relic-stack-indicator">${count}</span>` : ''}
       `;
       container.appendChild(badge);
+      
+      // Bind custom responsive tooltip
+      this.bindTooltip(badge, def.name, def.description, `Quality: ${def.quality} Relic | Stacks: ${count}`);
     });
   },
 
@@ -1304,7 +1333,19 @@ const UI = {
     const percent = Math.min(100, Math.floor((progress / target) * 100));
     
     if (fillEl) fillEl.style.width = `${percent}%`;
-    if (progressTextEl) progressTextEl.innerText = `${progress} / ${target}`;
+    
+    if (progressTextEl) {
+      if (progress >= target) {
+        progressTextEl.innerText = 'COMPLETED';
+        progressTextEl.style.color = '#ffd700'; // Gold accent
+        progressTextEl.style.fontWeight = 'bold';
+      } else {
+        progressTextEl.innerText = `${progress} / ${target}`;
+        progressTextEl.style.color = ''; // Reset to default
+        progressTextEl.style.fontWeight = '';
+      }
+    }
+    
     if (rewardEl) rewardEl.innerText = `Reward: ${activeQuest.reward.text}`;
   },
 
@@ -1327,8 +1368,219 @@ const UI = {
       
       grid.appendChild(cardEl);
     });
+  },
+
+  renderRelicChoices(relicOptions, onRelicClick) {
+    if (!this.relicChoicesGrid) return;
+    this.relicChoicesGrid.innerHTML = '';
+
+    relicOptions.forEach(relic => {
+      const itemEl = document.createElement('div');
+      itemEl.className = `relic-card-item ${relic.quality}`;
+      itemEl.dataset.relicId = relic.id;
+
+      itemEl.innerHTML = `
+        <div class="relic-header-row">
+          <div class="relic-title-name">
+            <i class="fa-solid ${relic.icon}" style="margin-right: 0.5rem;"></i>
+            ${relic.name}
+          </div>
+        </div>
+        <div class="relic-quality-tag ${relic.quality}">${relic.quality} RELIC</div>
+        <p class="relic-card-desc">${relic.description}</p>
+      `;
+
+      itemEl.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        this.relicChoicesGrid.querySelectorAll('.relic-card-item').forEach(el => {
+          el.classList.remove('selected');
+        });
+        itemEl.classList.add('selected');
+        onRelicClick(relic.id);
+      });
+
+      this.relicChoicesGrid.appendChild(itemEl);
+    });
+  },
+
+  bindTooltip(element, title, description, subText = '') {
+    if (!element) return;
+    
+    element.addEventListener('mouseenter', (e) => {
+      const tooltip = document.getElementById('game-tooltip');
+      if (!tooltip) return;
+      
+      const titleEl = tooltip.querySelector('.tooltip-title');
+      const descEl = tooltip.querySelector('.tooltip-desc');
+      const subEl = tooltip.querySelector('.tooltip-sub');
+      
+      if (titleEl) titleEl.innerText = title;
+      if (descEl) descEl.innerHTML = description;
+      if (subEl) {
+        if (subText) {
+          subEl.innerText = subText;
+          subEl.style.display = 'block';
+        } else {
+          subEl.style.display = 'none';
+        }
+      }
+      
+      tooltip.classList.remove('hidden');
+      tooltip.offsetHeight; // force repaint
+      tooltip.classList.add('visible');
+      
+      this.positionTooltip(e, tooltip);
+    });
+    
+    element.addEventListener('mousemove', (e) => {
+      const tooltip = document.getElementById('game-tooltip');
+      if (tooltip && tooltip.classList.contains('visible')) {
+        this.positionTooltip(e, tooltip);
+      }
+    });
+    
+    element.addEventListener('mouseleave', () => {
+      const tooltip = document.getElementById('game-tooltip');
+      if (tooltip) {
+        tooltip.classList.remove('visible');
+        setTimeout(() => {
+          if (!tooltip.classList.contains('visible')) {
+            tooltip.classList.add('hidden');
+          }
+        }, 150);
+      }
+    });
+  },
+
+  positionTooltip(e, tooltip) {
+    const margin = 15;
+    const tooltipWidth = tooltip.offsetWidth;
+    const tooltipHeight = tooltip.offsetHeight;
+    
+    let x = e.clientX + margin;
+    let y = e.clientY + margin;
+    
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Check horizontal overflow: right boundary
+    if (x + tooltipWidth > windowWidth - 10) {
+      x = e.clientX - tooltipWidth - margin;
+    }
+    
+    // Check vertical overflow: bottom boundary
+    if (y + tooltipHeight > windowHeight - 10) {
+      y = e.clientY - tooltipHeight - margin;
+    }
+    
+    // Safety check boundaries
+    if (x < 10) x = 10;
+    if (y < 10) y = 10;
+    
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  },
+
+  renderCompendium(cards, relics) {
+    this.compendiumCardsList = cards;
+    this.renderCompendiumCards(cards);
+    this.renderCompendiumRelics(relics);
+  },
+
+  renderCompendiumCards(cards, filterElement = 'ALL') {
+    const grid = document.getElementById('compendium-cards-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    const filtered = filterElement === 'ALL' ? cards : cards.filter(c => c.element === filterElement);
+    
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="compendium-loading">No cards found for this filter.</div>`;
+      return;
+    }
+    
+    filtered.forEach(card => {
+      // Create standard in-game card element
+      const cardEl = this.createCardElement(card);
+      
+      let outcomesDesc = '<div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 0.3rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.15rem;">CLASH OUTCOMES:</div>';
+      Object.entries(card.outcomes).forEach(([outcome, data]) => {
+        let details = [];
+        if (data.damage) details.push(`<span class="accent-text" style="color: #e74c3c;">${data.damage} DMG</span>`);
+        if (data.shield) details.push(`<span class="accent-text" style="color: #3498db;">${data.shield} SHIELD</span>`);
+        if (data.heal) details.push(`<span class="accent-text" style="color: #2ecc71;">${data.heal} HEAL</span>`);
+        if (data.selfDamage) details.push(`<span class="accent-text" style="color: #e67e22;">${data.selfDamage} SELF DMG</span>`);
+        
+        if (data.applyStatus) {
+          if (data.applyStatus.opponent) {
+            Object.entries(data.applyStatus.opponent).forEach(([stat, val]) => {
+              details.push(`<span style="color: #e74c3c; font-weight: bold;">+${val} Opponent ${stat.toUpperCase()}</span>`);
+            });
+          }
+          if (data.applyStatus.self) {
+            Object.entries(data.applyStatus.self).forEach(([stat, val]) => {
+              details.push(`<span style="color: #f1c40f; font-weight: bold;">+${val} Self ${stat.toUpperCase()}</span>`);
+            });
+          }
+        }
+        
+        outcomesDesc += `<div style="margin-top: 0.25rem;"><strong>${outcome}:</strong> ${details.length > 0 ? details.join(' & ') : 'No Effect'}</div>`;
+      });
+      
+      this.bindTooltip(cardEl, card.name, outcomesDesc, `Element: ${card.element}`);
+      
+      grid.appendChild(cardEl);
+    });
+  },
+
+  renderCompendiumRelics(relics) {
+    const grid = document.getElementById('compendium-relics-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    if (relics.length === 0) {
+      grid.innerHTML = `<div class="compendium-loading">No relics found.</div>`;
+      return;
+    }
+    
+    relics.forEach(relic => {
+      const itemEl = document.createElement('div');
+      itemEl.className = `compendium-relic-item ${relic.quality}`;
+      
+      itemEl.innerHTML = `
+        <div class="compendium-relic-name">
+          <i class="fa-solid ${relic.icon || 'fa-gem'}" style="margin-right: 0.35rem;"></i>
+          ${relic.name}
+        </div>
+        <div class="compendium-relic-quality ${relic.quality}">${relic.quality} RELIC</div>
+        <div class="compendium-relic-desc">${relic.description}</div>
+      `;
+      
+      this.bindTooltip(itemEl, relic.name, relic.description, `Quality: ${relic.quality}`);
+      
+      grid.appendChild(itemEl);
+    });
   }
 };
+
+// Listen globally to hide tooltips on touch screens when tapping outside
+window.addEventListener('click', (e) => {
+  const tooltip = document.getElementById('game-tooltip');
+  if (tooltip && tooltip.classList.contains('visible')) {
+    if (!e.target.closest('.status-badge') && 
+        !e.target.closest('.hud-relic-badge') && 
+        !e.target.closest('.relic-card-item') &&
+        !e.target.closest('.card') &&
+        !e.target.closest('.compendium-relic-item')) {
+      tooltip.classList.remove('visible');
+      setTimeout(() => {
+        if (!tooltip.classList.contains('visible')) {
+          tooltip.classList.add('hidden');
+        }
+      }, 150);
+    }
+  }
+});
 
 // Expose globally
 window.AudioSynth = AudioSynth;
