@@ -19,7 +19,7 @@ const QUEST_TEMPLATES = [
 
   // Poison Quests
   { id: 'apply_poison_3', text: 'Apply Poison 3 times', tags: ['poison'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'apply_poison_5', text: 'Apply Poison 5 times', tags: ['poison'], difficulty: 'HARD', target: 5 },
+  { id: 'apply_poison_5', text: 'Apply Poison 7 times', tags: ['poison'], difficulty: 'HARD', target: 7 },
 
   // Shield Quests
   { id: 'gain_20_shield', text: 'Gain 20 Shield in battle', tags: ['shield'], difficulty: 'EASY', target: 20 },
@@ -27,22 +27,22 @@ const QUEST_TEMPLATES = [
 
   // Heal Quests
   { id: 'heal_10', text: 'Heal 10 HP in battle', tags: ['heal'], difficulty: 'EASY', target: 10 },
-  { id: 'heal_20', text: 'Heal 20 HP in battle', tags: ['heal'], difficulty: 'HARD', target: 20 },
+  { id: 'heal_20', text: 'Heal 20 HP in battle', tags: ['heal'], difficulty: 'MEDIUM', target: 20 },
 
   // Element Quests
-  { id: 'play_3_fire', text: 'Play 3 Fire cards', tags: ['fire'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'play_3_water', text: 'Play 3 Water cards', tags: ['water'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'play_3_nature', text: 'Play 3 Nature cards', tags: ['nature'], difficulty: 'MEDIUM', target: 3 },
+  { id: 'play_3_fire', text: 'Play 3 Fire cards', tags: ['fire'], difficulty: 'EASY', target: 3 },
+  { id: 'play_3_water', text: 'Play 3 Water cards', tags: ['water'], difficulty: 'EASY', target: 3 },
+  { id: 'play_3_nature', text: 'Play 3 Nature cards', tags: ['nature'], difficulty: 'EASY', target: 3 },
   { id: 'play_2_chaos', text: 'Play 2 Chaos cards', tags: ['chaos'], difficulty: 'MEDIUM', target: 2 },
   { id: 'play_2_neutral', text: 'Play 2 Neutral cards', tags: ['neutral'], difficulty: 'EASY', target: 2 },
 
   // Buff Quests
   { id: 'gain_buff_5', text: 'Gain Buff 5 times', tags: ['buff'], difficulty: 'MEDIUM', target: 5 },
-  { id: 'reach_buff_5', text: 'Reach Buff(5) in battle', tags: ['buff'], difficulty: 'MEDIUM', target: 5 },
+  { id: 'reach_buff_5', text: 'Reach Buff(5) in battle', tags: ['buff'], difficulty: 'HARD', target: 5 },
 
   // Weak Quests
   { id: 'apply_weak_3', text: 'Apply Weakness 3 times', tags: ['weak'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'apply_weak_5', text: 'Apply Weakness 5 times', tags: ['weak'], difficulty: 'HARD', target: 5 }
+  { id: 'apply_weak_5', text: 'Apply Weakness 6 times', tags: ['weak'], difficulty: 'HARD', target: 6 }
 ];
 
 /**
@@ -127,12 +127,17 @@ function generateReward(difficulty) {
   const roll = Math.random();
   
   if (difficulty === 'EASY') {
-    // 100% COMMON Relic
-    return { type: 'relic', quality: 'COMMON', text: 'COMMON Relic' };
+    // 60% COMMON Relic
+    if(roll < 0.60) {
+      return { type: 'relic', quality: 'COMMON', text: 'COMMON Relic' };
+    } else {
+      return { type: 'remove_card', text: 'Card Removal Option' };
+    }
   } else if (difficulty === 'MEDIUM') {
     // 50% RARE Relic, 25% Remove Card, 25% Bonus Draft
     if (roll < 0.50) {
-      return { type: 'relic', quality: 'RARE', text: 'RARE Relic' };
+      const q = Math.random() < 0.85 ? 'RARE' : 'EPIC';
+      return { type: 'relic', quality: q, text: `${q} Relic` };
     } else if (roll < 0.75) {
       return { type: 'remove_card', text: 'Card Removal Option' };
     } else {

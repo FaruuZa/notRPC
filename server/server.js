@@ -82,6 +82,11 @@ const express = require('express');
     socket.on('selectRelic', (relicId) => {
       roomManager.handleSelectRelic(socket, relicId, io);
     });
+
+    // Player requests a prep reroll
+    socket.on('rerollPrep', () => {
+      roomManager.handleRerollPrep(socket, io);
+    });
   
     // Player confirms their pack reveal animation is finished
     socket.on('packRevealConfirm', () => {

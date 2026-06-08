@@ -70,9 +70,9 @@ const RELIC_POOL = {
   tidal_wisdom: {
     id: 'tidal_wisdom',
     name: 'Tidal Wisdom',
-    description: 'At the start of each round: gain 4 Shield per stack.',
+    description: 'At the start of each round: gain 3 Shield per stack.',
     quality: 'EPIC',
-    effect: { type: 'start_round_shield', value: 4 }
+    effect: { type: 'start_round_shield', value: 3 }
   },
   burning_core: {
     id: 'burning_core',
@@ -153,12 +153,12 @@ const RELIC_POOL = {
     quality: 'EPIC',
     effect: { type: 'max_hp', value: 40 }
   },
-  relic_shield_regen_epic: {
-    id: 'relic_shield_regen_epic',
+  relic_shield_regen_legendary: {
+    id: 'relic_shield_regen_legendary',
     name: 'Aegis Shield',
-    description: 'At the start of each turn: gain 8 Shield per stack.',
-    quality: 'EPIC',
-    effect: { type: 'start_round_shield', value: 8 }
+    description: 'At the start of each turn: gain 10 Shield per stack.',
+    quality: 'LEGENDARY',
+    effect: { type: 'start_round_shield', value: 10 }
   },
   relic_focused_soul: {
     id: 'relic_focused_soul',
@@ -166,6 +166,67 @@ const RELIC_POOL = {
     description: 'At the start of each round: gain 1 Attack Buff per stack.',
     quality: 'EPIC',
     effect: { type: 'start_round_buff', value: 1 }
+  },
+
+  // NEW RELICS
+
+  // Prep Phase Reroll
+  relic_prep_reroll_common: {
+    id: 'relic_prep_reroll_common',
+    name: 'Temporal Hourglass',
+    description: 'Gain +1 Prep Phase Reroll charge each preparation phase per stack.',
+    quality: 'COMMON',
+    effect: { type: 'prep_reroll_bonus', value: 1 }
+  },
+
+  // Shield Piercers
+  relic_shield_piercer_rare: {
+    id: 'relic_shield_piercer_rare',
+    name: 'Shield Piercer',
+    description: 'When dealing clash damage to an opponent with Shield: deal +4 extra damage per stack.',
+    quality: 'RARE',
+    effect: { type: 'shield_piercer', value: 4 }
+  },
+  relic_shield_piercer_epic: {
+    id: 'relic_shield_piercer_epic',
+    name: 'Shard Piercer',
+    description: 'When dealing clash damage to an opponent with Shield: deal +8 extra damage per stack.',
+    quality: 'EPIC',
+    effect: { type: 'shield_piercer', value: 8 }
+  },
+  relic_shield_piercer_legendary: {
+    id: 'relic_shield_piercer_legendary',
+    name: 'Nullifier Edge',
+    description: 'When dealing clash damage to an opponent with Shield: deal +15 extra damage per stack.',
+    quality: 'LEGENDARY',
+    effect: { type: 'shield_piercer', value: 15 }
+  },
+
+  // Reactive Cleanse
+  relic_reactive_cleanse_legendary: {
+    id: 'relic_reactive_cleanse_legendary',
+    name: 'Purifying Amulet',
+    description: 'When you take HP damage (clash or status tick): instantly cleanse all your Poison, Burn, and Weakness stacks.',
+    quality: 'LEGENDARY',
+    effect: { type: 'reactive_cleanse' }
+  },
+
+  // Spite Thorns
+  relic_spite_thorns_rare: {
+    id: 'relic_spite_thorns_rare',
+    name: 'Briar Armor',
+    description: 'When you take HP damage (clash or status tick): deal 3 true damage to your opponent per stack.',
+    quality: 'EPIC',
+    effect: { type: 'spite_thorns', value: 3 }
+  },
+
+  // Phoenix Heart
+  relic_phoenix_down_legendary: {
+    id: 'relic_phoenix_down_legendary',
+    name: 'Phoenix Heart',
+    description: 'Once per round: when your HP would drop to 0 or below, instead restore your HP to 30.',
+    quality: 'LEGENDARY',
+    effect: { type: 'phoenix_resurrection', value: 30 }
   }
 };
 

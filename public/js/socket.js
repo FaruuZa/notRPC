@@ -131,6 +131,12 @@ socket.on('relicChosen', (data) => {
   }
 });
 
+socket.on('relicTriggered', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onRelicTriggered(data);
+  }
+});
+
 socket.on('waitingForOpponentRelicChoice', () => {
   if (window.gameManager) {
     window.gameManager.onWaitingForOpponentRelicChoice();
@@ -279,6 +285,9 @@ const SocketService = {
   },
   selectRelic(relicId) {
     socket.emit('selectRelic', relicId);
+  },
+  rerollPrep() {
+    socket.emit('rerollPrep');
   }
 };
 
