@@ -3,7 +3,7 @@ const { RELIC_POOL } = require('./relics');
 const QUEST_TEMPLATES = [
   // Outcome Quests
   { id: 'superior_3', text: 'Superior outcome 3 times', tags: ['outcome', 'superior'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'neutral_4', text: 'Neutral outcome 4 times', tags: ['outcome', 'neutral'], difficulty: 'MEDIUM', target: 4 },
+  { id: 'neutral_4', text: 'Neutral outcome 5 times', tags: ['outcome', 'neutral'], difficulty: 'MEDIUM', target: 5 },
   { id: 'inferior_3', text: 'Inferior outcome 3 times', tags: ['outcome', 'inferior'], difficulty: 'MEDIUM', target: 3 },
   { id: 'superior_2_row', text: 'Superior 2 times in a row', tags: ['outcome', 'superior', 'row'], difficulty: 'HARD', target: 2 },
   { id: 'neutral_3_row', text: 'Neutral 3 times in a row', tags: ['outcome', 'neutral', 'row'], difficulty: 'HARD', target: 3 },

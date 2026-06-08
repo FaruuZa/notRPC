@@ -67,13 +67,6 @@ const RELIC_POOL = {
   },
 
   // EPIC
-  tidal_wisdom: {
-    id: 'tidal_wisdom',
-    name: 'Tidal Wisdom',
-    description: 'At the start of each round: gain 3 Shield per stack.',
-    quality: 'EPIC',
-    effect: { type: 'start_round_shield', value: 3 }
-  },
   burning_core: {
     id: 'burning_core',
     name: 'Burning Core',
