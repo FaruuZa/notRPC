@@ -193,5 +193,6 @@ function generatePlayerQuests(deck) {
 }
 
 module.exports = {
+  QUEST_TEMPLATES,
   generatePlayerQuests
 };

@@ -2,6 +2,7 @@ const express = require('express');
   const path = require('path');
   const { PORT, CARD_POOL } = require('./constants');
   const { RELIC_POOL } = require('./relics');
+  const { QUEST_TEMPLATES } = require('./quests');
   const matchmaking = require('./matchmaking');
   const roomManager = require('./roomManager');
   
@@ -32,8 +33,8 @@ const express = require('express');
     // Emit initial queue count to the newly connected player
     socket.emit('queueCountUpdate', matchmaking.getQueueCount());
     
-    // Emit compendium database of all cards and relics
-    socket.emit('compendiumData', { cards: CARD_POOL, relics: Object.values(RELIC_POOL) });
+    // Emit compendium database of all cards, relics, and quest templates
+    socket.emit('compendiumData', { cards: CARD_POOL, relics: Object.values(RELIC_POOL), questTemplates: QUEST_TEMPLATES });
     
     // Broadcast updated online count to all clients
     io.emit('onlineCountUpdate', io.engine.clientsCount);
