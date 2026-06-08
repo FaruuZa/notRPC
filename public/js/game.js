@@ -308,6 +308,22 @@ const GameManager = {
       });
     }
 
+    // Prep Phase Reroll Buttons
+    const relicRerollBtn = document.getElementById('relic-reroll-btn');
+    if (relicRerollBtn) {
+      relicRerollBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        window.SocketService.rerollPrep();
+      });
+    }
+    const packRerollBtn = document.getElementById('pack-reroll-btn');
+    if (packRerollBtn) {
+      packRerollBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        window.SocketService.rerollPrep();
+      });
+    }
+
     // Rematch button click handler
     const rematchBtn = document.getElementById('rematch-btn');
     if (rematchBtn) {
@@ -1496,6 +1512,17 @@ const GameManager = {
       confirmBtn.disabled = true;
     }
 
+    const rerollsVal = document.getElementById('relic-rerolls-val');
+    const rerollBtn = document.getElementById('relic-reroll-btn');
+    if (rerollsVal) {
+      rerollsVal.innerText = data.prepRerollsLeft !== undefined ? data.prepRerollsLeft : 1;
+    }
+    if (rerollBtn) {
+      const canReroll = data.prepRerollsLeft > 0;
+      rerollBtn.disabled = !canReroll;
+      rerollBtn.classList.toggle('disabled', !canReroll);
+    }
+
     const subtitleEl = document.getElementById('relic-selection-subtitle');
     if (subtitleEl && data.questText) {
       subtitleEl.innerHTML = `QUEST REWARD FOR: <span class="accent-text" style="color: #ffd700;">${data.questText}</span>`;
@@ -1515,6 +1542,10 @@ const GameManager = {
   onRelicChosen(data) {
     const UI = window.UI;
     UI.showToast(`Selected Relic: ${data.name}!`);
+  },
+
+  onRelicTriggered(data) {
+    window.UI.showToast(data.message || `${data.relicName} triggered!`);
   },
 
   onWaitingForOpponentRelicChoice() {
@@ -1899,6 +1930,17 @@ const GameManager = {
   triggerPackSelectionStart(data) {
     const UI = window.UI;
     UI.packsSelectionGrid.innerHTML = '';
+
+    const rerollsVal = document.getElementById('pack-rerolls-val');
+    const rerollBtn = document.getElementById('pack-reroll-btn');
+    if (rerollsVal) {
+      rerollsVal.innerText = data.prepRerollsLeft !== undefined ? data.prepRerollsLeft : 1;
+    }
+    if (rerollBtn) {
+      const canReroll = data.prepRerollsLeft > 0;
+      rerollBtn.disabled = !canReroll;
+      rerollBtn.classList.toggle('disabled', !canReroll);
+    }
 
     data.packs.forEach(pack => {
       const packEl = document.createElement('div');

@@ -40,6 +40,8 @@ function createRoom(roomId, player1, player2, io) {
         points: 0,
         statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0 },
         relics: {},
+        phoenixUsedThisRound: false,
+        prepRerollsLeft: 0,
         activeQuest: null,
         questProgress: 0,
         questRerollCount: 0,
@@ -63,6 +65,8 @@ function createRoom(roomId, player1, player2, io) {
         points: 0,
         statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0 },
         relics: {},
+        phoenixUsedThisRound: false,
+        prepRerollsLeft: 0,
         activeQuest: null,
         questProgress: 0,
         questRerollCount: 0,
@@ -452,6 +456,30 @@ function resolveRound(roomId, io) {
   p1.hp = Math.max(0, Math.min(p1.maxHp, p1.hp - result.hpDamageA + result.healGainA));
   p2.hp = Math.max(0, Math.min(p2.maxHp, p2.hp - result.hpDamageB + result.healGainB));
 
+  // Purifying Amulet & Briar Armor (Clash HP Damage)
+  if (result.hpDamageA > 0) {
+    if ((p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
+      p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
+      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
+    }
+    if ((p1.relics.relic_spite_thorns_rare || 0) > 0) {
+      const thorns = 3 * p1.relics.relic_spite_thorns_rare;
+      p2.hp = Math.max(0, p2.hp - thorns);
+      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Briar Armor', message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!` });
+    }
+  }
+  if (result.hpDamageB > 0) {
+    if ((p2.relics.relic_reactive_cleanse_legendary || 0) > 0) {
+      p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
+      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
+    }
+    if ((p2.relics.relic_spite_thorns_rare || 0) > 0) {
+      const thorns = 3 * p2.relics.relic_spite_thorns_rare;
+      p1.hp = Math.max(0, p1.hp - thorns);
+      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Briar Armor', message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!` });
+    }
+  }
+
   // Helper to apply status to a player (Buff and Weakness capping at 5 removed)
   const applyStatusToPlayer = (player, statusObj) => {
     if (!statusObj) return;
@@ -579,6 +607,45 @@ function resolveRound(roomId, io) {
     p2PoisonTick = p2.statuses.poison * (1 + toxicVal);
     p2.hp = Math.max(0, p2.hp - p2PoisonTick);
     p2.statuses.poison = Math.max(0, p2.statuses.poison - 1);
+  }
+
+  // Purifying Amulet & Briar Armor (Status Tick HP Damage)
+  const p1StatusHpDmg = p1BurnHpDmg + p1PoisonTick;
+  if (p1StatusHpDmg > 0) {
+    if ((p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
+      p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
+      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
+    }
+    if ((p1.relics.relic_spite_thorns_rare || 0) > 0) {
+      const thorns = 3 * p1.relics.relic_spite_thorns_rare;
+      p2.hp = Math.max(0, p2.hp - thorns);
+      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Briar Armor', message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!` });
+    }
+  }
+
+  const p2StatusHpDmg = p2BurnHpDmg + p2PoisonTick;
+  if (p2StatusHpDmg > 0) {
+    if ((p2.relics.relic_reactive_cleanse_legendary || 0) > 0) {
+      p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
+      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
+    }
+    if ((p2.relics.relic_spite_thorns_rare || 0) > 0) {
+      const thorns = 3 * p2.relics.relic_spite_thorns_rare;
+      p1.hp = Math.max(0, p1.hp - thorns);
+      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Briar Armor', message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!` });
+    }
+  }
+
+  // Phoenix Heart check: if HP drops to 0 or below, resurrect once per round
+  if (p1.hp <= 0 && (p1.relics.relic_phoenix_down_legendary || 0) > 0 && !p1.phoenixUsedThisRound) {
+    p1.hp = 30;
+    p1.phoenixUsedThisRound = true;
+    io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Phoenix Heart', message: `${p1.username}'s Phoenix Heart activated!` });
+  }
+  if (p2.hp <= 0 && (p2.relics.relic_phoenix_down_legendary || 0) > 0 && !p2.phoenixUsedThisRound) {
+    p2.hp = 30;
+    p2.phoenixUsedThisRound = true;
+    io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Phoenix Heart', message: `${p2.username}'s Phoenix Heart activated!` });
   }
 
   // Store intermediate shield values before decay (after clash and status ticks)
@@ -1081,6 +1148,8 @@ function handleRequestRematch(socket, io) {
     p1.selectedCardId = null;
     p1.locked = false;
     p1.relics = {};
+    p1.phoenixUsedThisRound = false;
+    p1.prepRerollsLeft = 0;
     p1.activeQuest = null;
     p1.questProgress = 0;
     p1.questRerollCount = 0;
@@ -1100,6 +1169,8 @@ function handleRequestRematch(socket, io) {
     p2.selectedCardId = null;
     p2.locked = false;
     p2.relics = {};
+    p2.phoenixUsedThisRound = false;
+    p2.prepRerollsLeft = 0;
     p2.activeQuest = null;
     p2.questProgress = 0;
     p2.questRerollCount = 0;
@@ -1288,6 +1359,7 @@ module.exports = {
   handleRemoveCard,
   handleSkipCardRemoval,
   handleSelectRelic,
+  handleRerollPrep,
   rooms,
   playerToRoom,
   updateQuestProgress
@@ -1441,6 +1513,7 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
 
         [p1, p2].forEach(p => {
           p.prepQueue = [];
+          p.prepRerollsLeft = 1 + (p.relics.relic_prep_reroll_common || 0);
 
           // 1. Relic Choice
           if (p.pendingRelicChoice) {
@@ -1541,6 +1614,42 @@ function handleSelectRelic(socket, relicId, io) {
 }
 
 /**
+ * Handles prep phase rerolling of relics or packs
+ */
+function handleRerollPrep(socket, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'PREPARATION_PHASE') return;
+  const player = room.players[socket.id];
+  if (!player || player.prepFinished) return;
+  if (!player.prepRerollsLeft || player.prepRerollsLeft <= 0) return;
+  
+  const currentStep = player.prepQueue[0];
+  if (!currentStep) return;
+  
+  player.prepRerollsLeft -= 1;
+  
+  if (currentStep.type === 'RELIC_CHOICE') {
+    const relicsOfQuality = Object.values(RELIC_POOL).filter(r => r.quality === currentStep.quality);
+    const shuffled = [...relicsOfQuality].sort(() => 0.5 - Math.random());
+    const options = shuffled.slice(0, Math.min(3, shuffled.length));
+    currentStep.options = options.map(o => o.id);
+    player.socket.emit('relicChoiceStart', {
+      quality: currentStep.quality,
+      options: options,
+      questText: currentStep.questText,
+      prepRerollsLeft: player.prepRerollsLeft
+    });
+  } else if (currentStep.type === 'PACK_SELECTION') {
+    currentStep.options = generatePacks(3);
+    player.socket.emit('packSelectionStart', {
+      packs: currentStep.options.map(p => ({ id: p, ...PACK_POOL[p] })),
+      prepRerollsLeft: player.prepRerollsLeft
+    });
+  }
+}
+
+/**
  * Helper to advance a player's preparation session queue
  */
 function advancePlayerPrepQueue(player, room, io) {
@@ -1567,7 +1676,8 @@ function advancePlayerPrepQueue(player, room, io) {
     player.socket.emit('relicChoiceStart', {
       quality: nextStep.quality,
       options: nextStep.options.map(id => RELIC_POOL[id]),
-      questText: nextStep.questText
+      questText: nextStep.questText,
+      prepRerollsLeft: player.prepRerollsLeft
     });
   } else if (nextStep.type === 'CARD_REMOVAL') {
     player.socket.emit('cardRemovalStart', {
@@ -1580,7 +1690,8 @@ function advancePlayerPrepQueue(player, room, io) {
     });
   } else if (nextStep.type === 'PACK_SELECTION') {
     player.socket.emit('packSelectionStart', {
-      packs: nextStep.options.map(p => ({ id: p, ...PACK_POOL[p] }))
+      packs: nextStep.options.map(p => ({ id: p, ...PACK_POOL[p] })),
+      prepRerollsLeft: player.prepRerollsLeft
     });
   } else if (nextStep.type === 'PACK_REVEAL') {
     player.socket.emit('packRevealStart', {
@@ -1694,6 +1805,9 @@ function proceedToQuestPhase(room, io) {
   p2.hp = p2.maxHp;
   p1.shield = 0;
   p2.shield = 0;
+
+  p1.phoenixUsedThisRound = false;
+  p2.phoenixUsedThisRound = false;
 
   p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 1, weakness: 0 };
   p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 1, weakness: 0 };

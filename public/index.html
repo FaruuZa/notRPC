@@ -366,6 +366,13 @@
       <div class="packs-grid" id="packs-selection-grid">
         <!-- 3 packs with rich graphics will be rendered here -->
       </div>
+
+      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; width: 100%; margin-top: 2rem;">
+        <div class="prep-reroll-info" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+          <span style="font-size: 0.9rem; opacity: 0.8;">Rerolls: <strong id="pack-rerolls-val" style="color: #f5cf70;">1</strong></span>
+          <button id="pack-reroll-btn" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">REROLL PACKS</button>
+        </div>
+      </footer>
     </div>
   </div>
 
@@ -661,7 +668,11 @@
         <!-- 3 relics to choose from -->
       </div>
       
-      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; width: 100%;">
+      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; width: 100%;">
+        <div class="prep-reroll-info" style="display: flex; align-items: center; gap: 0.5rem; margin-right: auto; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+          <span style="font-size: 0.9rem; opacity: 0.8;">Rerolls: <strong id="relic-rerolls-val" style="color: #f5cf70;">1</strong></span>
+          <button id="relic-reroll-btn" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">REROLL</button>
+        </div>
         <button id="relic-confirm-btn" class="btn btn-primary disabled" disabled style="min-width: 180px;">
           CONFIRM CHOICE
         </button>

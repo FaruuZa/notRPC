@@ -357,17 +357,59 @@ const RELIC_DATABASE = {
     icon: 'fa-heart-circle-bolt',
     description: 'Permanent +40 Max HP and HP per stack.'
   },
-  relic_shield_regen_epic: {
+  relic_shield_regen_legendary: {
     name: 'Aegis Shield',
-    quality: 'EPIC',
+    quality: 'LEGENDARY',
     icon: 'fa-shield-halved',
-    description: 'At the start of each turn: gain 8 Shield per stack.'
+    description: 'At the start of each turn: gain 10 Shield per stack.'
   },
   relic_focused_soul: {
     name: 'Focused Soul',
     quality: 'EPIC',
     icon: 'fa-bolt',
     description: 'At the start of each round: gain 1 Attack Buff per stack.'
+  },
+  relic_prep_reroll_common: {
+    name: 'Temporal Hourglass',
+    quality: 'COMMON',
+    icon: 'fa-hourglass-half',
+    description: 'Gain +1 Prep Phase Reroll charge each preparation phase per stack.'
+  },
+  relic_shield_piercer_rare: {
+    name: 'Shield Piercer',
+    quality: 'RARE',
+    icon: 'fa-shield-xmark',
+    description: 'When dealing clash damage to shielded opponent: +4 extra damage per stack.'
+  },
+  relic_shield_piercer_epic: {
+    name: 'Shard Piercer',
+    quality: 'EPIC',
+    icon: 'fa-shield-xmark',
+    description: 'When dealing clash damage to shielded opponent: +8 extra damage per stack.'
+  },
+  relic_shield_piercer_legendary: {
+    name: 'Nullifier Edge',
+    quality: 'LEGENDARY',
+    icon: 'fa-shield-xmark',
+    description: 'When dealing clash damage to shielded opponent: +15 extra damage per stack.'
+  },
+  relic_reactive_cleanse_legendary: {
+    name: 'Purifying Amulet',
+    quality: 'LEGENDARY',
+    icon: 'fa-hands-holding',
+    description: 'When you take HP damage: instantly cleanse all Poison, Burn, and Weakness.'
+  },
+  relic_spite_thorns_rare: {
+    name: 'Briar Armor',
+    quality: 'RARE',
+    icon: 'fa-swords',
+    description: 'When you take HP damage: deal 3 true damage to opponent per stack.'
+  },
+  relic_phoenix_down_legendary: {
+    name: 'Phoenix Heart',
+    quality: 'LEGENDARY',
+    icon: 'fa-fire-flame-simple',
+    description: 'Once per round: when HP drops to 0, restore HP to 30 instead.'
   }
 };
 
@@ -1500,7 +1542,15 @@ const UI = {
       return;
     }
     
-    filtered.forEach(card => {
+    const ELEMENT_ORDER = ['FIRE', 'WATER', 'NATURE', 'NEUTRAL', 'CHAOS'];
+    const sorted = [...filtered].sort((a, b) => {
+      const ea = ELEMENT_ORDER.indexOf(a.element);
+      const eb = ELEMENT_ORDER.indexOf(b.element);
+      if (ea !== eb) return ea - eb;
+      return a.name.localeCompare(b.name);
+    });
+    
+    sorted.forEach(card => {
       // Create standard in-game card element
       const cardEl = this.createCardElement(card);
       
@@ -1544,7 +1594,15 @@ const UI = {
       return;
     }
     
-    relics.forEach(relic => {
+    const QUALITY_ORDER = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY'];
+    const sortedRelics = [...relics].sort((a, b) => {
+      const qa = QUALITY_ORDER.indexOf(a.quality);
+      const qb = QUALITY_ORDER.indexOf(b.quality);
+      if (qa !== qb) return qa - qb;
+      return a.name.localeCompare(b.name);
+    });
+    
+    sortedRelics.forEach(relic => {
       const itemEl = document.createElement('div');
       itemEl.className = `compendium-relic-item ${relic.quality}`;
       

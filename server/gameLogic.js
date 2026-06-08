@@ -365,6 +365,19 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
     selfDamageB += 3 * (relicsB.chaos_engine || 0);
   }
 
+  // 5. Shield Piercer bonus damage (when opponent has shield at start of clash or gains shield this turn)
+  // Only triggers if attacker has base damage > 0 and opponent had shield (or gains shield)
+  if (damageDealtByA > 0 && (shieldB > 0 || shieldGainB > 0)) {
+    damageDealtByA += 5 * (relicsA.relic_shield_piercer_rare || 0);
+    damageDealtByA += 10 * (relicsA.relic_shield_piercer_epic || 0);
+    damageDealtByA += 15 * (relicsA.relic_shield_piercer_legendary || 0);
+  }
+  if (damageDealtByB > 0 && (shieldA > 0 || shieldGainA > 0)) {
+    damageDealtByB += 5 * (relicsB.relic_shield_piercer_rare || 0);
+    damageDealtByB += 10 * (relicsB.relic_shield_piercer_epic || 0);
+    damageDealtByB += 15 * (relicsB.relic_shield_piercer_legendary || 0);
+  }
+
   // Apply active attack-modifying statuses (Attack Buff / Weakness)
   const buffA = statusesA ? (statusesA.attackBuff || 0) : 0;
   const weakA = statusesA ? (statusesA.weakness || 0) : 0;
@@ -375,6 +388,7 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   const weakB = statusesB ? (statusesB.weakness || 0) : 0;
   const netModifierB = (buffB - weakB) * 0.1;
   damageDealtByB = Math.max(0, Math.round(damageDealtByB * (1 + netModifierB)));
+
   
   // Buffs/Shields first: calculate temp shield
   const tempShieldA = shieldA + shieldGainA;
