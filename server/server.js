@@ -9,8 +9,14 @@ const roomManager = require('./roomManager');
 
 const app = express();
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static files from the public directory with no-cache headers for Discord Activity
+app.use(express.static(path.join(__dirname, '../public'), {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
+}));
 
 // Endpoint to provide public config (Discord Client ID, etc.) to client frontend
 app.get('/api/config', (req, res) => {
