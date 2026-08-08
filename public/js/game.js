@@ -57,15 +57,22 @@ const GameManager = {
     const UI = window.UI;
 
     // Play button triggers matchmaking
-    if (UI.playBtn) {
-      UI.playBtn.addEventListener('click', () => {
-        const username = UI.usernameInput ? UI.usernameInput.value.trim() : '';
+    const playBtnEl = document.getElementById('play-btn');
+    if (playBtnEl) {
+      const handlePlayClick = (e) => {
+        console.log('[GameManager] Play button clicked!');
+        const usernameInput = document.getElementById('username-input');
+        const username = usernameInput ? usernameInput.value.trim() : '';
         this.myName = username || 'Player';
         
         // Unlock AudioContext on user gesture
         if (window.AudioSynth) {
-          window.AudioSynth.init();
-          window.AudioSynth.playClick();
+          try {
+            window.AudioSynth.init();
+            window.AudioSynth.playClick();
+          } catch (audioErr) {
+            console.warn('[AudioSynth Warning]', audioErr);
+          }
         }
         
         // Request immersive fullscreen on mobile to hide toolbars
@@ -73,8 +80,6 @@ const GameManager = {
           const docEl = document.documentElement;
           if (docEl && docEl.requestFullscreen) {
             docEl.requestFullscreen().catch(() => {});
-          } else if (docEl && docEl.webkitRequestFullscreen) {
-            docEl.webkitRequestFullscreen();
           }
         } catch (e) {
           console.warn('Fullscreen request blocked or unsupported:', e);
@@ -86,12 +91,19 @@ const GameManager = {
         }
         
         // Update UI matching controls
-        if (UI.usernameInput) UI.usernameInput.disabled = true;
-        if (UI.playBtn) UI.playBtn.classList.add('hidden');
-        if (UI.leaveQueueBtn) UI.leaveQueueBtn.classList.remove('hidden');
-        if (UI.queueStatusSub) UI.queueStatusSub.classList.remove('hidden');
-        if (UI.statusText) UI.statusText.innerText = 'Searching for an opponent...';
-      });
+        const leaveQueueBtn = document.getElementById('leave-queue-btn');
+        const queueStatusSub = document.getElementById('queue-status-sub');
+        const statusText = document.getElementById('status-text');
+
+        if (usernameInput) usernameInput.disabled = true;
+        playBtnEl.classList.add('hidden');
+        if (leaveQueueBtn) leaveQueueBtn.classList.remove('hidden');
+        if (queueStatusSub) queueStatusSub.classList.remove('hidden');
+        if (statusText) statusText.innerText = 'Searching for an opponent...';
+      };
+
+      playBtnEl.addEventListener('click', handlePlayClick);
+      playBtnEl.onclick = handlePlayClick;
     }
 
     // Leave queue button triggers matchmaking cancellation
