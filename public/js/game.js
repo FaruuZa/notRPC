@@ -57,54 +57,64 @@ const GameManager = {
     const UI = window.UI;
 
     // Play button triggers matchmaking
-    UI.playBtn.addEventListener('click', () => {
-      const username = UI.usernameInput.value.trim();
-      this.myName = username || 'Player';
-      
-      // Unlock AudioContext on user gesture
-      window.AudioSynth.init();
-      window.AudioSynth.playClick();
-      
-      // Request immersive fullscreen on mobile to hide toolbars
-      try {
-        const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen().catch(() => {});
-        } else if (docEl.webkitRequestFullscreen) {
-          docEl.webkitRequestFullscreen();
+    if (UI.playBtn) {
+      UI.playBtn.addEventListener('click', () => {
+        const username = UI.usernameInput ? UI.usernameInput.value.trim() : '';
+        this.myName = username || 'Player';
+        
+        // Unlock AudioContext on user gesture
+        if (window.AudioSynth) {
+          window.AudioSynth.init();
+          window.AudioSynth.playClick();
         }
-      } catch (e) {
-        console.warn('Fullscreen request blocked or unsupported:', e);
-      }
-      
-      // Submit connection queue
-      window.SocketService.joinQueue(this.myName);
-      
-      // Update UI matching controls
-      UI.usernameInput.disabled = true;
-      UI.playBtn.classList.add('hidden');
-      UI.leaveQueueBtn.classList.remove('hidden');
-      UI.queueStatusSub.classList.remove('hidden');
-      UI.statusText.innerText = 'Searching for an opponent...';
-    });
+        
+        // Request immersive fullscreen on mobile to hide toolbars
+        try {
+          const docEl = document.documentElement;
+          if (docEl && docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => {});
+          } else if (docEl && docEl.webkitRequestFullscreen) {
+            docEl.webkitRequestFullscreen();
+          }
+        } catch (e) {
+          console.warn('Fullscreen request blocked or unsupported:', e);
+        }
+        
+        // Submit connection queue
+        if (window.SocketService) {
+          window.SocketService.joinQueue(this.myName);
+        }
+        
+        // Update UI matching controls
+        if (UI.usernameInput) UI.usernameInput.disabled = true;
+        if (UI.playBtn) UI.playBtn.classList.add('hidden');
+        if (UI.leaveQueueBtn) UI.leaveQueueBtn.classList.remove('hidden');
+        if (UI.queueStatusSub) UI.queueStatusSub.classList.remove('hidden');
+        if (UI.statusText) UI.statusText.innerText = 'Searching for an opponent...';
+      });
+    }
 
     // Leave queue button triggers matchmaking cancellation
-    UI.leaveQueueBtn.addEventListener('click', () => {
-      window.AudioSynth.playClick();
-      window.SocketService.leaveQueue();
-      
-      // Reset matching controls
-      UI.usernameInput.disabled = false;
-      UI.playBtn.classList.remove('hidden');
-      UI.leaveQueueBtn.classList.add('hidden');
-      UI.queueStatusSub.classList.add('hidden');
-      UI.statusText.innerText = 'Ready to enter the arena...';
-    });
+    if (UI.leaveQueueBtn) {
+      UI.leaveQueueBtn.addEventListener('click', () => {
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        if (window.SocketService) window.SocketService.leaveQueue();
+        
+        // Reset matching controls
+        if (UI.usernameInput) UI.usernameInput.disabled = false;
+        if (UI.playBtn) UI.playBtn.classList.remove('hidden');
+        if (UI.leaveQueueBtn) UI.leaveQueueBtn.classList.add('hidden');
+        if (UI.queueStatusSub) UI.queueStatusSub.classList.add('hidden');
+        if (UI.statusText) UI.statusText.innerText = 'Ready to enter the arena...';
+      });
+    }
 
     // Lock selection button
-    UI.lockBtn.addEventListener('click', () => {
-      UI.lockSelection();
-    });
+    if (UI.lockBtn) {
+      UI.lockBtn.addEventListener('click', () => {
+        UI.lockSelection();
+      });
+    }
 
     // Element legend toggle button
     const legendBtn = document.getElementById('element-legend-btn');
@@ -150,10 +160,12 @@ const GameManager = {
     }
 
     // Game over replay return button
-    UI.goLobbyBtn.addEventListener('click', () => {
-      window.AudioSynth.playClick();
-      this.resetLobby();
-    });
+    if (UI.goLobbyBtn) {
+      UI.goLobbyBtn.addEventListener('click', () => {
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        this.resetLobby();
+      });
+    }
 
     // Surrender button click handler
     const surrenderBtn = document.getElementById('surrender-btn');
