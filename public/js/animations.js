@@ -538,6 +538,7 @@ const Animations = {
    * Floating logo hover effects
    */
   animateLogoPulse() {
+    if (typeof anime === 'undefined') return;
     anime({
       targets: '.animate-logo',
       translateY: [-1, 1],

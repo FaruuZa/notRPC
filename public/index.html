@@ -692,13 +692,11 @@
     <i class="fa-solid fa-clock"></i> TIME REMAINING: <span id="global-prep-timer-val">30</span>s
   </div>
 
-  <!-- Discord Embedded App SDK CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@discord/embedded-app-sdk@1.4.0/dist/index.global.js"></script>
-
-  <!-- Socket.io & Anime.js & Howler.js scripts from CDNs -->
+  <!-- Local Vendor Scripts (Bypasses Discord Activity CSP Restrictions) -->
+  <script src="js/vendor/discord-sdk.js"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  <script src="js/vendor/anime.min.js"></script>
+  <script src="js/vendor/howler.min.js"></script>
   
   <!-- Client Application scripts -->
   <script src="js/socket.js"></script>
