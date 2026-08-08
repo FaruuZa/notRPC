@@ -57,11 +57,17 @@ window.discordApp = {
 };
 
 // Initialize Discord SDK safely when DOM content is loaded
-document.addEventListener('DOMContentLoaded', () => {
+function startDiscordSdk() {
   if (window.discordApp) {
     window.discordApp.init().catch(err => console.warn('[Discord SDK Error]', err));
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startDiscordSdk);
+} else {
+  startDiscordSdk();
+}
 
 // Listen for connection status
 socket.on('connect', () => {

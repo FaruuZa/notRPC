@@ -2460,8 +2460,14 @@ document.addEventListener('pointerdown', (e) => {
   }
 }, { passive: true });
 
-// Bind to window load
-window.addEventListener('DOMContentLoaded', () => {
+// Bind to window load safely (handles cases where DOM is already interactive/complete)
+function initGame() {
   window.gameManager = GameManager;
   GameManager.init();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGame);
+} else {
+  initGame();
+}
