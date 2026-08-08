@@ -1,30 +1,47 @@
+require('dotenv').config();
 const express = require('express');
-  const path = require('path');
-  const { PORT, CARD_POOL } = require('./constants');
-  const { RELIC_POOL } = require('./relics');
-  const { QUEST_TEMPLATES } = require('./quests');
-  const matchmaking = require('./matchmaking');
-  const roomManager = require('./roomManager');
-  
-  const app = express();
-  
-  // Serve static files from the public directory
-  app.use(express.static(path.join(__dirname, '../public')));
-  
-  // Redirect root to index.html
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+const path = require('path');
+const { PORT, CARD_POOL } = require('./constants');
+const { RELIC_POOL } = require('./relics');
+const { QUEST_TEMPLATES } = require('./quests');
+const matchmaking = require('./matchmaking');
+const roomManager = require('./roomManager');
+
+const app = express();
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Endpoint to provide public config (Discord Client ID, etc.) to client frontend
+app.get('/api/config', (req, res) => {
+  res.json({
+    discordClientId: process.env.DISCORD_CLIENT_ID || '',
+    publicServerUrl: process.env.PUBLIC_SERVER_URL || ''
   });
-  
-  // Start server on port 8000 (specified in constants and required)
-  const server = app.listen(PORT, () => {
-    console.log(`====================================================`);
-    console.log(`Server is running at http://localhost:${PORT}`);
-    console.log(`====================================================`);
-  });
-  
-  // Attach Socket.IO to the Express server
-  const io = require('socket.io')(server);
+});
+
+// Redirect root to index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// Start server
+const server = app.listen(PORT, () => {
+  console.log(`====================================================`);
+  console.log(`Server is running at http://localhost:${PORT}`);
+  if (process.env.DISCORD_CLIENT_ID) {
+    console.log(`Discord Client ID configured.`);
+  }
+  console.log(`====================================================`);
+});
+
+// Attach Socket.IO to the Express server with CORS enabled for Discord Activity & Proxy
+const io = require('socket.io')(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
   
   // Handle new Socket.IO connections
   io.on('connection', (socket) => {

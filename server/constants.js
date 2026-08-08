@@ -1,4 +1,4 @@
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 const MAX_HP = 100;
 const HAND_SIZE = 4;
 

@@ -2,8 +2,65 @@
  * ELEMENT CLASH: SOCKET CONNECTIONS & EVENTS
  */
 
-// Initialize Socket.IO Client connection
-const socket = io();
+// Detect Discord Activity Environment (discordsays.com domain)
+const isDiscordActivity = window.location.hostname.includes('discordsays.com');
+
+// Configure Socket.IO connection (Use proxy path if running inside Discord Activity)
+const socketOptions = isDiscordActivity ? {
+  path: '/.proxy/socket.io',
+  transports: ['websocket', 'polling']
+} : {};
+
+const socket = io(socketOptions);
+
+// Discord Activity SDK Helper
+window.discordApp = {
+  isActivity: isDiscordActivity,
+  sdk: null,
+  user: null,
+  async init() {
+    if (!window.DiscordSDK) {
+      console.log('[Discord SDK] Discord Embedded App SDK not loaded.');
+      return;
+    }
+
+    try {
+      // Fetch server configuration
+      const res = await fetch('/api/config');
+      const config = await res.json();
+      
+      if (!config.discordClientId) {
+        console.log('[Discord SDK] Running without DISCORD_CLIENT_ID (standalone mode).');
+        return;
+      }
+
+      const { DiscordSDK } = window.DiscordSDK;
+      this.sdk = new DiscordSDK(config.discordClientId);
+      await this.sdk.ready();
+      console.log('[Discord SDK] Discord SDK Ready!');
+
+      // Authorize Activity
+      const { code } = await this.sdk.commands.authorize({
+        client_id: config.discordClientId,
+        response_type: 'code',
+        state: '',
+        prompt: 'none',
+        scope: ['identify', 'guilds']
+      });
+
+      console.log('[Discord SDK] Discord Activity Authorized.');
+    } catch (err) {
+      console.warn('[Discord SDK] Init status:', err.message || err);
+    }
+  }
+};
+
+// Initialize Discord SDK when DOM content is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.discordApp) {
+    window.discordApp.init();
+  }
+});
 
 // Listen for connection status
 socket.on('connect', () => {
