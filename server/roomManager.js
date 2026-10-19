@@ -7,14 +7,19 @@ const {
   generatePackCards,
   generateBonusPickCards
 } = require('./gameLogic');
-const { generatePlayerQuests } = require('./quests');
+const { generatePlayerQuests, generateMatchRaritySchedule } = require('./quests');
 const { RELIC_POOL } = require('./relics');
+
+const auth = require('./auth');
 
 // Active game rooms map: roomId -> roomState
 const rooms = {};
 
 // Socket ID to Room ID lookup map: socketId -> roomId
 const playerToRoom = {};
+
+// User ID to Room ID lookup map: userId -> roomId
+const userToRoom = {};
 
 /**
  * Creates and initializes a new game room, launching the Battle directly with starter decks
@@ -28,6 +33,7 @@ function createRoom(roomId, player1, player2, io) {
     players: {
       [player1.socketId]: {
         id: player1.socketId,
+        userId: player1.userId || player1.socketId,
         username: player1.username,
         socket: player1.socket,
         hp: MAX_HP,
@@ -47,12 +53,13 @@ function createRoom(roomId, player1, player2, io) {
         questRerollCount: 0,
         questLocked: false,
         offeredQuests: [],
-        pendingRemoveCardCount: 0,
+        removalTokens: 0,
         pendingBonusDraft: false,
         pendingRewardNotification: null
       },
       [player2.socketId]: {
         id: player2.socketId,
+        userId: player2.userId || player2.socketId,
         username: player2.username,
         socket: player2.socket,
         hp: MAX_HP,
@@ -72,18 +79,22 @@ function createRoom(roomId, player1, player2, io) {
         questRerollCount: 0,
         questLocked: false,
         offeredQuests: [],
-        pendingRemoveCardCount: 0,
+        removalTokens: 0,
         pendingBonusDraft: false,
         pendingRewardNotification: null
       }
     },
+    reconnectTimers: {},
     round: 1,
+    raritySchedule: generateMatchRaritySchedule(10),
     state: 'QUEST_PHASE'
   };
 
-  // Map sockets to room
+  // Map sockets and userIds to room
   playerToRoom[player1.socketId] = roomId;
   playerToRoom[player2.socketId] = roomId;
+  if (player1.userId) userToRoom[player1.userId] = roomId;
+  if (player2.userId) userToRoom[player2.userId] = roomId;
 
   console.log(`[RoomManager] Room ${roomId} created. Starting Quest Selection Phase...`);
 
@@ -101,12 +112,17 @@ function startQuestSelectionPhase(roomId, io) {
   if (!room || room.state === 'OVER') return;
 
   room.state = 'QUEST_PHASE';
-  console.log(`[RoomManager] Room ${roomId}: starting Quest Phase`);
+  console.log(`[RoomManager] Room ${roomId}: starting Quest Phase for round ${room.round}`);
+
+  const roundNum = room.round || 1;
+  const baseDifficulty = (room.raritySchedule && room.raritySchedule[roundNum]) || 'MEDIUM';
+  const elevatedDifficulty = baseDifficulty === 'EASY' ? 'MEDIUM' : 'HARD';
+  const targetRarities = [baseDifficulty, baseDifficulty, elevatedDifficulty];
 
   const playerIds = Object.keys(room.players);
   playerIds.forEach(id => {
     const p = room.players[id];
-    p.offeredQuests = generatePlayerQuests(p.deck);
+    p.offeredQuests = generatePlayerQuests(p.deck, targetRarities);
     p.questRerollCount = 0;
     p.questLocked = false;
     p.activeQuest = null;
@@ -165,8 +181,13 @@ function handleRerollQuests(socket, io) {
   const player = room.players[socket.id];
   if (player.questLocked || player.questRerollCount >= 1) return;
 
+  const roundNum = room.round || 1;
+  const baseDifficulty = (room.raritySchedule && room.raritySchedule[roundNum]) || 'MEDIUM';
+  const elevatedDifficulty = baseDifficulty === 'EASY' ? 'MEDIUM' : 'HARD';
+  const targetRarities = [baseDifficulty, baseDifficulty, elevatedDifficulty];
+
   player.questRerollCount += 1;
-  player.offeredQuests = generatePlayerQuests(player.deck);
+  player.offeredQuests = generatePlayerQuests(player.deck, targetRarities);
 
   console.log(`[RoomManager] Player ${player.username} rerolled quests.`);
   socket.emit('questSelectionStart', {
@@ -241,6 +262,7 @@ function startRound(roomId, io) {
       points: p1.points, 
       deck: p1.deck,
       relics: p1.relics,
+      removalTokens: p1.removalTokens || 0,
       activeQuest: p1.activeQuest ? { ...p1.activeQuest, progress: p1.questProgress } : null
     },
     opponentStatus: { 
@@ -267,6 +289,7 @@ function startRound(roomId, io) {
       points: p2.points, 
       deck: p2.deck,
       relics: p2.relics,
+      removalTokens: p2.removalTokens || 0,
       activeQuest: p2.activeQuest ? { ...p2.activeQuest, progress: p2.questProgress } : null
     },
     opponentStatus: { 
@@ -1002,48 +1025,174 @@ function handlePackRevealConfirm(socket, io) {
 }
 
 /**
- * Handles player disconnections during an active battle room
+ * Handles player disconnections with a 30s grace reconnect period
  */
 function handleDisconnect(socket, io) {
-  const roomId = playerToRoom[socket.id];
+  let roomId = playerToRoom[socket.id];
+  if (!roomId && socket.user?.userId) {
+    roomId = userToRoom[socket.user.userId];
+  }
   if (!roomId) return;
 
   const room = rooms[roomId];
-  if (!room) return;
+  if (!room || room.state === 'OVER') return;
 
-  console.log(`[RoomManager] Player ${socket.id} disconnected from Room ${roomId}. Ending match.`);
+  const player = room.players[socket.id];
+  if (!player) return;
 
-  if (room.draftTimer) {
-    clearInterval(room.draftTimer);
-  }
-  if (room.nextRoundTimeout) {
-    clearTimeout(room.nextRoundTimeout);
-  }
-  if (room.prepTimer) {
-    clearInterval(room.prepTimer);
-    room.prepTimer = null;
-  }
+  console.log(`[RoomManager] Player ${player.username} (${socket.id}) disconnected from Room ${roomId}. Starting 30s reconnect grace timer...`);
+  player.isDisconnected = true;
 
   const opponentId = Object.keys(room.players).find(id => id !== socket.id);
   const opponent = room.players[opponentId];
 
-  room.state = 'OVER';
-
-  if (opponent) {
-    opponent.socket.emit('playerDisconnected', {
-      disconnectedPlayerName: room.players[socket.id].username
+  if (opponent && opponent.socket) {
+    opponent.socket.emit('opponentDisconnected', {
+      disconnectedPlayerName: player.username,
+      timeoutSeconds: 30
     });
-    
-    opponent.socket.emit('gameOver', {
-      winnerId: opponentId,
-      reason: 'opponent_disconnected',
-      winnerName: opponent.username
-    });
-
-    opponent.socket.leave(roomId);
   }
 
-  cleanupRoom(roomId);
+  if (!room.reconnectTimers) room.reconnectTimers = {};
+
+  const userIdOrId = player.userId || socket.id;
+
+  if (room.reconnectTimers[userIdOrId]) {
+    clearTimeout(room.reconnectTimers[userIdOrId]);
+  }
+
+  room.reconnectTimers[userIdOrId] = setTimeout(() => {
+    console.log(`[RoomManager] Reconnect timeout reached for ${player.username} in Room ${roomId}. Forfeiting match.`);
+    room.state = 'OVER';
+
+    if (room.draftTimer) clearInterval(room.draftTimer);
+    if (room.nextRoundTimeout) clearTimeout(room.nextRoundTimeout);
+    if (room.prepTimer) clearInterval(room.prepTimer);
+
+    if (opponent && opponent.socket) {
+      opponent.socket.emit('gameOver', {
+        winnerId: opponentId,
+        winnerName: opponent.username,
+        reason: 'opponent_disconnected',
+        score: {
+          [player.id]: player.points,
+          [opponent.id]: opponent.points
+        }
+      });
+      opponent.socket.leave(roomId);
+    }
+
+    recordMatchToDb(room, opponentId, 'opponent_disconnected');
+    cleanupRoom(roomId);
+  }, 30000); // 30 seconds timer
+}
+
+/**
+ * Checks if a connecting socket has a pending room waiting for reconnect
+ */
+function checkPendingReconnect(socket, io) {
+  if (!socket.user?.userId) return;
+  const userId = String(socket.user.userId);
+  const roomId = userToRoom[userId];
+  if (roomId && rooms[roomId] && rooms[roomId].state !== 'OVER') {
+    socket.emit('pendingReconnect', { roomId });
+  }
+}
+
+/**
+ * Handles reconnecting a client socket back to an active match room
+ */
+function handleReconnectMatch(socket, token, io) {
+  const decoded = auth.verifyToken(token);
+  if (!decoded) {
+    socket.emit('reconnectFailed', 'Invalid or expired session token.');
+    return;
+  }
+
+  const userId = String(decoded.userId);
+  const roomId = userToRoom[userId];
+  const room = rooms[roomId];
+
+  if (!room || room.state === 'OVER') {
+    socket.emit('reconnectFailed', 'Game match is no longer active.');
+    return;
+  }
+
+  // Clear disconnect timer
+  if (room.reconnectTimers && (room.reconnectTimers[userId] || room.reconnectTimers[decoded.userId])) {
+    clearTimeout(room.reconnectTimers[userId] || room.reconnectTimers[decoded.userId]);
+    delete room.reconnectTimers[userId];
+    delete room.reconnectTimers[decoded.userId];
+  }
+
+  const oldSocketId = Object.keys(room.players).find(id => 
+    String(room.players[id].userId) === userId || 
+    room.players[id].username?.toLowerCase() === decoded.username?.toLowerCase()
+  );
+  if (!oldSocketId) {
+    socket.emit('reconnectFailed', 'Player data not found in room.');
+    return;
+  }
+
+  const playerObj = room.players[oldSocketId];
+  delete room.players[oldSocketId];
+  delete playerToRoom[oldSocketId];
+
+  // Attach new socket
+  playerObj.id = socket.id;
+  playerObj.socket = socket;
+  playerObj.isDisconnected = false;
+  room.players[socket.id] = playerObj;
+  playerToRoom[socket.id] = roomId;
+
+  socket.join(roomId);
+
+  const opponentId = Object.keys(room.players).find(id => id !== socket.id);
+  const opponent = room.players[opponentId];
+
+  if (opponent && opponent.socket) {
+    opponent.socket.emit('opponentReconnected', {
+      reconnectedPlayerName: playerObj.username
+    });
+  }
+
+  // Ensure offeredQuests is populated if reconnecting during QUEST_PHASE
+  if (room.state === 'QUEST_PHASE' && (!playerObj.offeredQuests || playerObj.offeredQuests.length === 0)) {
+    playerObj.offeredQuests = generatePlayerQuests(playerObj.deck);
+  }
+
+  const payload = {
+    roomId,
+    state: room.state,
+    round: room.round,
+    yourId: socket.id,
+    yourName: playerObj.username,
+    opponentId: opponent ? opponent.id : null,
+    opponentName: opponent ? opponent.username : 'Opponent',
+    yourHp: playerObj.hp,
+    yourMaxHp: playerObj.maxHp,
+    yourShield: playerObj.shield,
+    yourPoints: playerObj.points,
+    yourHand: playerObj.hand || [],
+    yourStatuses: playerObj.statuses || {},
+    yourRelics: playerObj.relics || {},
+    yourActiveQuest: playerObj.activeQuest || null,
+    offeredQuests: playerObj.offeredQuests || [],
+    questLocked: playerObj.questLocked || false,
+    questRerollCount: playerObj.questRerollCount || 0,
+    pendingRelicChoices: playerObj.pendingRelicChoices || [],
+    yourRemovalTokens: playerObj.removalTokens || 0,
+    opponentHp: opponent ? opponent.hp : 100,
+    opponentMaxHp: opponent ? opponent.maxHp : 100,
+    opponentShield: opponent ? opponent.shield : 0,
+    opponentPoints: opponent ? opponent.points : 0,
+    opponentHandCount: opponent ? (opponent.hand ? opponent.hand.length : 0) : 0,
+    opponentStatuses: opponent ? opponent.statuses : {},
+    opponentRelics: opponent ? opponent.relics : {}
+  };
+
+  socket.emit('reconnectSuccess', payload);
+  console.log(`[RoomManager] Player ${playerObj.username} reconnected to Room ${roomId}`);
 }
 
 /**
@@ -1053,18 +1202,13 @@ function cleanupRoom(roomId) {
   const room = rooms[roomId];
   if (!room) return;
 
-  if (room.draftTimer) {
-    clearInterval(room.draftTimer);
-  }
-  if (room.nextRoundTimeout) {
-    clearTimeout(room.nextRoundTimeout);
-  }
-  if (room.prepTimer) {
-    clearInterval(room.prepTimer);
-    room.prepTimer = null;
-  }
+  if (room.draftTimer) clearInterval(room.draftTimer);
+  if (room.nextRoundTimeout) clearTimeout(room.nextRoundTimeout);
+  if (room.prepTimer) clearInterval(room.prepTimer);
 
   Object.keys(room.players).forEach(socketId => {
+    const p = room.players[socketId];
+    if (p && p.userId) delete userToRoom[p.userId];
     delete playerToRoom[socketId];
   });
 
@@ -1073,10 +1217,52 @@ function cleanupRoom(roomId) {
 }
 
 /**
+ * Helper to record match outcome to PostgreSQL database
+ */
+function recordMatchToDb(room, winnerId, endReason) {
+  if (!room || room.dbRecorded) return;
+  room.dbRecorded = true;
+
+  const playerIds = Object.keys(room.players);
+  if (playerIds.length < 2) return;
+
+  const p1 = room.players[playerIds[0]];
+  const p2 = room.players[playerIds[1]];
+
+  const p1UserId = parseInt(p1.userId, 10);
+  const p2UserId = parseInt(p2.userId, 10);
+
+  if (isNaN(p1UserId) || isNaN(p2UserId)) {
+    return; // Guest user
+  }
+
+  let winnerUserId = null;
+  if (winnerId && room.players[winnerId]) {
+    winnerUserId = parseInt(room.players[winnerId].userId, 10);
+    if (isNaN(winnerUserId)) winnerUserId = null;
+  }
+
+  auth.recordMatchResult({
+    p1Id: p1UserId,
+    p2Id: p2UserId,
+    winnerId: winnerUserId,
+    p1Score: p1.points,
+    p2Score: p2.points,
+    endReason: endReason || 'match_finished'
+  }).catch(err => console.error('[RoomManager] DB match record failed:', err));
+}
+
+/**
  * Returns true if player is already inside an active room
  */
-function isPlayerInActiveRoom(socketId) {
-  return !!playerToRoom[socketId];
+function isPlayerInActiveRoom(socketId, userId) {
+  if (playerToRoom[socketId]) return true;
+  if (userId && userToRoom[userId]) {
+    const roomId = userToRoom[userId];
+    const room = rooms[roomId];
+    return room && room.state !== 'OVER';
+  }
+  return false;
 }
 
 /**
@@ -1096,6 +1282,8 @@ function handleSurrender(socket, io) {
 
   room.state = 'OVER';
   const matchWinnerName = room.players[opponentId].username;
+
+  recordMatchToDb(room, opponentId, 'surrender');
 
   io.to(roomId).emit('gameOver', {
     winnerId: opponentId,
@@ -1155,7 +1343,7 @@ function handleRequestRematch(socket, io) {
     p1.questRerollCount = 0;
     p1.questLocked = false;
     p1.offeredQuests = [];
-    p1.pendingRemoveCardCount = 0;
+    p1.removalTokens = 0;
     p1.pendingBonusDraft = false;
     p1.pendingRewardNotification = null;
 
@@ -1176,11 +1364,12 @@ function handleRequestRematch(socket, io) {
     p2.questRerollCount = 0;
     p2.questLocked = false;
     p2.offeredQuests = [];
-    p2.pendingRemoveCardCount = 0;
+    p2.removalTokens = 0;
     p2.pendingBonusDraft = false;
     p2.pendingRewardNotification = null;
 
     room.round = 1;
+    room.raritySchedule = generateMatchRaritySchedule(10);
     room.state = 'QUEST_PHASE';
     room.draft = null;
     room.rematchRequests = {};
@@ -1212,7 +1401,7 @@ function handleLeaveRoom(socket, io) {
 }
 
 /**
- * Handles a card removal request
+ * Handles a card removal request using removal tokens
  */
 function handleRemoveCard(socket, cardInstanceId, io) {
   const roomId = playerToRoom[socket.id];
@@ -1225,27 +1414,32 @@ function handleRemoveCard(socket, cardInstanceId, io) {
   const currentStep = player.prepQueue[0];
   if (!currentStep || currentStep.type !== 'CARD_REMOVAL') return;
 
-  if (currentStep.count <= 0) return;
+  // Enforce removal tokens > 0 and deck.length > 4 (min deck size 4)
+  if ((player.removalTokens || 0) <= 0 || player.deck.length <= 4) return;
 
   const idx = player.deck.findIndex(c => c.instanceId === cardInstanceId);
   if (idx !== -1) {
     const removed = player.deck.splice(idx, 1);
-    console.log(`[RoomManager] Player ${player.username} removed card: ${removed[0].name}`);
+    player.removalTokens = Math.max(0, (player.removalTokens || 0) - 1);
+    console.log(`[RoomManager] Player ${player.username} burned card: ${removed[0].name}. Remaining tokens: ${player.removalTokens}`);
   }
 
-  currentStep.count = Math.max(0, currentStep.count - 1);
-
-  if (currentStep.count > 0) {
-    socket.emit('cardRemovalStart', { deck: player.deck });
+  // If player still has tokens and deck > 4, keep CARD_REMOVAL active so they can burn more cards if desired
+  if (player.removalTokens > 0 && player.deck.length > 4) {
+    socket.emit('cardRemovalStart', { 
+      deck: player.deck,
+      removalTokens: player.removalTokens,
+      minDeckSize: 4
+    });
   } else {
-    socket.emit('removalConfirmed');
+    socket.emit('removalConfirmed', { removalTokens: player.removalTokens });
     player.prepQueue.shift();
     advancePlayerPrepQueue(player, room, io);
   }
 }
 
 /**
- * Handles skipping card removal
+ * Handles skipping card removal (keeps remaining removal tokens in inventory)
  */
 function handleSkipCardRemoval(socket, io) {
   const roomId = playerToRoom[socket.id];
@@ -1258,8 +1452,8 @@ function handleSkipCardRemoval(socket, io) {
   const currentStep = player.prepQueue[0];
   if (!currentStep || currentStep.type !== 'CARD_REMOVAL') return;
 
-  currentStep.count = 0;
-  socket.emit('removalConfirmed');
+  console.log(`[RoomManager] Player ${player.username} skipped card removal, saving ${player.removalTokens} tokens.`);
+  socket.emit('removalConfirmed', { removalTokens: player.removalTokens });
   player.prepQueue.shift();
   advancePlayerPrepQueue(player, room, io);
 }
@@ -1362,7 +1556,10 @@ module.exports = {
   handleRerollPrep,
   rooms,
   playerToRoom,
-  updateQuestProgress
+  userToRoom,
+  updateQuestProgress,
+  checkPendingReconnect,
+  handleReconnectMatch
 };
 
 /**
@@ -1424,6 +1621,11 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         if (progress >= target) {
           p.questCompletedThisRound = true;
           
+          // Guaranteed removal token yield based on quest difficulty
+          const tokensEarned = p.activeQuest.removalTokens || 0;
+          p.removalTokens = (p.removalTokens || 0) + tokensEarned;
+          p.tokensEarnedThisRound = tokensEarned;
+
           // Hand out rewards
           const reward = p.activeQuest.reward;
           
@@ -1439,16 +1641,19 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
                 options: options.map(o => o.id),
                 questText: p.activeQuest.text
               };
-              p.pendingRewardNotification = `Unlocked: Choose a ${reward.quality} Relic!`;
+              p.pendingRewardNotification = tokensEarned > 0 
+                ? `Unlocked: Choose a ${reward.quality} Relic & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}!`
+                : `Unlocked: Choose a ${reward.quality} Relic!`;
             } else {
-              p.pendingRewardNotification = `Unlocked ${reward.quality} Relic`;
+              p.pendingRewardNotification = tokensEarned > 0
+                ? `Unlocked ${reward.quality} Relic & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}`
+                : `Unlocked ${reward.quality} Relic`;
             }
-          } else if (reward.type === 'remove_card') {
-            p.pendingRemoveCardCount = (p.pendingRemoveCardCount || 0) + 1;
-            p.pendingRewardNotification = reward.text;
           } else if (reward.type === 'bonus_draft') {
             p.pendingBonusDraft = true;
-            p.pendingRewardNotification = reward.text;
+            p.pendingRewardNotification = tokensEarned > 0
+              ? `${reward.text} & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}`
+              : reward.text;
           }
         }
         
@@ -1470,12 +1675,16 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
       p1Quest: {
         completed: p1.questCompletedThisRound,
         text: p1.completedQuestText,
-        reward: p1.pendingRewardNotification
+        reward: p1.pendingRewardNotification,
+        removalTokens: p1.removalTokens || 0,
+        tokensEarned: p1.tokensEarnedThisRound || 0
       },
       p2Quest: {
         completed: p2.questCompletedThisRound,
         text: p2.completedQuestText,
-        reward: p2.pendingRewardNotification
+        reward: p2.pendingRewardNotification,
+        removalTokens: p2.removalTokens || 0,
+        tokensEarned: p2.tokensEarnedThisRound || 0
       },
       p1Id: p1.id,
       p2Id: p2.id
@@ -1490,6 +1699,8 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         room.state = 'OVER';
         const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
         const matchWinnerName = room.players[matchWinnerId].username;
+
+        recordMatchToDb(room, matchWinnerId, 'match_finished');
 
         io.to(roomId).emit('gameOver', {
           winnerId: matchWinnerId,
@@ -1526,13 +1737,13 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
             p.pendingRelicChoice = null;
           }
 
-          // 2. Card Removal
-          if (p.pendingRemoveCardCount > 0) {
+          // 2. Card Removal (available if player has removal tokens and deck > 4)
+          if ((p.removalTokens || 0) > 0 && p.deck.length > 4) {
             p.prepQueue.push({
               type: 'CARD_REMOVAL',
-              count: p.pendingRemoveCardCount
+              tokensAvailable: p.removalTokens,
+              minDeckSize: 4
             });
-            p.pendingRemoveCardCount = 0;
           }
 
           // 3. Bonus Pick (Loser Comeback / Quest Reward)
@@ -1681,7 +1892,9 @@ function advancePlayerPrepQueue(player, room, io) {
     });
   } else if (nextStep.type === 'CARD_REMOVAL') {
     player.socket.emit('cardRemovalStart', {
-      deck: player.deck
+      deck: player.deck,
+      removalTokens: player.removalTokens || 0,
+      minDeckSize: 4
     });
   } else if (nextStep.type === 'BONUS_PICK') {
     player.socket.emit('bonusPickStart', {

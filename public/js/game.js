@@ -28,6 +28,7 @@ const GameManager = {
   activeQuest: null,
   offeredQuests: [],
   selectedQuestId: null,
+  myRemovalTokens: 0,
   selectedRemovalCardInstanceId: null,
   compendiumCards: [],
   compendiumRelics: [],
@@ -48,63 +49,411 @@ const GameManager = {
       window.Animations.animateLogoPulse();
     }
 
+    // Initialize Tab Navigation in Lobby
+    if (window.UI && window.UI.initTabNavigation) {
+      window.UI.initTabNavigation();
+    }
+
+    // Initialize Auth UI & Sessions
+    this.initAuth();
+
     // Bind event listeners to UI components
     this.bindEvents();
+
+    // Process buffered pendingReconnect event if received before init
+    if (window.pendingReconnectData) {
+      console.log('[GameManager] Processing buffered pendingReconnect:', window.pendingReconnectData);
+      const data = window.pendingReconnectData;
+      window.pendingReconnectData = null;
+      this.onPendingReconnect(data);
+    }
+
     console.log('[GameManager] Game initialized.');
+  },
+
+  initAuth() {
+    const UI = window.UI;
+    const authTabLogin = document.getElementById('auth-tab-login');
+    const authTabRegister = document.getElementById('auth-tab-register');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const guestPlayBtn = document.getElementById('guest-play-btn');
+    const authActionBtn = document.getElementById('auth-action-btn');
+    const reconnectBtn = document.getElementById('reconnect-btn');
+
+    if (authTabLogin && authTabRegister) {
+      authTabLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        authTabLogin.classList.add('active');
+        authTabRegister.classList.remove('active');
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+      });
+      authTabRegister.addEventListener('click', (e) => {
+        e.preventDefault();
+        authTabRegister.classList.add('active');
+        authTabLogin.classList.remove('active');
+        registerForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+      });
+    }
+
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const errEl = document.getElementById('auth-error-login');
+        if (errEl) errEl.classList.add('hidden');
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            if (errEl) {
+              errEl.textContent = data.error || 'Login failed.';
+              errEl.classList.remove('hidden');
+            }
+            return;
+          }
+
+          localStorage.setItem('element_clash_token', data.token);
+          localStorage.setItem('element_clash_user', JSON.stringify(data.user));
+
+          if (window.updateSocketAuthToken) {
+            window.updateSocketAuthToken(data.token);
+          }
+
+          this.updateUserSessionState(data.user);
+          if (UI) UI.hideAuthScreen();
+          if (UI && UI.showToast) UI.showToast(`Welcome back, ${data.user.username}!`);
+        } catch (err) {
+          if (errEl) {
+            errEl.textContent = 'Server connection error. Please try again.';
+            errEl.classList.remove('hidden');
+          }
+        }
+      });
+    }
+
+    if (registerForm) {
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('register-username').value.trim();
+        const password = document.getElementById('register-password').value;
+        const errEl = document.getElementById('auth-error-register');
+        if (errEl) errEl.classList.add('hidden');
+
+        try {
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            if (errEl) {
+              errEl.textContent = data.error || 'Registration failed.';
+              errEl.classList.remove('hidden');
+            }
+            return;
+          }
+
+          localStorage.setItem('element_clash_token', data.token);
+          localStorage.setItem('element_clash_user', JSON.stringify(data.user));
+
+          if (window.updateSocketAuthToken) {
+            window.updateSocketAuthToken(data.token);
+          }
+
+          this.updateUserSessionState(data.user);
+          if (UI) UI.hideAuthScreen();
+          if (UI && UI.showToast) UI.showToast(`Account created! Welcome, ${data.user.username}!`);
+        } catch (err) {
+          if (errEl) {
+            errEl.textContent = 'Server connection error. Please try again.';
+            errEl.classList.remove('hidden');
+          }
+        }
+      });
+    }
+
+    const guestLoginLink = document.getElementById('guest-login-link');
+    if (guestLoginLink) {
+      guestLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (UI) UI.showAuthScreen();
+      });
+    }
+
+    if (guestPlayBtn) {
+      guestPlayBtn.addEventListener('click', () => {
+        if (UI) UI.hideAuthScreen();
+      });
+    }
+
+    if (authActionBtn) {
+      authActionBtn.addEventListener('click', () => {
+        const token = localStorage.getItem('element_clash_token');
+        if (token) {
+          localStorage.removeItem('element_clash_token');
+          localStorage.removeItem('element_clash_user');
+          if (window.updateSocketAuthToken) window.updateSocketAuthToken(null);
+          this.updateUserSessionState(null);
+          if (UI && UI.showToast) UI.showToast('Logged out successfully.');
+        } else {
+          if (UI) UI.showAuthScreen();
+        }
+      });
+    }
+
+    if (reconnectBtn) {
+      reconnectBtn.addEventListener('click', () => {
+        const token = localStorage.getItem('element_clash_token');
+        if (!token) {
+          if (window.UI && window.UI.showToast) window.UI.showToast('Login required to reconnect to a match.');
+          return;
+        }
+        if (!window.SocketService) return;
+        // Ensure socket is connected before sending
+        if (socket.connected) {
+          window.SocketService.reconnectMatch(token);
+        } else {
+          socket.once('connect', () => {
+            window.SocketService.reconnectMatch(token);
+          });
+          socket.connect();
+        }
+      });
+    }
+
+    const storedUser = localStorage.getItem('element_clash_user');
+    if (storedUser) {
+      try {
+        const userObj = JSON.parse(storedUser);
+        this.updateUserSessionState(userObj);
+      } catch (e) {
+        this.updateUserSessionState(null);
+      }
+    } else {
+      this.updateUserSessionState(null);
+    }
+  },
+
+  updateUserSessionState(user) {
+    const userDisplayName = document.getElementById('user-display-name');
+    const authBtnLabel = document.getElementById('auth-btn-label');
+    const guestGroup = document.getElementById('guest-username-group');
+    const guestHint = document.getElementById('guest-login-hint');
+    const statJoinedDate = document.getElementById('stat-joined-date');
+    const statUsername = document.getElementById('stat-username');
+
+    if (user && user.username) {
+      if (userDisplayName) userDisplayName.textContent = user.username;
+      if (statUsername && !userDisplayName) statUsername.textContent = user.username;
+      if (authBtnLabel) authBtnLabel.textContent = 'LOGOUT';
+      if (guestGroup) guestGroup.classList.add('hidden');
+      if (guestHint) guestHint.classList.add('hidden');
+      if (statJoinedDate) {
+        statJoinedDate.textContent = user.createdAt ? `Joined: ${new Date(user.createdAt).toLocaleDateString()}` : 'Registered Player';
+      }
+      this.myName = user.username;
+    } else {
+      if (userDisplayName) userDisplayName.textContent = 'Guest Player';
+      if (statUsername && !userDisplayName) statUsername.textContent = 'Guest Player';
+      if (authBtnLabel) authBtnLabel.textContent = 'LOGIN';
+      if (guestGroup) guestGroup.classList.remove('hidden');
+      if (guestHint) guestHint.classList.remove('hidden');
+      if (statJoinedDate) statJoinedDate.textContent = 'Playing as Guest';
+      this.myName = 'Guest Player';
+    }
+  },
+
+  onPendingReconnect(data) {
+    if (window.UI) {
+      window.UI.showReconnectBanner();
+    }
+  },
+
+  onReconnectSuccess(data) {
+    const UI = window.UI;
+    if (UI) {
+      UI.hideReconnectBanner();
+    }
+    console.log('[GameManager] Reconnect successful! Restoring match state...', data);
+
+    try {
+      this.currentRoomId = data.roomId;
+      this.myId = data.yourId;
+      this.myName = data.yourName || 'Player';
+      this.opponentId = data.opponentId;
+      this.opponentName = data.opponentName || 'Opponent';
+      this.myHp = data.yourHp;
+      this.myMaxHp = data.yourMaxHp || 100;
+      this.myShield = data.yourShield || 0;
+      this.myPoints = data.yourPoints || 0;
+      this.hand = data.yourHand || [];
+      this.myStatuses = data.yourStatuses || {};
+      this.myRelics = data.yourRelics || {};
+      this.activeQuest = data.yourActiveQuest || null;
+      this.myRemovalTokens = data.yourRemovalTokens || 0;
+
+      const hudTokensVal = document.getElementById('player-tokens-val');
+      if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+
+      this.opponentHp = data.opponentHp;
+      this.opponentMaxHp = data.opponentMaxHp || 100;
+      this.opponentShield = data.opponentShield || 0;
+      this.opponentPoints = data.opponentPoints || 0;
+      this.opponentStatuses = data.opponentStatuses || {};
+      this.opponentRelics = data.opponentRelics || {};
+
+      if (UI) {
+        // 1. Set HUD player names
+        if (UI.playerName && this.myName) {
+          UI.setHudName(UI.playerName, this.myName);
+        }
+        if (UI.enemyName && this.opponentName) {
+          UI.setHudName(UI.enemyName, this.opponentName);
+        }
+
+        // 2. Set Max HP numbers
+        if (UI.playerMaxHpVal) UI.playerMaxHpVal.innerText = this.myMaxHp;
+        if (UI.enemyMaxHpVal) UI.enemyMaxHpVal.innerText = this.opponentMaxHp;
+
+        // 3. Update HP and Shield bars
+        UI.updateHp('player', this.myHp, this.myMaxHp);
+        UI.updateHp('opponent', this.opponentHp, this.opponentMaxHp);
+        if (UI.updateShield) {
+          UI.updateShield('player', this.myShield);
+          UI.updateShield('opponent', this.opponentShield);
+        }
+
+        // 4. Update Statuses
+        if (UI.renderStatuses) {
+          UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+          UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+        }
+
+        // 5. Update Points and Active Quest
+        if (UI.renderPoints) {
+          UI.renderPoints(UI.playerPoints, this.myPoints);
+          UI.renderPoints(UI.enemyPoints, this.opponentPoints);
+        }
+        if (UI.updateQuestTracker) {
+          UI.updateQuestTracker(this.activeQuest);
+        }
+
+        // 6. Always switch away from Lobby screen immediately to Battle screen
+        UI.showScreen('battle');
+        UI.renderHand(this.hand, true, true);
+
+        // If reconnecting during Quest Phase and quest is not yet locked, show Quest Selection
+        if (data.state === 'QUEST_PHASE' && !data.questLocked) {
+          this.onQuestSelectionStart({
+            quests: data.offeredQuests || [],
+            rerollsLeft: 1 - (data.questRerollCount || 0)
+          });
+        } else if (data.state === 'PREPARATION_PHASE' && data.pendingRelicChoices && data.pendingRelicChoices.length > 0) {
+          this.onRelicChoiceStart({ relics: data.pendingRelicChoices });
+        }
+
+        UI.showToast('Reconnected to active match!');
+      }
+    } catch (err) {
+      console.error('[GameManager] Error during onReconnectSuccess:', err);
+    }
+  },
+
+  onOpponentDisconnected(data) {
+    if (window.UI && window.UI.showToast) {
+      window.UI.showToast(`Opponent ${data.disconnectedPlayerName} disconnected. Waiting 30s for reconnect...`);
+    }
+  },
+
+  onOpponentReconnected(data) {
+    if (window.UI && window.UI.showToast) {
+      window.UI.showToast(`Opponent ${data.reconnectedPlayerName} has reconnected!`);
+    }
   },
 
   bindEvents() {
     const UI = window.UI;
 
     // Play button triggers matchmaking
-    UI.playBtn.addEventListener('click', () => {
-      const username = UI.usernameInput.value.trim();
-      this.myName = username || 'Player';
-      
-      // Unlock AudioContext on user gesture
-      window.AudioSynth.init();
-      window.AudioSynth.playClick();
-      
-      // Request immersive fullscreen on mobile to hide toolbars
-      try {
-        const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen().catch(() => {});
-        } else if (docEl.webkitRequestFullscreen) {
-          docEl.webkitRequestFullscreen();
+    const playBtnEl = document.getElementById('play-btn');
+    if (playBtnEl) {
+      const handlePlayClick = (e) => {
+        console.log('[GameManager] Play button clicked!');
+        const usernameInput = document.getElementById('username-input');
+        const username = usernameInput ? usernameInput.value.trim() : '';
+        this.myName = username || 'Player';
+        
+        // Unlock AudioContext on user gesture
+        if (window.AudioSynth) {
+          try {
+            window.AudioSynth.init();
+            window.AudioSynth.playClick();
+          } catch (audioErr) {
+            console.warn('[AudioSynth Warning]', audioErr);
+          }
         }
-      } catch (e) {
-        console.warn('Fullscreen request blocked or unsupported:', e);
-      }
-      
-      // Submit connection queue
-      window.SocketService.joinQueue(this.myName);
-      
-      // Update UI matching controls
-      UI.usernameInput.disabled = true;
-      UI.playBtn.classList.add('hidden');
-      UI.leaveQueueBtn.classList.remove('hidden');
-      UI.queueStatusSub.classList.remove('hidden');
-      UI.statusText.innerText = 'Searching for an opponent...';
-    });
+        
+        // Request immersive fullscreen on mobile to hide toolbars
+        try {
+          const docEl = document.documentElement;
+          if (docEl && docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => {});
+          }
+        } catch (e) {
+          console.warn('Fullscreen request blocked or unsupported:', e);
+        }
+        
+        // Submit connection queue
+        if (window.SocketService) {
+          window.SocketService.joinQueue(this.myName);
+        }
+        
+        // Update UI matching controls
+        const leaveQueueBtn = document.getElementById('leave-queue-btn');
+        const queueStatusSub = document.getElementById('queue-status-sub');
+        const statusText = document.getElementById('status-text');
+
+        if (usernameInput) usernameInput.disabled = true;
+        playBtnEl.classList.add('hidden');
+        if (leaveQueueBtn) leaveQueueBtn.classList.remove('hidden');
+        if (queueStatusSub) queueStatusSub.classList.remove('hidden');
+        if (statusText) statusText.innerText = '';
+      };
+
+      playBtnEl.addEventListener('click', handlePlayClick);
+    }
 
     // Leave queue button triggers matchmaking cancellation
-    UI.leaveQueueBtn.addEventListener('click', () => {
-      window.AudioSynth.playClick();
-      window.SocketService.leaveQueue();
-      
-      // Reset matching controls
-      UI.usernameInput.disabled = false;
-      UI.playBtn.classList.remove('hidden');
-      UI.leaveQueueBtn.classList.add('hidden');
-      UI.queueStatusSub.classList.add('hidden');
-      UI.statusText.innerText = 'Ready to enter the arena...';
-    });
+    if (UI.leaveQueueBtn) {
+      UI.leaveQueueBtn.addEventListener('click', () => {
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        if (window.SocketService) window.SocketService.leaveQueue();
+        
+        // Reset matching controls
+        if (UI.usernameInput) UI.usernameInput.disabled = false;
+        if (UI.playBtn) UI.playBtn.classList.remove('hidden');
+        if (UI.leaveQueueBtn) UI.leaveQueueBtn.classList.add('hidden');
+        if (UI.queueStatusSub) UI.queueStatusSub.classList.add('hidden');
+        if (UI.statusText) UI.statusText.innerText = 'Ready to enter the arena...';
+      });
+    }
 
     // Lock selection button
-    UI.lockBtn.addEventListener('click', () => {
-      UI.lockSelection();
-    });
+    if (UI.lockBtn) {
+      UI.lockBtn.addEventListener('click', () => {
+        UI.lockSelection();
+      });
+    }
 
     // Element legend toggle button
     const legendBtn = document.getElementById('element-legend-btn');
@@ -150,10 +499,12 @@ const GameManager = {
     }
 
     // Game over replay return button
-    UI.goLobbyBtn.addEventListener('click', () => {
-      window.AudioSynth.playClick();
-      this.resetLobby();
-    });
+    if (UI.goLobbyBtn) {
+      UI.goLobbyBtn.addEventListener('click', () => {
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        this.resetLobby();
+      });
+    }
 
     // Surrender button click handler
     const surrenderBtn = document.getElementById('surrender-btn');
@@ -1458,8 +1809,19 @@ const GameManager = {
     UI.showScreen('cardRemoval');
     
     this.deck = data.deck || [];
+    this.myRemovalTokens = data.removalTokens !== undefined ? data.removalTokens : (this.myRemovalTokens || 0);
+    const minDeckSize = data.minDeckSize || 4;
     this.selectedRemovalCardInstanceId = null;
     
+    const tokensVal = document.getElementById('removal-tokens-val');
+    if (tokensVal) tokensVal.innerText = this.myRemovalTokens;
+    
+    const deckSizeVal = document.getElementById('removal-deck-size-val');
+    if (deckSizeVal) deckSizeVal.innerText = this.deck.length;
+
+    const hudTokensVal = document.getElementById('player-tokens-val');
+    if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+
     const confirmBtn = document.getElementById('removal-confirm-btn');
     if (confirmBtn) {
       confirmBtn.classList.add('disabled');
@@ -1471,19 +1833,35 @@ const GameManager = {
       skipBtn.classList.remove('disabled');
       skipBtn.disabled = false;
     }
+
+    const canRemove = this.deck.length > minDeckSize && this.myRemovalTokens > 0;
     
-    UI.renderRemovalCards(data.deck, (cardInstanceId) => {
+    UI.renderRemovalCards(this.deck, (cardInstanceId) => {
+      if (!canRemove) return;
       this.selectedRemovalCardInstanceId = cardInstanceId;
       if (confirmBtn) {
         confirmBtn.classList.remove('disabled');
         confirmBtn.disabled = false;
       }
     });
+
+    if (this.deck.length <= minDeckSize) {
+      UI.showToast(`Deck is at minimum limit (${minDeckSize} cards).`);
+    } else if (this.myRemovalTokens <= 0) {
+      UI.showToast('No Removal Tokens available.');
+    }
   },
 
-  onRemovalConfirmed() {
+  onRemovalConfirmed(data) {
     const UI = window.UI;
-    UI.showToast("Card removal confirmed!");
+    if (data && data.removalTokens !== undefined) {
+      this.myRemovalTokens = data.removalTokens;
+      const tokensVal = document.getElementById('removal-tokens-val');
+      if (tokensVal) tokensVal.innerText = this.myRemovalTokens;
+      const hudTokensVal = document.getElementById('player-tokens-val');
+      if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+    }
+    UI.showToast("Deck updated!");
   },
 
   onWaitingForOpponentRemoval() {
@@ -1642,6 +2020,11 @@ const GameManager = {
     const deckCountEl = document.getElementById('deck-count-val');
     if (deckCountEl) deckCountEl.innerText = this.deck.length;
 
+    // Sync removal tokens count in HUD
+    this.myRemovalTokens = data.selfStatus.removalTokens || 0;
+    const tokensCountEl = document.getElementById('player-tokens-val');
+    if (tokensCountEl) tokensCountEl.innerText = this.myRemovalTokens;
+
     // Relics & Active Quest State
     this.myRelics = data.selfStatus.relics || {};
     this.opponentRelics = data.opponentStatus.relics || {};
@@ -1714,17 +2097,17 @@ const GameManager = {
     if (isRoundWinner) {
       if (roundDesc) {
         roundDesc.innerText = 'You won this round!';
-        roundDesc.style.color = '#2ecc71';
+        roundDesc.style.color = 'var(--color-nature)';
       }
     } else if (isRoundDraw) {
       if (roundDesc) {
         roundDesc.innerText = 'It was a Draw!';
-        roundDesc.style.color = '#f1c40f';
+        roundDesc.style.color = 'var(--color-primary)';
       }
     } else {
       if (roundDesc) {
         roundDesc.innerText = `${this.opponentName || 'Opponent'} won this round!`;
-        roundDesc.style.color = '#e74c3c';
+        roundDesc.style.color = 'var(--color-fire)';
       }
     }
 
@@ -1742,18 +2125,24 @@ const GameManager = {
     const myQuest = isPlayer1 ? data.p1Quest : data.p2Quest;
 
     if (myQuest && myQuest.completed) {
+      if (myQuest.removalTokens !== undefined) {
+        this.myRemovalTokens = myQuest.removalTokens;
+        const hudTokensVal = document.getElementById('player-tokens-val');
+        if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+      }
+
       if (UI.roundQuestRewardBanner) {
         UI.roundQuestRewardBanner.classList.remove('hidden');
-        UI.roundQuestRewardBanner.style.borderColor = '#ffd700';
-        UI.roundQuestRewardBanner.style.background = 'rgba(255, 215, 0, 0.08)';
+        UI.roundQuestRewardBanner.style.borderColor = 'var(--border-brass)';
+        UI.roundQuestRewardBanner.style.background = 'rgba(166, 128, 88, 0.12)';
       }
       const titleEl = UI.roundQuestRewardBanner.querySelector('div');
       if (titleEl) {
-        titleEl.style.color = '#ffd700';
+        titleEl.style.color = 'var(--color-primary)';
         titleEl.innerHTML = '<i class="fa-solid fa-trophy" style="margin-right: 0.35rem;"></i> QUEST COMPLETED!';
       }
       if (UI.roundQuestRewardText) {
-        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br>Reward: <strong style="color: #ffd700;">${myQuest.reward}</strong>`;
+        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br>Reward: <strong style="color: var(--color-primary);">${myQuest.reward}</strong>`;
       }
       if (window.AudioSynth && window.AudioSynth.playQuestComplete) {
         window.AudioSynth.playQuestComplete();
@@ -1762,16 +2151,16 @@ const GameManager = {
       // Quest was active but NOT completed by round end (failed)
       if (UI.roundQuestRewardBanner) {
         UI.roundQuestRewardBanner.classList.remove('hidden');
-        UI.roundQuestRewardBanner.style.borderColor = '#e74c3c';
-        UI.roundQuestRewardBanner.style.background = 'rgba(231, 76, 60, 0.08)';
+        UI.roundQuestRewardBanner.style.borderColor = 'var(--color-fire)';
+        UI.roundQuestRewardBanner.style.background = 'rgba(217, 56, 56, 0.1)';
       }
       const titleEl = UI.roundQuestRewardBanner.querySelector('div');
       if (titleEl) {
-        titleEl.style.color = '#e74c3c';
+        titleEl.style.color = 'var(--color-fire)';
         titleEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="margin-right: 0.35rem;"></i> QUEST NOT COMPLETED';
       }
       if (UI.roundQuestRewardText) {
-        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br><span style="color: #e74c3c; font-weight: 600;">Failed to complete requirements this round</span>`;
+        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br><span style="color: var(--color-fire); font-weight: 600;">Failed to complete requirements this round</span>`;
       }
     } else {
       if (UI.roundQuestRewardBanner) {
@@ -2230,6 +2619,12 @@ const GameManager = {
       const totalRelicsCount = Object.values(this.myRelics || {}).reduce((a, b) => a + b, 0);
       relicsCountEl.innerText = totalRelicsCount;
     }
+
+    // Update removal / purify tokens count in modal
+    const tokensValEl = document.getElementById('player-tokens-val');
+    if (tokensValEl) {
+      tokensValEl.innerText = this.myRemovalTokens || 0;
+    }
   },
 
   onPrepFinished() {
@@ -2460,8 +2855,14 @@ document.addEventListener('pointerdown', (e) => {
   }
 }, { passive: true });
 
-// Bind to window load
-window.addEventListener('DOMContentLoaded', () => {
+// Bind to window load safely (handles cases where DOM is already interactive/complete)
+function initGame() {
   window.gameManager = GameManager;
   GameManager.init();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGame);
+} else {
+  initGame();
+}

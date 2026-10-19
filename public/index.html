@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Element Clash: Realtime Multiplayer Card Game</title>
   <!-- Google Fonts for premium appearance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,46 +29,186 @@
     </div>
   </div>
 
-  <!-- Screen 1: Matchmaking Screen -->
-  <div id="matchmaking-screen" class="screen active">
+  <!-- Reconnect Banner -->
+  <div id="reconnect-banner" class="reconnect-banner hidden">
+    <div class="reconnect-content glass">
+      <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
+      <span>Active match in progress!</span>
+      <button id="reconnect-btn" class="btn btn-primary btn-sm">REJOIN MATCH</button>
+    </div>
+  </div>
+
+  <!-- Screen 0: Auth Modal (Login / Register) -->
+  <div id="auth-screen" class="screen">
     <div class="stars-bg"></div>
-    <div class="glow-orb orb-1"></div>
-    <div class="glow-orb orb-2"></div>
-    
-    <div class="lobby-container">
-      <header class="logo-area animate-logo">
-        <span class="logo-sub">REALTIME MULTIPLAYER</span>
+    <div class="auth-container glass">
+      <header class="logo-area">
         <h1 class="logo-main">ELEMENT <span class="accent-text">CLASH</span></h1>
       </header>
-      
-      <div class="lobby-card glass">
+
+      <div class="auth-tabs">
+        <button id="auth-tab-login" class="auth-tab active">LOGIN</button>
+        <button id="auth-tab-register" class="auth-tab">REGISTER</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
         <div class="input-group">
-          <label for="username-input">Enter Battle Name</label>
-          <input type="text" id="username-input" placeholder="e.g. ShadowBlade" maxlength="15">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter username..." required maxlength="15">
         </div>
-        
-        <div class="matchmaking-status-box">
-          <div id="status-text">Ready to enter the arena...</div>
-          <div id="queue-status-sub" class="hidden">
-            <span class="loader"></span>
-            Searching for opponent...
-          </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter password..." required>
         </div>
-
-        <button id="play-btn" class="btn btn-primary">
-          <span class="btn-text">FIND MATCH</span>
-          <span class="btn-glow"></span>
+        <div id="auth-error-login" class="auth-error-msg hidden"></div>
+        <button type="submit" class="btn btn-primary full-width">
+          <span class="btn-text">SIGN IN</span>
         </button>
+      </form>
 
-        <button id="leave-queue-btn" class="btn btn-secondary hidden">
-          LEAVE QUEUE
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form hidden">
+        <div class="input-group">
+          <label for="register-username">Username</label>
+          <input type="text" id="register-username" placeholder="3-15 characters..." required maxlength="15">
+        </div>
+        <div class="input-group">
+          <label for="register-password">Password</label>
+          <input type="password" id="register-password" placeholder="At least 4 characters..." required>
+        </div>
+        <div id="auth-error-register" class="auth-error-msg hidden"></div>
+        <button type="submit" class="btn btn-primary full-width">
+          <span class="btn-text">CREATE ACCOUNT</span>
+        </button>
+      </form>
+
+      <div class="guest-divider"><span>OR PLAY ANONYMOUSLY</span></div>
+      <button id="guest-play-btn" class="btn btn-secondary full-width">
+        <i class="fa-solid fa-user-ninja"></i> PLAY AS GUEST
+      </button>
+    </div>
+  </div>
+
+  <!-- Screen 1: Lobby & Main Navigation Screen -->
+  <div id="matchmaking-screen" class="screen active">
+    <div class="stars-bg"></div>
+    
+    <div class="lobby-container">
+      <header class="logo-area">
+        <h1 class="logo-main">ELEMENT <span class="accent-text">CLASH</span></h1>
+      </header>
+
+      <!-- Navigation Tabs -->
+      <nav class="lobby-nav-tabs glass">
+        <button class="nav-tab active" data-tab="arena-tab">
+          <i class="fa-solid fa-swords"></i> ARENA
+        </button>
+        <button class="nav-tab" data-tab="stats-tab">
+          <i class="fa-solid fa-chart-simple"></i> STATS & PROFILE
+        </button>
+        <button class="nav-tab" data-tab="history-tab">
+          <i class="fa-solid fa-clock-rotate-left"></i> HISTORY
+        </button>
+      </nav>
+
+      <!-- Tab 1: Arena Matchmaking View -->
+      <div id="arena-tab" class="tab-content active">
+        <div class="lobby-card glass">
+          <div class="input-group" id="guest-username-group">
+            <label for="username-input">Enter Battle Name</label>
+            <input type="text" id="username-input" placeholder="e.g. ShadowBlade" maxlength="15">
+            <div class="guest-login-hint" id="guest-login-hint">
+              Already have an account? <button type="button" class="link-btn" id="guest-login-link">Log In</button>
+            </div>
+          </div>
+          
+          <div class="matchmaking-status-box">
+            <div id="status-text">Ready to enter the arena...</div>
+            <div id="queue-status-sub" class="hidden">
+              <span class="loader"></span>
+              Searching for opponent...
+            </div>
+          </div>
+
+          <button id="play-btn" class="btn btn-primary">
+            <span class="btn-text">FIND MATCH</span>
+            <span class="btn-glow"></span>
+          </button>
+
+          <button id="leave-queue-btn" class="btn btn-secondary hidden">
+            LEAVE QUEUE
+          </button>
+        </div>
+
+        <button id="open-compendium-btn" class="btn btn-secondary" style="margin-top: 1rem;">
+          <i class="fa-solid fa-book-open"></i> GAME LIBRARY
         </button>
       </div>
 
-      <!-- Game Library Button -->
-      <button id="open-compendium-btn" class="btn btn-secondary">
-        <i class="fa-solid fa-book-open"></i> GAME LIBRARY
-      </button>
+      <!-- Tab 2: Profile & Stats View -->
+      <div id="stats-tab" class="tab-content hidden">
+        <div class="stats-container glass">
+          <div class="stats-header">
+            <div class="rank-badge glass">
+              <i class="fa-solid fa-trophy rank-icon"></i>
+              <span id="stat-rank-name">GOLD I</span>
+            </div>
+            <div class="user-stat-title">
+              <h3 id="stat-username"><span id="user-display-name">Guest Player</span></h3>
+              <span id="stat-joined-date">Playing as Guest</span>
+            </div>
+            <div class="stats-auth-action">
+              <button id="auth-action-btn" class="btn btn-sm btn-secondary">
+                <i class="fa-solid fa-right-to-bracket"></i> <span id="auth-btn-label">LOGIN</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card glass">
+              <i class="fa-solid fa-gamepad stat-card-icon"></i>
+              <div class="stat-value" id="stat-total-matches">0</div>
+              <div class="stat-label">Total Matches</div>
+            </div>
+            <div class="stat-card glass">
+              <i class="fa-solid fa-crown stat-card-icon" style="color: #f1c40f;"></i>
+              <div class="stat-value" id="stat-wins">0</div>
+              <div class="stat-label">Wins</div>
+            </div>
+            <div class="stat-card glass">
+              <i class="fa-solid fa-skull stat-card-icon" style="color: #e74c3c;"></i>
+              <div class="stat-value" id="stat-losses">0</div>
+              <div class="stat-label">Losses</div>
+            </div>
+            <div class="stat-card glass">
+              <i class="fa-solid fa-percent stat-card-icon" style="color: #2ecc71;"></i>
+              <div class="stat-value" id="stat-winrate">0%</div>
+              <div class="stat-label">Win Rate</div>
+            </div>
+            <div class="stat-card glass">
+              <i class="fa-solid fa-fire stat-card-icon" style="color: #e67e22;"></i>
+              <div class="stat-value" id="stat-win-streak">0</div>
+              <div class="stat-label">Current Streak</div>
+            </div>
+            <div class="stat-card glass">
+              <i class="fa-solid fa-bolt stat-card-icon" style="color: #9b59b6;"></i>
+              <div class="stat-value" id="stat-total-damage">0</div>
+              <div class="stat-label">Total Damage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Match History View -->
+      <div id="history-tab" class="tab-content hidden">
+        <div class="history-container glass">
+          <h3>Recent Match History</h3>
+          <div id="history-list" class="history-list">
+            <div class="empty-history-text">No match history found. Play your first match!</div>
+          </div>
+        </div>
+      </div>
 
       <footer class="lobby-footer">
         <div class="queue-counter glass">
@@ -79,6 +222,7 @@
       </footer>
     </div>
   </div>
+
 
   <!-- Screen 1.5: Draft Screen (Secret Draft Mode) -->
   <div id="draft-screen" class="screen">
@@ -187,17 +331,23 @@
       </div>
     </div>
 
-    <!-- Active Quest Tracker Widget -->
-    <div id="battle-quest-tracker" class="quest-tracker-widget glass hidden">
-      <div class="tracker-header">
-        <i class="fa-solid fa-scroll"></i> ACTIVE QUEST
+    <!-- Left Sidebar Stack (Widgets expand downward and never overlap player HUD) -->
+    <div class="battle-left-sidebar" id="battle-left-sidebar">
+      <!-- Active Quest Tracker Widget -->
+      <div id="battle-quest-tracker" class="quest-tracker-widget glass hidden">
+        <div class="tracker-header">
+          <i class="fa-solid fa-scroll"></i> ACTIVE QUEST
+        </div>
+        <div id="tracker-quest-text" class="tracker-text">No active quest</div>
+        <div class="tracker-progress-container">
+          <div id="tracker-progress-fill" class="tracker-progress-fill" style="width: 0%;"></div>
+          <div id="tracker-progress-text" class="tracker-progress-text">0 / 0</div>
+        </div>
+        <div id="tracker-reward-text" class="tracker-reward">Reward: -</div>
       </div>
-      <div id="tracker-quest-text" class="tracker-text">No active quest</div>
-      <div class="tracker-progress-container">
-        <div id="tracker-progress-fill" class="tracker-progress-fill" style="width: 0%;"></div>
-        <div id="tracker-progress-text" class="tracker-progress-text">0 / 0</div>
-      </div>
-      <div id="tracker-reward-text" class="tracker-reward">Reward: -</div>
+
+      <!-- Keyword & Status Explanation Popup (anchored to top, grows downwards) -->
+      <div id="battle-keyword-info" class="keyword-info-box glass hidden"></div>
     </div>
 
     <!-- Central Arena -->
@@ -233,8 +383,6 @@
 
     <!-- Player Interaction Area (Bottom) -->
     <div class="player-controls-zone">
-      <div id="battle-keyword-info" class="keyword-info-box glass hidden"></div>
-      
       <!-- Element Matchup Legend Panel (hidden by default) -->
       <div id="element-legend-panel" class="element-legend glass hidden">
         <div class="legend-title"><i class="fa-solid fa-circle-nodes"></i> Element Matchups</div>
@@ -285,7 +433,6 @@
   <!-- Screen 4: Round Result Overlay -->
   <div id="round-result-overlay" class="overlay">
     <div class="round-result-card glass">
-      <span class="logo-sub">ROUND COMPLETED</span>
       <h1 id="round-winner-title" class="logo-main" style="font-size: 2.2rem; margin: 0.5rem 0;">ROUND <span class="accent-text">1</span></h1>
       <p id="round-winner-desc" class="result-desc" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 600;">Opponent won this round!</p>
       
@@ -309,7 +456,7 @@
         <div id="round-quest-reward-text" style="font-size: 0.9rem; color: #fff; font-weight: 600; line-height: 1.4;">-</div>
       </div>
       
-      <p class="next-phase-tip" style="font-size: 0.85rem; color: var(--text-secondary); font-style: italic; animation: pulseText 1.5s infinite alternate;">Draft Phase starting in a few seconds...</p>
+      <p class="next-phase-tip">Draft Phase starting in a few seconds...</p>
     </div>
   </div>
 
@@ -428,8 +575,14 @@
     <div class="deck-modal-content game-over-card glass">
       <!-- Tab Headers -->
       <div class="modal-tabs">
-        <button class="modal-tab-btn active" id="tab-cards-btn"><i class="fa-solid fa-layer-group"></i> MY CARDS (<span id="tab-cards-count">0</span>)</button>
-        <button class="modal-tab-btn" id="tab-relics-btn"><i class="fa-solid fa-circle-nodes"></i> MY RELICS (<span id="tab-relics-count">0</span>)</button>
+        <div class="modal-tab-group">
+          <button class="modal-tab-btn active" id="tab-cards-btn"><i class="fa-solid fa-layer-group"></i> MY CARDS (<span id="tab-cards-count">0</span>)</button>
+          <button class="modal-tab-btn" id="tab-relics-btn"><i class="fa-solid fa-circle-nodes"></i> MY RELICS (<span id="tab-relics-count">0</span>)</button>
+        </div>
+        <div class="modal-token-badge" id="player-token-badge" title="Purify Tokens: Burn unwanted cards during Preparation Phase">
+          <i class="fa-solid fa-fire-flame-curved"></i>
+          <span>PURIFY TOKENS: <strong id="player-tokens-val">0</strong></span>
+        </div>
       </div>
       
       <!-- Cards Tab Content -->
@@ -565,24 +718,24 @@
           <ol style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem; text-align: left; font-size: 0.82rem; line-height: 1.5;">
             <li><strong>Match Setup:</strong> Enter your battle name and click <strong>FIND MATCH</strong> to search for an opponent.</li>
             <li><strong>Deck Draft:</strong> Draft exactly <strong>5 cards</strong> to form your battle deck. You must ensure you choose at least 4 unique elements!</li>
-            <li><strong>Quests:</strong> Select 1 Quest at the start of each round. Completing the requirements during the battle round unlocks a choice of passive relics.</li>
+            <li><strong>Synchronized Quests:</strong> Select 1 Quest at the start of each round. Both players receive the exact same rarity distribution each round. Completing quests unlocks main rewards (Relic or Bonus Draft) plus guaranteed <strong>Removal Tokens</strong> (Common: +0, Rare: +1, Epic: +2).</li>
             <li><strong>Card Battles:</strong> Play 1 card each round. The cards clash based on element matchups (see <strong>MATCHUPS</strong> tab):
               <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary);">
-                <li><strong style="color: #ffd700;">SUPERIOR:</strong> Your card counters the opponent's card. Your card's Superior outcomes trigger.</li>
-                <li><strong style="color: #fff;">NEUTRAL:</strong> The clash is a tie. Neutral outcomes trigger.</li>
-                <li><strong style="color: #ff8888;">INFERIOR:</strong> Your card is countered. Inferior outcomes trigger.</li>
+                <li><strong style="color: var(--color-primary);">SUPERIOR:</strong> Your card counters the opponent's card. Your card's Superior outcomes trigger.</li>
+                <li><strong style="color: var(--text-primary);">NEUTRAL:</strong> The clash is a tie. Neutral outcomes trigger.</li>
+                <li><strong style="color: var(--color-fire);">INFERIOR:</strong> Your card is countered. Inferior outcomes trigger.</li>
               </ul>
             </li>
             <li><strong>Status Effects:</strong>
               <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary);">
-                <li><strong style="color: #ff9f43;">BURN:</strong> Deals damage equal to 3x stack size at round end. Absorbed by shields first. Stacks consume after ticking.</li>
-                <li><strong style="color: #2ecc71;">POISON:</strong> Deals damage equal to stack size at start of round, bypassing shields. Ticks down by 1 stack per round.</li>
-                <li><strong style="color: #54a0ff;">BUFF:</strong> Increases all damage dealt by the buff stack size.</li>
-                <li><strong style="color: #ee5253;">WEAKNESS:</strong> Reduces damage dealt by 2 per stack (minimum 0).</li>
+                <li><strong style="color: var(--color-fire);">BURN:</strong> Deals damage equal to 3x stack size at round end. Absorbed by shields first. Stacks consume after ticking.</li>
+                <li><strong style="color: var(--color-nature);">POISON:</strong> Deals damage equal to stack size at start of round, bypassing shields. Ticks down by 1 stack per round.</li>
+                <li><strong style="color: var(--color-water);">BUFF:</strong> Increases all damage dealt by the buff stack size.</li>
+                <li><strong style="color: var(--color-chaos);">WEAKNESS:</strong> Reduces damage dealt by 2 per stack (minimum 0).</li>
               </ul>
             </li>
-            <li><strong>Quest Rewards & Relics:</strong> Passive relics stack and provide permanent passive boosts (e.g. increasing Max HP, starting Shield, card removal).</li>
-            <li><strong>Winning:</strong> Reduce your opponent's HP to 0 to win the duel!</li>
+            <li><strong>Deck Purification & Tokens:</strong> Unused Removal Tokens persist in your inventory across rounds. During Preparation Phase, spend 1 token to permanently burn an unwanted card from your deck (minimum deck size is 4 cards).</li>
+            <li><strong>Winning:</strong> Reach 3 round points or reduce your opponent's HP to 0 to win the duel!</li>
           </ol>
         </div>
       </div>
@@ -600,7 +753,6 @@
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub">CHOOSE YOUR PATH</span>
         <h2 class="draft-title">SELECT <span class="accent-text">QUEST</span></h2>
         <p class="draft-subtitle">Choose exactly <strong>1 Quest</strong> to active during this round. Earn rewards on completion!</p>
         
@@ -634,9 +786,19 @@
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub">DECK PURIFICATION</span>
-        <h2 class="draft-title">CARD <span class="accent-text">REMOVAL</span></h2>
-        <p class="draft-subtitle">Select a card to **remove permanently** from your deck, or skip if you want to keep all cards.</p>
+        <h2 class="draft-title">DECK <span class="accent-text">PURIFICATION</span></h2>
+        <p class="draft-subtitle">Select a card to permanently burn from your deck. Unused tokens remain in your inventory.</p>
+        
+        <div class="draft-meta-row">
+          <div class="draft-meta-badge glass" id="removal-tokens-box">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+            <span>TOKENS: <strong id="removal-tokens-val">0</strong></span>
+          </div>
+          <div class="draft-meta-badge glass" id="removal-deck-limit-box">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>DECK: <strong id="removal-deck-size-val">0</strong> / MIN 4</span>
+          </div>
+        </div>
       </header>
       
       <div class="deck-grid" id="removal-cards-grid" style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; max-height: 50vh; overflow-y: auto; padding: 1rem;">
@@ -645,10 +807,10 @@
       
       <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center;">
         <button id="removal-skip-btn" class="btn btn-secondary">
-          SKIP REMOVAL
+          KEEP TOKENS & SKIP
         </button>
         <button id="removal-confirm-btn" class="btn btn-primary disabled" disabled>
-          REMOVE CARD
+          BURN CARD (-1 TOKEN)
         </button>
       </footer>
     </div>
@@ -659,7 +821,6 @@
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub" id="relic-selection-subtitle">QUEST REWARD</span>
         <h2 class="draft-title">RELIC <span class="accent-text">SELECTION</span></h2>
         <p class="draft-subtitle">Choose exactly <strong>1 passive relic</strong> to add to your collection.</p>
       </header>
@@ -692,15 +853,16 @@
     <i class="fa-solid fa-clock"></i> TIME REMAINING: <span id="global-prep-timer-val">30</span>s
   </div>
 
-  <!-- Socket.io & Anime.js & Howler.js scripts from CDNs -->
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  <!-- Local Vendor Scripts (Bypasses Discord Activity CSP Restrictions) -->
+  <script src="js/vendor/discord-sdk.js?v=1.0.2"></script>
+  <script src="/socket.io/socket.io.js?v=1.0.2"></script>
+  <script src="js/vendor/anime.min.js?v=1.0.2"></script>
+  <script src="js/vendor/howler.min.js?v=1.0.2"></script>
   
   <!-- Client Application scripts -->
-  <script src="js/socket.js"></script>
-  <script src="js/animations.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/socket.js?v=1.0.2"></script>
+  <script src="js/animations.js?v=1.0.2"></script>
+  <script src="js/ui.js?v=1.0.2"></script>
+  <script src="js/game.js?v=1.0.2"></script>
 </body>
 </html>

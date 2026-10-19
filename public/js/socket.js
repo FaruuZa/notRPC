@@ -2,16 +2,126 @@
  * ELEMENT CLASH: SOCKET CONNECTIONS & EVENTS
  */
 
-// Initialize Socket.IO Client connection
-const socket = io();
+// Detect Discord Activity Environment (discordsays.com domain)
+const isDiscordActivity = window.location.hostname.includes('discordsays.com');
 
-// Listen for connection status
+// Read stored JWT token
+const storedToken = localStorage.getItem('element_clash_token');
+
+// Initialize Socket.IO Client connection with auth token
+const socket = io({
+  transports: ['websocket', 'polling'],
+  auth: {
+    token: storedToken
+  }
+});
+
+// Helper function to update socket auth token on login/logout
+function updateSocketAuthToken(token) {
+  socket.auth = { token };
+  if (socket.connected) {
+    socket.disconnect().connect();
+  }
+}
+window.updateSocketAuthToken = updateSocketAuthToken;
+
+// Discord Activity SDK Helper
+window.discordApp = {
+  isActivity: isDiscordActivity,
+  sdk: null,
+  user: null,
+  async init() {
+    if (!isDiscordActivity || !window.DiscordSDK) {
+      console.log('[Discord SDK] Running in standard browser / standalone mode.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/config').catch(() => null);
+      if (!res || !res.ok) return;
+      const config = await res.json();
+      
+      if (!config.discordClientId) {
+        console.log('[Discord SDK] DISCORD_CLIENT_ID is not set in .env.');
+        return;
+      }
+
+      const { DiscordSDK } = window.DiscordSDK;
+      this.sdk = new DiscordSDK(config.discordClientId);
+      await this.sdk.ready();
+      console.log('[Discord SDK] Discord SDK Ready!');
+
+      try {
+        await this.sdk.commands.authorize({
+          client_id: config.discordClientId,
+          response_type: 'code',
+          state: '',
+          prompt: 'none',
+          scope: ['identify']
+        });
+        console.log('[Discord SDK] Discord Activity Authorized.');
+      } catch (authErr) {
+        console.warn('[Discord SDK] OAuth authorization skipped/failed:', authErr.message || authErr);
+      }
+    } catch (err) {
+      console.warn('[Discord SDK] Init status:', err.message || err);
+    }
+  }
+};
+
+function startDiscordSdk() {
+  if (window.discordApp) {
+    window.discordApp.init().catch(err => console.warn('[Discord SDK Error]', err));
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startDiscordSdk);
+} else {
+  startDiscordSdk();
+}
+
+// Connection status listeners
 socket.on('connect', () => {
   console.log(`[Socket] Connected to server: ${socket.id}`);
 });
 
 socket.on('disconnect', () => {
   console.log(`[Socket] Disconnected from server`);
+});
+
+// Reconnect & Session Events
+socket.on('pendingReconnect', (data) => {
+  console.log('[Socket] Received pendingReconnect event:', data);
+  window.pendingReconnectData = data;
+  if (window.gameManager) {
+    window.gameManager.onPendingReconnect(data);
+  }
+});
+
+socket.on('reconnectSuccess', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onReconnectSuccess(data);
+  }
+});
+
+socket.on('reconnectFailed', (msg) => {
+  if (window.UI) {
+    window.UI.hideReconnectBanner();
+    window.UI.showToast(msg);
+  }
+});
+
+socket.on('opponentDisconnected', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onOpponentDisconnected(data);
+  }
+});
+
+socket.on('opponentReconnected', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onOpponentReconnected(data);
+  }
 });
 
 // Matchmaking socket event handlers
@@ -101,9 +211,9 @@ socket.on('cardRemovalStart', (data) => {
   }
 });
 
-socket.on('removalConfirmed', () => {
+socket.on('removalConfirmed', (data) => {
   if (window.gameManager) {
-    window.gameManager.onRemovalConfirmed();
+    window.gameManager.onRemovalConfirmed(data);
   }
 });
 
@@ -238,6 +348,9 @@ socket.on('opponentLeftRoom', () => {
 
 // Outbound events wrapper
 const SocketService = {
+  reconnectMatch(token) {
+    socket.emit('reconnectMatch', token);
+  },
   joinQueue(username) {
     socket.emit('joinQueue', username);
   },
@@ -291,5 +404,4 @@ const SocketService = {
   }
 };
 
-// Expose globally
 window.SocketService = SocketService;

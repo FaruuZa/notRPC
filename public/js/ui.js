@@ -417,90 +417,91 @@ const RELIC_DATABASE = {
 // UI Manager holding states and DOM bindings
 const UI = {
   // Screen Elements
-  matchmakingScreen: document.getElementById('matchmaking-screen'),
-  draftScreen: document.getElementById('draft-screen'),
-  battleScreen: document.getElementById('battle-screen'),
-  gameOverScreen: document.getElementById('game-over-screen'),
-  roundResultOverlay: document.getElementById('round-result-overlay'),
-  roundQuestRewardBanner: document.getElementById('round-quest-reward-banner'),
-  roundQuestRewardText: document.getElementById('round-quest-reward-text'),
-  bonusPickScreen: document.getElementById('bonus-pick-screen'),
-  waitingScreen: document.getElementById('waiting-screen'),
-  packSelectionScreen: document.getElementById('pack-selection-screen'),
-  packRevealScreen: document.getElementById('pack-reveal-screen'),
-  questSelectionScreen: document.getElementById('quest-selection-screen'),
-  cardRemovalScreen: document.getElementById('card-removal-screen'),
-  relicSelectionScreen: document.getElementById('relic-selection-screen'),
-  relicChoicesGrid: document.getElementById('relic-choices-grid'),
-  relicConfirmBtn: document.getElementById('relic-confirm-btn'),
-  playerRelicsRow: document.getElementById('player-relics-row'),
-  enemyRelicsRow: document.getElementById('enemy-relics-row'),
-  
+  get matchmakingScreen() { return document.getElementById('matchmaking-screen'); },
+  get draftScreen() { return document.getElementById('draft-screen'); },
+  get battleScreen() { return document.getElementById('battle-screen'); },
+  get gameOverScreen() { return document.getElementById('game-over-screen'); },
+  get roundResultOverlay() { return document.getElementById('round-result-overlay'); },
+  get roundQuestRewardBanner() { return document.getElementById('round-quest-reward-banner'); },
+  get roundQuestRewardText() { return document.getElementById('round-quest-reward-text'); },
+  get bonusPickScreen() { return document.getElementById('bonus-pick-screen'); },
+  get waitingScreen() { return document.getElementById('waiting-screen'); },
+  get packSelectionScreen() { return document.getElementById('pack-selection-screen'); },
+  get packRevealScreen() { return document.getElementById('pack-reveal-screen'); },
+  get questSelectionScreen() { return document.getElementById('quest-selection-screen'); },
+  get cardRemovalScreen() { return document.getElementById('card-removal-screen'); },
+  get relicSelectionScreen() { return document.getElementById('relic-selection-screen'); },
+  get relicChoicesGrid() { return document.getElementById('relic-choices-grid'); },
+  get relicConfirmBtn() { return document.getElementById('relic-confirm-btn'); },
+  get playerRelicsRow() { return document.getElementById('player-relics-row'); },
+  get enemyRelicsRow() { return document.getElementById('enemy-relics-row'); },
   
   // Matchmaking elements
-  usernameInput: document.getElementById('username-input'),
-  playBtn: document.getElementById('play-btn'),
-  leaveQueueBtn: document.getElementById('leave-queue-btn'),
-  statusText: document.getElementById('status-text'),
-  queueStatusSub: document.getElementById('queue-status-sub'),
-  queueCountDisplay: document.getElementById('queue-count-display'),
+  get usernameInput() { return document.getElementById('username-input'); },
+  get playBtn() { return document.getElementById('play-btn'); },
+  get leaveQueueBtn() { return document.getElementById('leave-queue-btn'); },
+  get statusText() { return document.getElementById('status-text'); },
+  get queueStatusSub() { return document.getElementById('queue-status-sub'); },
+  get queueCountDisplay() { return document.getElementById('queue-count-display'); },
   
   // Draft elements
-  draftTimerVal: document.getElementById('draft-timer-val'),
-  draftCounterVal: document.getElementById('draft-counter-val'),
-  draftCardsGrid: document.getElementById('draft-cards-grid'),
-  draftLockBtn: document.getElementById('draft-lock-btn'),
-  draftKeywordInfo: document.getElementById('draft-keyword-info'),
+  get draftTimerVal() { return document.getElementById('draft-timer-val'); },
+  get draftCounterVal() { return document.getElementById('draft-counter-val'); },
+  get draftCardsGrid() { return document.getElementById('draft-cards-grid'); },
+  get draftLockBtn() { return document.getElementById('draft-lock-btn'); },
+  get draftKeywordInfo() { return document.getElementById('draft-keyword-info'); },
   
   // Battle HUD elements
-  playerName: document.getElementById('player-name'),
-  playerHpVal: document.getElementById('player-hp-val'),
-  playerMaxHpVal: document.getElementById('player-max-hp-val'),
-  playerHpFill: document.getElementById('player-hp-fill'),
-  playerShieldVal: document.getElementById('player-shield-val'),
-  playerShieldBox: document.getElementById('player-shield-box'),
-  playerStatusContainer: document.getElementById('player-status-container'),
-  playerPoints: document.getElementById('player-points'),
+  get playerName() { return document.getElementById('player-name'); },
+  get playerHpVal() { return document.getElementById('player-hp-val'); },
+  get playerMaxHpVal() { return document.getElementById('player-max-hp-val'); },
+  get playerHpFill() { return document.getElementById('player-hp-fill'); },
+  get playerShieldVal() { return document.getElementById('player-shield-val'); },
+  get playerShieldBox() { return document.getElementById('player-shield-box'); },
+  get playerStatusContainer() { return document.getElementById('player-status-container'); },
+  get playerPoints() { return document.getElementById('player-points'); },
+  get playerTokensVal() { return document.getElementById('player-tokens-val'); },
+  get playerTokenBadge() { return document.getElementById('player-token-badge'); },
   
-  enemyName: document.getElementById('enemy-name'),
-  enemyHpVal: document.getElementById('enemy-hp-val'),
-  enemyMaxHpVal: document.getElementById('enemy-max-hp-val'),
-  enemyHpFill: document.getElementById('enemy-hp-fill'),
-  enemyShieldVal: document.getElementById('enemy-shield-val'),
-  enemyShieldBox: document.getElementById('enemy-shield-box'),
-  enemyStatusContainer: document.getElementById('enemy-status-container'),
-  enemyPoints: document.getElementById('enemy-points'),
+  get enemyName() { return document.getElementById('enemy-name'); },
+  get enemyHpVal() { return document.getElementById('enemy-hp-val'); },
+  get enemyMaxHpVal() { return document.getElementById('enemy-max-hp-val'); },
+  get enemyHpFill() { return document.getElementById('enemy-hp-fill'); },
+  get enemyShieldVal() { return document.getElementById('enemy-shield-val'); },
+  get enemyShieldBox() { return document.getElementById('enemy-shield-box'); },
+  get enemyStatusContainer() { return document.getElementById('enemy-status-container'); },
+  get enemyPoints() { return document.getElementById('enemy-points'); },
   
-  enemyCardDots: document.getElementById('enemy-card-dots'),
-  battleKeywordInfo: document.getElementById('battle-keyword-info'),
+  get enemyCardDots() { return document.getElementById('enemy-card-dots'); },
+  get battleKeywordInfo() { return document.getElementById('battle-keyword-info'); },
   
   // Arena elements
-  playerPlaySlot: document.getElementById('player-play-slot'),
-  enemyPlaySlot: document.getElementById('enemy-play-slot'),
-  vsBadge: document.getElementById('vs-badge'),
-  arenaCombatText: document.getElementById('arena-combat-text'),
-  damagePopupContainer: document.getElementById('damage-popup-container'),
+  get playerPlaySlot() { return document.getElementById('player-play-slot'); },
+  get enemyPlaySlot() { return document.getElementById('enemy-play-slot'); },
+  get vsBadge() { return document.getElementById('vs-badge'); },
+  get arenaCombatText() { return document.getElementById('arena-combat-text'); },
+  get damagePopupContainer() { return document.getElementById('damage-popup-container'); },
   
   // Player Interaction Hand
-  playerHand: document.getElementById('player-hand'),
-  lockBtn: document.getElementById('lock-btn'),
+  get playerHand() { return document.getElementById('player-hand'); },
+  get lockBtn() { return document.getElementById('lock-btn'); },
   
   // Draft Phase elements
-  bonusCardsFan: document.getElementById('bonus-cards-fan'),
-  bonusConfirmBtn: document.getElementById('bonus-confirm-btn'),
-  packsSelectionGrid: document.getElementById('packs-selection-grid'),
-  revealedPackCard: document.getElementById('revealed-pack-card'),
-  revealedPackName: document.getElementById('revealed-pack-name'),
-  revealCardsFan: document.getElementById('reveal-cards-fan'),
-  revealFooter: document.getElementById('reveal-footer'),
-  packRevealConfirmBtn: document.getElementById('pack-reveal-confirm-btn'),
+  get bonusCardsFan() { return document.getElementById('bonus-cards-fan'); },
+  get bonusConfirmBtn() { return document.getElementById('bonus-confirm-btn'); },
+  get packsSelectionGrid() { return document.getElementById('packs-selection-grid'); },
+  get revealedPackCard() { return document.getElementById('revealed-pack-card'); },
+  get revealedPackName() { return document.getElementById('revealed-pack-name'); },
+  get revealCardsFan() { return document.getElementById('reveal-cards-fan'); },
+  get revealFooter() { return document.getElementById('reveal-footer'); },
+  get packRevealConfirmBtn() { return document.getElementById('pack-reveal-confirm-btn'); },
 
   // Game Over Elements
-  gameOverTitle: document.getElementById('game-over-title'),
-  gameOverMsg: document.getElementById('game-over-msg'),
-  goFinalScore: document.getElementById('go-final-score'),
-  goRounds: document.getElementById('go-rounds'),
-  goLobbyBtn: document.getElementById('go-lobby-btn'),
+  get gameOverTitle() { return document.getElementById('game-over-title'); },
+  get gameOverMsg() { return document.getElementById('game-over-msg'); },
+  get goFinalScore() { return document.getElementById('go-final-score'); },
+  get goRounds() { return document.getElementById('go-rounds'); },
+  get goLobbyBtn() { return document.getElementById('go-lobby-btn'); },
   
   // Selection States
   selectedCardInstanceId: null,
@@ -511,20 +512,12 @@ const UI = {
    * @param {string} screenName 'lobby' | 'draft' | 'battle' | 'gameOver' | 'bonusPick' | 'waiting' | 'packSelection' | 'packReveal'
    */
   showScreen(screenName) {
-    this.matchmakingScreen.classList.remove('active');
-    if (this.draftScreen) this.draftScreen.classList.remove('active');
-    this.battleScreen.classList.remove('active');
-    this.gameOverScreen.classList.remove('active');
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+    });
     this.gameOverScreen.style.display = 'none';
     this.gameOverScreen.style.opacity = '0';
-    if (this.bonusPickScreen) this.bonusPickScreen.classList.remove('active');
-    if (this.waitingScreen) this.waitingScreen.classList.remove('active');
-    if (this.packSelectionScreen) this.packSelectionScreen.classList.remove('active');
-    if (this.packRevealScreen) this.packRevealScreen.classList.remove('active');
-    if (this.questSelectionScreen) this.questSelectionScreen.classList.remove('active');
-    if (this.cardRemovalScreen) this.cardRemovalScreen.classList.remove('active');
-    if (this.relicSelectionScreen) this.relicSelectionScreen.classList.remove('active');
-
+    this.hideAuthScreen();
 
     // Hide round overlay if switching screens
     if (this.roundResultOverlay) {
@@ -534,13 +527,17 @@ const UI = {
     }
 
     if (screenName === 'lobby') {
-      this.matchmakingScreen.classList.add('active');
+      if (this.matchmakingScreen) this.matchmakingScreen.classList.add('active');
     } else if (screenName === 'draft') {
       if (this.draftScreen) this.draftScreen.classList.add('active');
     } else if (screenName === 'battle') {
-      this.battleScreen.classList.add('active');
+      if (this.battleScreen) this.battleScreen.classList.add('active');
     } else if (screenName === 'gameOver') {
-      this.gameOverScreen.classList.add('active');
+      if (this.gameOverScreen) {
+        this.gameOverScreen.classList.add('active');
+        this.gameOverScreen.style.display = 'flex';
+        this.gameOverScreen.style.opacity = '1';
+      }
     } else if (screenName === 'bonusPick') {
       if (this.bonusPickScreen) this.bonusPickScreen.classList.add('active');
     } else if (screenName === 'waiting') {
@@ -555,6 +552,150 @@ const UI = {
       if (this.cardRemovalScreen) this.cardRemovalScreen.classList.add('active');
     } else if (screenName === 'relicSelection') {
       if (this.relicSelectionScreen) this.relicSelectionScreen.classList.add('active');
+    }
+  },
+
+  showAuthScreen() {
+    const authScreen = document.getElementById('auth-screen');
+    if (authScreen) authScreen.classList.add('active');
+  },
+
+  hideAuthScreen() {
+    const authScreen = document.getElementById('auth-screen');
+    if (authScreen) authScreen.classList.remove('active');
+  },
+
+  showReconnectBanner() {
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.classList.remove('hidden');
+  },
+
+  hideReconnectBanner() {
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.classList.add('hidden');
+  },
+
+  initTabNavigation() {
+    const navTabs = document.querySelectorAll('.nav-tab');
+    navTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        navTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const targetId = tab.getAttribute('data-tab');
+        
+        document.querySelectorAll('#matchmaking-screen .tab-content').forEach(tc => {
+          tc.classList.add('hidden');
+          tc.classList.remove('active');
+        });
+
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) {
+          targetContent.classList.remove('hidden');
+          targetContent.classList.add('active');
+        }
+
+        if (targetId === 'stats-tab') {
+          this.loadUserStats();
+        } else if (targetId === 'history-tab') {
+          this.loadMatchHistory();
+        }
+      });
+    });
+  },
+
+  async loadUserStats() {
+    const token = localStorage.getItem('element_clash_token');
+    if (!token) {
+      document.getElementById('stat-username').textContent = 'Guest Player';
+      document.getElementById('stat-joined-date').textContent = 'Login to view statistics';
+      document.getElementById('stat-total-matches').textContent = '0';
+      document.getElementById('stat-wins').textContent = '0';
+      document.getElementById('stat-losses').textContent = '0';
+      document.getElementById('stat-winrate').textContent = '0%';
+      document.getElementById('stat-win-streak').textContent = '0';
+      document.getElementById('stat-total-damage').textContent = '0';
+      return;
+    }
+    try {
+      const res = await fetch('/api/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const s = data.stats;
+      if (!s) return;
+
+      document.getElementById('stat-username').textContent = s.username;
+      document.getElementById('stat-joined-date').textContent = `Joined: ${new Date(s.created_at).toLocaleDateString()}`;
+      document.getElementById('stat-total-matches').textContent = s.total_matches || 0;
+      document.getElementById('stat-wins').textContent = s.wins || 0;
+      document.getElementById('stat-losses').textContent = s.losses || 0;
+      
+      const winrate = s.total_matches > 0 ? Math.round((s.wins / s.total_matches) * 100) : 0;
+      document.getElementById('stat-winrate').textContent = `${winrate}%`;
+      document.getElementById('stat-win-streak').textContent = s.win_streak || 0;
+      document.getElementById('stat-total-damage').textContent = s.total_damage_dealt || 0;
+
+      let rank = 'BRONZE I';
+      if (s.wins >= 50) rank = 'LEGEND';
+      else if (s.wins >= 30) rank = 'DIAMOND I';
+      else if (s.wins >= 15) rank = 'PLATINUM I';
+      else if (s.wins >= 5) rank = 'GOLD I';
+      else if (s.wins >= 1) rank = 'SILVER I';
+      document.getElementById('stat-rank-name').textContent = rank;
+    } catch (err) {
+      console.warn('Failed to load stats:', err);
+    }
+  },
+
+  async loadMatchHistory() {
+    const listEl = document.getElementById('history-list');
+    if (!listEl) return;
+
+    const token = localStorage.getItem('element_clash_token');
+    if (!token) {
+      listEl.innerHTML = `<div class="empty-history-text">Please login to view your match history.</div>`;
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/history', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const history = data.history || [];
+
+      if (history.length === 0) {
+        listEl.innerHTML = `<div class="empty-history-text">No match history found. Play your first match!</div>`;
+        return;
+      }
+
+      const currentUser = JSON.parse(localStorage.getItem('element_clash_user') || '{}');
+
+      listEl.innerHTML = '';
+      history.forEach(item => {
+        const isP1 = item.p1_id === currentUser.id;
+        const opponentName = isP1 ? item.p2_name : item.p1_name;
+        const yourScore = isP1 ? item.p1_score : item.p2_score;
+        const oppScore = isP1 ? item.p2_score : item.p1_score;
+        const isVictory = item.winner_id === currentUser.id;
+        const dateStr = new Date(item.created_at).toLocaleString();
+
+        const row = document.createElement('div');
+        row.className = `history-item ${isVictory ? 'victory' : 'defeat'}`;
+        row.innerHTML = `
+          <div class="history-result-badge">${isVictory ? 'VICTORY' : 'DEFEAT'}</div>
+          <div class="history-details">
+            <span class="history-vs">VS ${opponentName}</span>
+            <span class="history-date">${dateStr}</span>
+          </div>
+          <div class="history-score">${yourScore} - ${oppScore}</div>
+        `;
+        listEl.appendChild(row);
+      });
+    } catch (err) {
+      console.warn('Failed to load history:', err);
     }
   },
 
@@ -753,7 +894,7 @@ const UI = {
     cardDiv.innerHTML = `
       <div class="card-face card-front">
         <div class="card-header">
-          <span class="card-name">${card.name}</span>
+          <span class="card-name" title="${card.name}">${card.name}</span>
         </div>
         <div class="card-middle">
           <i class="card-element-icon fa-solid ${iconClass}"></i>
@@ -1331,12 +1472,19 @@ const UI = {
       card.className = `quest-card ${q.difficulty}`;
       card.dataset.questId = q.id;
       
+      const tokens = q.removalTokens !== undefined ? q.removalTokens : (q.difficulty === 'HARD' ? 2 : (q.difficulty === 'MEDIUM' ? 1 : 0));
+      const tokensBadgeHtml = tokens > 0 
+        ? `<div class="quest-token-bonus"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`
+        : `<div class="quest-token-bonus zero"><i class="fa-solid fa-fire-flame-curved"></i> +0 Removal Tokens</div>`;
+
       card.innerHTML = `
         <div class="quest-card-difficulty ${q.difficulty}">${q.difficulty}</div>
         <div class="quest-card-text">${q.text}</div>
         <div class="quest-card-reward-box">
-          <div class="quest-card-reward-label">REWARD</div>
+          <div class="quest-card-reward-label">MAIN REWARD</div>
           <div class="quest-card-reward-text">${q.reward.text}</div>
+          <div class="quest-card-token-label">GUARANTEED BONUS</div>
+          ${tokensBadgeHtml}
         </div>
       `;
       
@@ -1380,16 +1528,20 @@ const UI = {
     if (progressTextEl) {
       if (progress >= target) {
         progressTextEl.innerText = 'COMPLETED';
-        progressTextEl.style.color = '#ffd700'; // Gold accent
+        progressTextEl.style.color = 'var(--color-primary)';
         progressTextEl.style.fontWeight = 'bold';
       } else {
         progressTextEl.innerText = `${progress} / ${target}`;
-        progressTextEl.style.color = ''; // Reset to default
+        progressTextEl.style.color = '';
         progressTextEl.style.fontWeight = '';
       }
     }
     
-    if (rewardEl) rewardEl.innerText = `Reward: ${activeQuest.reward.text}`;
+    if (rewardEl) {
+      const tokens = activeQuest.removalTokens !== undefined ? activeQuest.removalTokens : (activeQuest.difficulty === 'HARD' ? 2 : (activeQuest.difficulty === 'MEDIUM' ? 1 : 0));
+      const tokenBonusStr = tokens > 0 ? ` & +${tokens} Token${tokens > 1 ? 's' : ''}` : '';
+      rewardEl.innerText = `Reward: ${activeQuest.reward.text}${tokenBonusStr}`;
+    }
   },
 
   renderRemovalCards(deck, onCardClick) {
@@ -1397,18 +1549,26 @@ const UI = {
     if (!grid) return;
     grid.innerHTML = '';
     
+    const minDeckSize = 4;
+    const isLockedOut = deck.length <= minDeckSize;
+
     deck.forEach(card => {
       const cardEl = this.createCardElement(card);
-      
-      cardEl.addEventListener('click', () => {
-        window.AudioSynth.playClick();
-        grid.querySelectorAll('.card').forEach(c => {
-          c.classList.remove('selected');
+      if (isLockedOut) {
+        cardEl.classList.add('locked-card');
+        cardEl.style.opacity = '0.45';
+        cardEl.style.cursor = 'not-allowed';
+        cardEl.title = 'Deck is at minimum size (4 cards). Cannot remove.';
+      } else {
+        cardEl.addEventListener('click', () => {
+          window.AudioSynth.playClick();
+          grid.querySelectorAll('.card').forEach(c => {
+            c.classList.remove('selected');
+          });
+          cardEl.classList.add('selected');
+          onCardClick(card.instanceId);
         });
-        cardEl.classList.add('selected');
-        onCardClick(card.instanceId);
-      });
-      
+      }
       grid.appendChild(cardEl);
     });
   },

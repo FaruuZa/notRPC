@@ -1,4 +1,4 @@
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 const MAX_HP = 100;
 const HAND_SIZE = 4;
 
@@ -43,13 +43,13 @@ const CLASH_RULES = {
     [ELEMENTS.WATER]:   'NEUTRAL',
     [ELEMENTS.NATURE]:  'NEUTRAL',
     [ELEMENTS.NEUTRAL]: 'NEUTRAL',
-    [ELEMENTS.CHAOS]:   'SUPERIOR'   // ← NEUTRAL finally beats CHAOS!
+    [ELEMENTS.CHAOS]:   'SUPERIOR' 
   },
   [ELEMENTS.CHAOS]: {
     [ELEMENTS.FIRE]:    'SUPERIOR',
     [ELEMENTS.WATER]:   'SUPERIOR',
     [ELEMENTS.NATURE]:  'SUPERIOR',
-    [ELEMENTS.NEUTRAL]: 'INFERIOR',  // ← CHAOS finally loses to NEUTRAL!
+    [ELEMENTS.NEUTRAL]: 'INFERIOR', 
     [ELEMENTS.CHAOS]:   'NEUTRAL'
   }
 };
