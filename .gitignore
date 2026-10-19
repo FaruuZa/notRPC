@@ -1,0 +1,16 @@
+# Dependency Node.js
+node_modules/
+
+# Lingkungan / Kredensial Sensitif
+.env
+.env.local
+
+# Logs dan File Sampah Sistem
+*.stackdump
+.DS_Store
+Thumbs.db
+
+# Folder Konfigurasi Tooling Lokal
+.claude/
+.impeccable/
+

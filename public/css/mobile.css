@@ -117,8 +117,14 @@
   }
 
   .horizontal-fan-container .card .card-name {
-    font-size: 0.5rem !important;
+    font-size: 0.44rem !important;
     line-height: 1.05 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    letter-spacing: -0.02em !important;
+    width: 100% !important;
+    text-align: center !important;
   }
 
   .horizontal-fan-container .card .card-middle {
@@ -186,5 +192,114 @@
     padding: 0.35rem 1.2rem !important;
     min-width: 200px !important;
     border-width: 1.5px !important;
+  }
+}
+
+/* ============================================================================= 
+   MOBILE PORTRAIT — LOBBY RESPONSIVE
+   On portrait mobile, tabs move to the bottom as a fixed nav bar
+   ============================================================================= */
+@media (max-width: 600px) and (orientation: portrait) {
+  /* Auth corner removed from floating top-right header */
+  .lobby-auth-corner {
+    display: none !important;
+  }
+
+  .stats-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .stats-auth-action {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .stats-auth-action button {
+    width: 100% !important;
+  }
+
+  /* Lobby screen scrolls normally */
+  #matchmaking-screen {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  /* Lobby container gets bottom padding for fixed tab bar */
+  .lobby-container {
+    padding: 2rem 0 5.5rem;
+    width: 92%;
+  }
+
+  /* Logo smaller on mobile */
+  .logo-main {
+    font-size: 2rem !important;
+  }
+
+  /* Lobby nav tabs become fixed bottom bar */
+  .lobby-nav-tabs {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-top: 1px solid var(--border-brass) !important;
+    background: var(--bg-inner-panel) !important;
+    z-index: 100 !important;
+    padding: 0.5rem !important;
+    gap: 0 !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5) !important;
+  }
+
+  .nav-tab {
+    font-size: 0.7rem !important;
+    padding: 0.5rem 0.25rem !important;
+    flex-direction: column !important;
+    gap: 0.2rem !important;
+  }
+
+  .nav-tab i {
+    font-size: 1.1rem !important;
+  }
+
+  /* Lobby card and content width */
+  .lobby-card {
+    padding: 1.5rem 1.2rem !important;
+  }
+
+  /* Stats and history containers fit mobile width */
+  .stats-container,
+  .history-container {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .btn-sm {
+    padding: 0.35rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* Also for small landscape phones (< 450px height) */
+@media (max-height: 450px) and (orientation: landscape) {
+  .lobby-container {
+    padding: 1rem 0 1.5rem;
+  }
+  .logo-area {
+    margin-bottom: 0.75rem !important;
+  }
+  .logo-main {
+    font-size: 1.8rem !important;
+  }
+  .lobby-card {
+    padding: 1rem 1.2rem !important;
+    gap: 0.8rem !important;
   }
 }

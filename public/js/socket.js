@@ -5,10 +5,25 @@
 // Detect Discord Activity Environment (discordsays.com domain)
 const isDiscordActivity = window.location.hostname.includes('discordsays.com');
 
-// Initialize Socket.IO Client connection
+// Read stored JWT token
+const storedToken = localStorage.getItem('element_clash_token');
+
+// Initialize Socket.IO Client connection with auth token
 const socket = io({
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  auth: {
+    token: storedToken
+  }
 });
+
+// Helper function to update socket auth token on login/logout
+function updateSocketAuthToken(token) {
+  socket.auth = { token };
+  if (socket.connected) {
+    socket.disconnect().connect();
+  }
+}
+window.updateSocketAuthToken = updateSocketAuthToken;
 
 // Discord Activity SDK Helper
 window.discordApp = {
@@ -22,7 +37,6 @@ window.discordApp = {
     }
 
     try {
-      // Fetch server configuration
       const res = await fetch('/api/config').catch(() => null);
       if (!res || !res.ok) return;
       const config = await res.json();
@@ -37,7 +51,6 @@ window.discordApp = {
       await this.sdk.ready();
       console.log('[Discord SDK] Discord SDK Ready!');
 
-      // Attempt authorization (optional - user info)
       try {
         await this.sdk.commands.authorize({
           client_id: config.discordClientId,
@@ -56,7 +69,6 @@ window.discordApp = {
   }
 };
 
-// Initialize Discord SDK safely when DOM content is loaded
 function startDiscordSdk() {
   if (window.discordApp) {
     window.discordApp.init().catch(err => console.warn('[Discord SDK Error]', err));
@@ -69,13 +81,47 @@ if (document.readyState === 'loading') {
   startDiscordSdk();
 }
 
-// Listen for connection status
+// Connection status listeners
 socket.on('connect', () => {
   console.log(`[Socket] Connected to server: ${socket.id}`);
 });
 
 socket.on('disconnect', () => {
   console.log(`[Socket] Disconnected from server`);
+});
+
+// Reconnect & Session Events
+socket.on('pendingReconnect', (data) => {
+  console.log('[Socket] Received pendingReconnect event:', data);
+  window.pendingReconnectData = data;
+  if (window.gameManager) {
+    window.gameManager.onPendingReconnect(data);
+  }
+});
+
+socket.on('reconnectSuccess', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onReconnectSuccess(data);
+  }
+});
+
+socket.on('reconnectFailed', (msg) => {
+  if (window.UI) {
+    window.UI.hideReconnectBanner();
+    window.UI.showToast(msg);
+  }
+});
+
+socket.on('opponentDisconnected', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onOpponentDisconnected(data);
+  }
+});
+
+socket.on('opponentReconnected', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onOpponentReconnected(data);
+  }
 });
 
 // Matchmaking socket event handlers
@@ -165,9 +211,9 @@ socket.on('cardRemovalStart', (data) => {
   }
 });
 
-socket.on('removalConfirmed', () => {
+socket.on('removalConfirmed', (data) => {
   if (window.gameManager) {
-    window.gameManager.onRemovalConfirmed();
+    window.gameManager.onRemovalConfirmed(data);
   }
 });
 
@@ -302,6 +348,9 @@ socket.on('opponentLeftRoom', () => {
 
 // Outbound events wrapper
 const SocketService = {
+  reconnectMatch(token) {
+    socket.emit('reconnectMatch', token);
+  },
   joinQueue(username) {
     socket.emit('joinQueue', username);
   },
@@ -355,5 +404,4 @@ const SocketService = {
   }
 };
 
-// Expose globally
 window.SocketService = SocketService;

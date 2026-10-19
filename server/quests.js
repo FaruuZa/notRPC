@@ -121,31 +121,69 @@ function isQuestSupported(quest, deck) {
 }
 
 /**
- * Generates a reward matched to a quest's difficulty
+ * Returns the guaranteed removal token reward for completing a quest of this difficulty
+ */
+function getRemovalTokenReward(difficulty) {
+  if (difficulty === 'EASY') return 0;
+  if (difficulty === 'MEDIUM') return 1;
+  if (difficulty === 'HARD') return 2;
+  return 0;
+}
+
+/**
+ * Predefined TFT-style augment rarity curves for rounds 1, 2, 3
+ * e.g. [Rare, Rare, Epic], [Common, Rare, Epic], [Rare, Epic, Epic], etc.
+ */
+const MATCH_RARITY_PATTERNS = [
+  ['MEDIUM', 'MEDIUM', 'HARD'],
+  ['EASY', 'MEDIUM', 'HARD'],
+  ['MEDIUM', 'HARD', 'HARD'],
+  ['EASY', 'MEDIUM', 'MEDIUM'],
+  ['HARD', 'MEDIUM', 'HARD'],
+  ['MEDIUM', 'HARD', 'MEDIUM']
+];
+
+/**
+ * Generates a synchronized match rarity schedule across rounds for both players
+ */
+function generateMatchRaritySchedule(maxRounds = 10) {
+  const pattern = MATCH_RARITY_PATTERNS[Math.floor(Math.random() * MATCH_RARITY_PATTERNS.length)];
+  const schedule = {};
+  for (let r = 1; r <= maxRounds; r++) {
+    if (r <= pattern.length) {
+      schedule[r] = pattern[r - 1];
+    } else {
+      schedule[r] = 'HARD'; // Late-game rounds default to HARD/Epic
+    }
+  }
+  return schedule;
+}
+
+/**
+ * Generates a main reward matched to a quest's difficulty (Relic or Bonus Draft)
+ * Card removal is now a guaranteed token bonus rather than a main reward.
  */
 function generateReward(difficulty) {
   const roll = Math.random();
   
   if (difficulty === 'EASY') {
-    // 60% COMMON Relic
-    if(roll < 0.60) {
+    // 80% COMMON Relic, 20% Bonus Draft Pick
+    if (roll < 0.80) {
       return { type: 'relic', quality: 'COMMON', text: 'COMMON Relic' };
     } else {
-      return { type: 'remove_card', text: 'Card Removal Option' };
+      return { type: 'bonus_draft', text: 'Bonus Draft Pick' };
     }
   } else if (difficulty === 'MEDIUM') {
-    // 50% RARE Relic, 25% Remove Card, 25% Bonus Draft
-    if (roll < 0.50) {
+    // 70% RARE/EPIC Relic, 30% Bonus Draft Pick
+    if (roll < 0.70) {
       const q = Math.random() < 0.85 ? 'RARE' : 'EPIC';
       return { type: 'relic', quality: q, text: `${q} Relic` };
-    } else if (roll < 0.75) {
-      return { type: 'remove_card', text: 'Card Removal Option' };
     } else {
       return { type: 'bonus_draft', text: 'Bonus Draft Pick' };
     }
   } else { // HARD
-    // 60% EPIC/LEGENDARY Relic, 40% Bonus Draft
-    if (roll < 0.60) {
+    // 70% EPIC/LEGENDARY Relic, 30% Bonus Draft Pick
+    if (roll < 0.70) {
       const q = Math.random() < 0.80 ? 'EPIC' : 'LEGENDARY';
       return { type: 'relic', quality: q, text: `${q} Relic` };
     } else {
@@ -155,20 +193,45 @@ function generateReward(difficulty) {
 }
 
 /**
- * Generates 3 unique deck-aware quests for a player
+ * Generates 3 unique deck-aware quests for a player according to target rarities.
  * @param {Array} deck Player's deck list of card templates
+ * @param {Array<string>} [targetRarities] Optional target difficulties for each of the 3 slots, e.g. ['MEDIUM', 'MEDIUM', 'HARD']
  * @returns {Array} List of 3 quest objects
  */
-function generatePlayerQuests(deck) {
+function generatePlayerQuests(deck, targetRarities = null) {
   const supported = QUEST_TEMPLATES.filter(q => isQuestSupported(q, deck));
-  
-  // Shuffle supported templates
-  const shuffled = supported.sort(() => Math.random() - 0.5);
-  
-  // Pick up to 3 unique templates
-  const selectedTemplates = shuffled.slice(0, Math.min(3, shuffled.length));
-  
-  // If we have less than 3 (very small custom deck), fill with outcome/damage templates which are always supported
+  const selectedTemplates = [];
+
+  if (targetRarities && Array.isArray(targetRarities) && targetRarities.length === 3) {
+    targetRarities.forEach(targetDiff => {
+      // Find a supported template matching target difficulty not already chosen
+      const candidates = supported.filter(q => q.difficulty === targetDiff && !selectedTemplates.some(s => s.id === q.id));
+      if (candidates.length > 0) {
+        const picked = candidates[Math.floor(Math.random() * candidates.length)];
+        selectedTemplates.push(picked);
+      } else {
+        // Fallback to any supported template not yet chosen
+        const anySupported = supported.filter(q => !selectedTemplates.some(s => s.id === q.id));
+        if (anySupported.length > 0) {
+          const picked = anySupported[Math.floor(Math.random() * anySupported.length)];
+          selectedTemplates.push(picked);
+        }
+      }
+    });
+  }
+
+  // If fewer than 3 chosen, fill with any supported template
+  if (selectedTemplates.length < 3) {
+    const shuffled = [...supported].sort(() => Math.random() - 0.5);
+    for (const q of shuffled) {
+      if (!selectedTemplates.some(s => s.id === q.id)) {
+        selectedTemplates.push(q);
+        if (selectedTemplates.length === 3) break;
+      }
+    }
+  }
+
+  // Backup fill if deck is very small
   while (selectedTemplates.length < 3) {
     const backup = QUEST_TEMPLATES.find(q => 
       !selectedTemplates.some(s => s.id === q.id) && 
@@ -178,21 +241,25 @@ function generatePlayerQuests(deck) {
     selectedTemplates.push(backup);
   }
 
-  // Map to instances with random rewards
+  // Map to quest instances with rewards and guaranteed removal tokens
   return selectedTemplates.map(t => {
     const reward = generateReward(t.difficulty);
+    const tokens = getRemovalTokenReward(t.difficulty);
     return {
       id: t.id,
       text: t.text,
       tags: t.tags,
       difficulty: t.difficulty,
       target: t.target,
-      reward: reward
+      reward: reward,
+      removalTokens: tokens
     };
   });
 }
 
 module.exports = {
   QUEST_TEMPLATES,
-  generatePlayerQuests
+  generatePlayerQuests,
+  generateMatchRaritySchedule,
+  getRemovalTokenReward
 };

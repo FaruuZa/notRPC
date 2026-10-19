@@ -460,6 +460,8 @@ const UI = {
   get playerShieldBox() { return document.getElementById('player-shield-box'); },
   get playerStatusContainer() { return document.getElementById('player-status-container'); },
   get playerPoints() { return document.getElementById('player-points'); },
+  get playerTokensVal() { return document.getElementById('player-tokens-val'); },
+  get playerTokenBadge() { return document.getElementById('player-token-badge'); },
   
   get enemyName() { return document.getElementById('enemy-name'); },
   get enemyHpVal() { return document.getElementById('enemy-hp-val'); },
@@ -510,20 +512,12 @@ const UI = {
    * @param {string} screenName 'lobby' | 'draft' | 'battle' | 'gameOver' | 'bonusPick' | 'waiting' | 'packSelection' | 'packReveal'
    */
   showScreen(screenName) {
-    this.matchmakingScreen.classList.remove('active');
-    if (this.draftScreen) this.draftScreen.classList.remove('active');
-    this.battleScreen.classList.remove('active');
-    this.gameOverScreen.classList.remove('active');
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+    });
     this.gameOverScreen.style.display = 'none';
     this.gameOverScreen.style.opacity = '0';
-    if (this.bonusPickScreen) this.bonusPickScreen.classList.remove('active');
-    if (this.waitingScreen) this.waitingScreen.classList.remove('active');
-    if (this.packSelectionScreen) this.packSelectionScreen.classList.remove('active');
-    if (this.packRevealScreen) this.packRevealScreen.classList.remove('active');
-    if (this.questSelectionScreen) this.questSelectionScreen.classList.remove('active');
-    if (this.cardRemovalScreen) this.cardRemovalScreen.classList.remove('active');
-    if (this.relicSelectionScreen) this.relicSelectionScreen.classList.remove('active');
-
+    this.hideAuthScreen();
 
     // Hide round overlay if switching screens
     if (this.roundResultOverlay) {
@@ -533,13 +527,17 @@ const UI = {
     }
 
     if (screenName === 'lobby') {
-      this.matchmakingScreen.classList.add('active');
+      if (this.matchmakingScreen) this.matchmakingScreen.classList.add('active');
     } else if (screenName === 'draft') {
       if (this.draftScreen) this.draftScreen.classList.add('active');
     } else if (screenName === 'battle') {
-      this.battleScreen.classList.add('active');
+      if (this.battleScreen) this.battleScreen.classList.add('active');
     } else if (screenName === 'gameOver') {
-      this.gameOverScreen.classList.add('active');
+      if (this.gameOverScreen) {
+        this.gameOverScreen.classList.add('active');
+        this.gameOverScreen.style.display = 'flex';
+        this.gameOverScreen.style.opacity = '1';
+      }
     } else if (screenName === 'bonusPick') {
       if (this.bonusPickScreen) this.bonusPickScreen.classList.add('active');
     } else if (screenName === 'waiting') {
@@ -554,6 +552,150 @@ const UI = {
       if (this.cardRemovalScreen) this.cardRemovalScreen.classList.add('active');
     } else if (screenName === 'relicSelection') {
       if (this.relicSelectionScreen) this.relicSelectionScreen.classList.add('active');
+    }
+  },
+
+  showAuthScreen() {
+    const authScreen = document.getElementById('auth-screen');
+    if (authScreen) authScreen.classList.add('active');
+  },
+
+  hideAuthScreen() {
+    const authScreen = document.getElementById('auth-screen');
+    if (authScreen) authScreen.classList.remove('active');
+  },
+
+  showReconnectBanner() {
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.classList.remove('hidden');
+  },
+
+  hideReconnectBanner() {
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.classList.add('hidden');
+  },
+
+  initTabNavigation() {
+    const navTabs = document.querySelectorAll('.nav-tab');
+    navTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        navTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const targetId = tab.getAttribute('data-tab');
+        
+        document.querySelectorAll('#matchmaking-screen .tab-content').forEach(tc => {
+          tc.classList.add('hidden');
+          tc.classList.remove('active');
+        });
+
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) {
+          targetContent.classList.remove('hidden');
+          targetContent.classList.add('active');
+        }
+
+        if (targetId === 'stats-tab') {
+          this.loadUserStats();
+        } else if (targetId === 'history-tab') {
+          this.loadMatchHistory();
+        }
+      });
+    });
+  },
+
+  async loadUserStats() {
+    const token = localStorage.getItem('element_clash_token');
+    if (!token) {
+      document.getElementById('stat-username').textContent = 'Guest Player';
+      document.getElementById('stat-joined-date').textContent = 'Login to view statistics';
+      document.getElementById('stat-total-matches').textContent = '0';
+      document.getElementById('stat-wins').textContent = '0';
+      document.getElementById('stat-losses').textContent = '0';
+      document.getElementById('stat-winrate').textContent = '0%';
+      document.getElementById('stat-win-streak').textContent = '0';
+      document.getElementById('stat-total-damage').textContent = '0';
+      return;
+    }
+    try {
+      const res = await fetch('/api/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const s = data.stats;
+      if (!s) return;
+
+      document.getElementById('stat-username').textContent = s.username;
+      document.getElementById('stat-joined-date').textContent = `Joined: ${new Date(s.created_at).toLocaleDateString()}`;
+      document.getElementById('stat-total-matches').textContent = s.total_matches || 0;
+      document.getElementById('stat-wins').textContent = s.wins || 0;
+      document.getElementById('stat-losses').textContent = s.losses || 0;
+      
+      const winrate = s.total_matches > 0 ? Math.round((s.wins / s.total_matches) * 100) : 0;
+      document.getElementById('stat-winrate').textContent = `${winrate}%`;
+      document.getElementById('stat-win-streak').textContent = s.win_streak || 0;
+      document.getElementById('stat-total-damage').textContent = s.total_damage_dealt || 0;
+
+      let rank = 'BRONZE I';
+      if (s.wins >= 50) rank = 'LEGEND';
+      else if (s.wins >= 30) rank = 'DIAMOND I';
+      else if (s.wins >= 15) rank = 'PLATINUM I';
+      else if (s.wins >= 5) rank = 'GOLD I';
+      else if (s.wins >= 1) rank = 'SILVER I';
+      document.getElementById('stat-rank-name').textContent = rank;
+    } catch (err) {
+      console.warn('Failed to load stats:', err);
+    }
+  },
+
+  async loadMatchHistory() {
+    const listEl = document.getElementById('history-list');
+    if (!listEl) return;
+
+    const token = localStorage.getItem('element_clash_token');
+    if (!token) {
+      listEl.innerHTML = `<div class="empty-history-text">Please login to view your match history.</div>`;
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/history', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const history = data.history || [];
+
+      if (history.length === 0) {
+        listEl.innerHTML = `<div class="empty-history-text">No match history found. Play your first match!</div>`;
+        return;
+      }
+
+      const currentUser = JSON.parse(localStorage.getItem('element_clash_user') || '{}');
+
+      listEl.innerHTML = '';
+      history.forEach(item => {
+        const isP1 = item.p1_id === currentUser.id;
+        const opponentName = isP1 ? item.p2_name : item.p1_name;
+        const yourScore = isP1 ? item.p1_score : item.p2_score;
+        const oppScore = isP1 ? item.p2_score : item.p1_score;
+        const isVictory = item.winner_id === currentUser.id;
+        const dateStr = new Date(item.created_at).toLocaleString();
+
+        const row = document.createElement('div');
+        row.className = `history-item ${isVictory ? 'victory' : 'defeat'}`;
+        row.innerHTML = `
+          <div class="history-result-badge">${isVictory ? 'VICTORY' : 'DEFEAT'}</div>
+          <div class="history-details">
+            <span class="history-vs">VS ${opponentName}</span>
+            <span class="history-date">${dateStr}</span>
+          </div>
+          <div class="history-score">${yourScore} - ${oppScore}</div>
+        `;
+        listEl.appendChild(row);
+      });
+    } catch (err) {
+      console.warn('Failed to load history:', err);
     }
   },
 
@@ -752,7 +894,7 @@ const UI = {
     cardDiv.innerHTML = `
       <div class="card-face card-front">
         <div class="card-header">
-          <span class="card-name">${card.name}</span>
+          <span class="card-name" title="${card.name}">${card.name}</span>
         </div>
         <div class="card-middle">
           <i class="card-element-icon fa-solid ${iconClass}"></i>
@@ -1330,12 +1472,19 @@ const UI = {
       card.className = `quest-card ${q.difficulty}`;
       card.dataset.questId = q.id;
       
+      const tokens = q.removalTokens !== undefined ? q.removalTokens : (q.difficulty === 'HARD' ? 2 : (q.difficulty === 'MEDIUM' ? 1 : 0));
+      const tokensBadgeHtml = tokens > 0 
+        ? `<div class="quest-token-bonus"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`
+        : `<div class="quest-token-bonus zero"><i class="fa-solid fa-fire-flame-curved"></i> +0 Removal Tokens</div>`;
+
       card.innerHTML = `
         <div class="quest-card-difficulty ${q.difficulty}">${q.difficulty}</div>
         <div class="quest-card-text">${q.text}</div>
         <div class="quest-card-reward-box">
-          <div class="quest-card-reward-label">REWARD</div>
+          <div class="quest-card-reward-label">MAIN REWARD</div>
           <div class="quest-card-reward-text">${q.reward.text}</div>
+          <div class="quest-card-token-label">GUARANTEED BONUS</div>
+          ${tokensBadgeHtml}
         </div>
       `;
       
@@ -1379,16 +1528,20 @@ const UI = {
     if (progressTextEl) {
       if (progress >= target) {
         progressTextEl.innerText = 'COMPLETED';
-        progressTextEl.style.color = '#ffd700'; // Gold accent
+        progressTextEl.style.color = 'var(--color-primary)';
         progressTextEl.style.fontWeight = 'bold';
       } else {
         progressTextEl.innerText = `${progress} / ${target}`;
-        progressTextEl.style.color = ''; // Reset to default
+        progressTextEl.style.color = '';
         progressTextEl.style.fontWeight = '';
       }
     }
     
-    if (rewardEl) rewardEl.innerText = `Reward: ${activeQuest.reward.text}`;
+    if (rewardEl) {
+      const tokens = activeQuest.removalTokens !== undefined ? activeQuest.removalTokens : (activeQuest.difficulty === 'HARD' ? 2 : (activeQuest.difficulty === 'MEDIUM' ? 1 : 0));
+      const tokenBonusStr = tokens > 0 ? ` & +${tokens} Token${tokens > 1 ? 's' : ''}` : '';
+      rewardEl.innerText = `Reward: ${activeQuest.reward.text}${tokenBonusStr}`;
+    }
   },
 
   renderRemovalCards(deck, onCardClick) {
@@ -1396,18 +1549,26 @@ const UI = {
     if (!grid) return;
     grid.innerHTML = '';
     
+    const minDeckSize = 4;
+    const isLockedOut = deck.length <= minDeckSize;
+
     deck.forEach(card => {
       const cardEl = this.createCardElement(card);
-      
-      cardEl.addEventListener('click', () => {
-        window.AudioSynth.playClick();
-        grid.querySelectorAll('.card').forEach(c => {
-          c.classList.remove('selected');
+      if (isLockedOut) {
+        cardEl.classList.add('locked-card');
+        cardEl.style.opacity = '0.45';
+        cardEl.style.cursor = 'not-allowed';
+        cardEl.title = 'Deck is at minimum size (4 cards). Cannot remove.';
+      } else {
+        cardEl.addEventListener('click', () => {
+          window.AudioSynth.playClick();
+          grid.querySelectorAll('.card').forEach(c => {
+            c.classList.remove('selected');
+          });
+          cardEl.classList.add('selected');
+          onCardClick(card.instanceId);
         });
-        cardEl.classList.add('selected');
-        onCardClick(card.instanceId);
-      });
-      
+      }
       grid.appendChild(cardEl);
     });
   },
