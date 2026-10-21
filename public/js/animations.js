@@ -248,22 +248,85 @@ const Animations = {
   },
 
   /**
-   * Animates HP Bar reduction
+   * Animates HP Bar reduction / gain with Fighting Game Ghost Bar and Tier Colors.
+   * Uses CSS width percentages for robust, pixel-accurate alignment across all resolutions.
    */
   animateHpReduction(fillElement, textElement, startHp, endHp, maxHp = 100, duration = 400) {
-    const obj = { hp: startHp };
-    
-    anime({
-      targets: obj,
-      hp: endHp,
-      round: 1,
-      duration: duration,
-      easing: 'easeOutQuad',
-      update: () => {
-        textElement.innerText = obj.hp;
-        fillElement.style.width = `${Math.max(0, (obj.hp / maxHp) * 100)}%`;
+    if (!fillElement) return;
+
+    const container = fillElement.closest('.hp-bar-container');
+    const ghostElement = container ? container.querySelector('.hp-bar-ghost') : null;
+
+    const startPct = Math.max(0, Math.min(100, (startHp / maxHp) * 100));
+    const endPct = Math.max(0, Math.min(100, (endHp / maxHp) * 100));
+
+    // Update HP Tier styling on fillElement
+    const updateTierClass = (hpVal) => {
+      const pct = (hpVal / maxHp) * 100;
+      fillElement.classList.remove('tier-high', 'tier-mid', 'tier-low');
+      if (pct > 50) {
+        fillElement.classList.add('tier-high');
+      } else if (pct > 25) {
+        fillElement.classList.add('tier-mid');
+      } else {
+        fillElement.classList.add('tier-low');
       }
-    });
+    };
+
+    updateTierClass(endHp);
+
+    const isDamage = endHp < startHp;
+    const isHeal = endHp > startHp;
+
+    if (isDamage && ghostElement) {
+      // 1. Damage: Fill immediately drops to endPct. Ghost bar holds at startPct then shrinks smoothly.
+      ghostElement.classList.remove('ghost-heal');
+      ghostElement.style.transition = 'none';
+      ghostElement.style.width = `${startPct}%`;
+
+      // Main fill drops
+      fillElement.style.width = `${endPct}%`;
+
+      // Ghost shrinks after brief impact hold (450ms)
+      setTimeout(() => {
+        ghostElement.style.transition = 'width 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
+        ghostElement.style.width = `${endPct}%`;
+      }, 450);
+    } else if (isHeal && ghostElement) {
+      // 2. Heal: Ghost instantly extends to healed preview with green color, fill catches up over 350ms
+      ghostElement.classList.add('ghost-heal');
+      ghostElement.style.transition = 'none';
+      ghostElement.style.width = `${endPct}%`;
+
+      fillElement.style.width = `${endPct}%`;
+
+      setTimeout(() => {
+        ghostElement.classList.remove('ghost-heal');
+        ghostElement.style.width = `${endPct}%`;
+      }, 400);
+    } else {
+      fillElement.style.width = `${endPct}%`;
+      if (ghostElement) {
+        ghostElement.classList.remove('ghost-heal');
+        ghostElement.style.transition = 'none';
+        ghostElement.style.width = `${endPct}%`;
+      }
+    }
+
+    // Numbers animation
+    if (textElement) {
+      const numObj = { val: startHp };
+      anime({
+        targets: numObj,
+        val: endHp,
+        round: 1,
+        duration: duration,
+        easing: 'easeOutQuad',
+        update: () => {
+          textElement.innerText = numObj.val;
+        }
+      });
+    }
   },
 
   /**
@@ -407,11 +470,13 @@ const Animations = {
   },
 
   /**
-   * Animates a protective shield absorb visual flash over a card
+   * Animates a protective shield absorb visual flash over a card (stationary slot host)
    */
   animateShieldAbsorb(cardEl) {
     if (!cardEl) return;
     
+    const slotHost = cardEl.closest('.card-play-slot') || cardEl;
+
     // Create shield overlay element
     const shieldOverlay = document.createElement('div');
     shieldOverlay.className = 'shield-absorb-overlay';
@@ -427,19 +492,19 @@ const Animations = {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(77, 171, 247, 0.25);
-      color: #4dabf7;
+      background: rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
       font-size: 3.5rem;
-      border: 3px solid #4dabf7;
-      border-radius: 4px;
+      border: 2.5px solid #38bdf8;
+      border-radius: 8px;
       opacity: 0;
-      z-index: 10;
+      z-index: 60;
       pointer-events: none;
-      box-shadow: 0 0 20px rgba(77, 171, 247, 0.6);
-      text-shadow: 0 0 10px rgba(77, 171, 247, 0.8);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
     `;
     
-    cardEl.appendChild(shieldOverlay);
+    slotHost.appendChild(shieldOverlay);
     
     // Animate opacity and scale
     anime({
@@ -455,7 +520,9 @@ const Animations = {
   },
 
   /**
-   * Animates a floating overlay over a card to signify actions like buffing, debuffing, healing, self damage
+   * Displays status actions combining a subtle color wash overlay,
+   * a punchy top badge pill, and a border pulse.
+   * Overlays are anchored to the stationary card-play-slot so they don't move during card lunges.
    */
   animateCardActionOverlay(cardEl, actionType, text, callback) {
     if (!cardEl) {
@@ -463,147 +530,122 @@ const Animations = {
       return;
     }
 
-    // Create action overlay element
-    const overlay = document.createElement('div');
-    overlay.className = `card-action-overlay ${actionType}`;
+    // Anchor overlay to the stationary card-play-slot so it stays in place during card movement
+    const slotHost = cardEl.closest('.card-play-slot') || cardEl;
 
-    let iconHtml = '';
-    let color = '';
-    let border = '';
-    let bg = '';
-    let glow = '';
+    let iconHtml = '<i class="fa-solid fa-bolt"></i>';
+    let color = '#ff9f43';
+    let tintBg = 'rgba(255, 159, 67, 0.22)';
 
     if (actionType === 'buff') {
-      iconHtml = '<i class="fa-solid fa-bolt"></i>';
-      color = '#ff9f43';
-      border = '2px solid #ff9f43';
-      bg = 'rgba(255, 159, 67, 0.28)';
-      glow = '0 0 20px rgba(255, 159, 67, 0.6)';
+      iconHtml = '<i class="fa-solid fa-arrow-trend-up"></i>';
+      color = '#f1c40f';
+      tintBg = 'rgba(241, 196, 15, 0.22)';
     } else if (actionType === 'debuff') {
-      iconHtml = '<i class="fa-solid fa-arrow-down-long"></i>';
+      iconHtml = '<i class="fa-solid fa-arrow-trend-down"></i>';
       color = '#a55eea';
-      border = '2px solid #a55eea';
-      bg = 'rgba(165, 94, 234, 0.28)';
-      glow = '0 0 20px rgba(165, 94, 234, 0.6)';
+      tintBg = 'rgba(165, 94, 234, 0.25)';
     } else if (actionType === 'heal') {
       iconHtml = '<i class="fa-solid fa-heart"></i>';
-      color = '#2ed573';
-      border = '2px solid #2ed573';
-      bg = 'rgba(46, 213, 115, 0.28)';
-      glow = '0 0 20px rgba(46, 213, 115, 0.6)';
+      color = '#00ff88';
+      tintBg = 'rgba(0, 255, 136, 0.22)';
     } else if (actionType === 'self-damage') {
       iconHtml = '<i class="fa-solid fa-heart-crack"></i>';
       color = '#e040fb';
-      border = '2.5px solid #e040fb';
-      bg = 'rgba(224, 64, 251, 0.32)';
-      glow = '0 0 24px rgba(224, 64, 251, 0.7)';
+      tintBg = 'rgba(224, 64, 251, 0.26)';
     } else if (actionType === 'shield-gain') {
       iconHtml = '<i class="fa-solid fa-shield-halved"></i>';
-      color = '#4dabf7';
-      border = '2px solid #4dabf7';
-      bg = 'rgba(77, 171, 247, 0.28)';
-      glow = '0 0 20px rgba(77, 171, 247, 0.6)';
+      color = '#38bdf8';
+      tintBg = 'rgba(56, 189, 248, 0.24)';
     } else if (actionType === 'cleanse') {
-      iconHtml = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
-      color = '#f1f2f6';
-      border = '2px solid #f1f2f6';
-      bg = 'rgba(241, 242, 246, 0.28)';
-      glow = '0 0 20px rgba(241, 242, 246, 0.6)';
+      iconHtml = '<i class="fa-solid fa-droplet"></i>';
+      color = '#2ecc71';
+      tintBg = 'rgba(46, 204, 113, 0.22)';
     } else if (actionType === 'dispel') {
-      iconHtml = '<i class="fa-solid fa-bolt-slash"></i>';
-      color = '#ff9f43';
-      border = '2px solid #ff9f43';
-      bg = 'rgba(255, 159, 67, 0.28)';
-      glow = '0 0 20px rgba(255, 159, 67, 0.6)';
+      iconHtml = '<i class="fa-solid fa-ban"></i>';
+      color = '#c084fc';
+      tintBg = 'rgba(192, 132, 252, 0.25)';
     } else if (actionType === 'burn') {
       iconHtml = '<i class="fa-solid fa-fire"></i>';
-      color = '#ff4d4d';
-      border = '2px solid #ff4d4d';
-      bg = 'rgba(255, 77, 77, 0.28)';
-      glow = '0 0 20px rgba(255, 77, 77, 0.6)';
+      color = '#ff5722';
+      tintBg = 'rgba(255, 87, 34, 0.24)';
     } else if (actionType === 'poison') {
       iconHtml = '<i class="fa-solid fa-skull-crossbones"></i>';
       color = '#2ecc71';
-      border = '2px solid #2ecc71';
-      bg = 'rgba(46, 204, 113, 0.28)';
-      glow = '0 0 20px rgba(46, 204, 113, 0.6)';
+      tintBg = 'rgba(46, 204, 113, 0.24)';
     } else if (actionType === 'weak') {
-      iconHtml = '<i class="fa-solid fa-shield-halved" style="transform: rotate(180deg);"></i>';
-      color = '#a0aec0';
-      border = '2px solid #a0aec0';
-      bg = 'rgba(127, 140, 141, 0.28)';
-      glow = '0 0 20px rgba(127, 140, 141, 0.6)';
+      iconHtml = '<i class="fa-solid fa-arrow-down"></i>';
+      color = '#94a3b8';
+      tintBg = 'rgba(148, 163, 184, 0.22)';
     } else if (actionType === 'outbreak') {
       iconHtml = '<i class="fa-solid fa-biohazard"></i>';
       color = '#c084fc';
-      border = '2.5px solid #a855f7';
-      bg = 'rgba(168, 85, 247, 0.35)';
-      glow = '0 0 24px rgba(168, 85, 247, 0.7)';
+      tintBg = 'rgba(192, 132, 252, 0.28)';
     } else if (actionType === 'leech') {
       iconHtml = '<i class="fa-solid fa-droplet"></i>';
       color = '#f43f5e';
-      border = '2.5px solid #f43f5e';
-      bg = 'rgba(244, 63, 94, 0.35)';
-      glow = '0 0 24px rgba(244, 63, 94, 0.7)';
+      tintBg = 'rgba(244, 63, 94, 0.26)';
     } else if (actionType === 'thorns') {
       iconHtml = '<i class="fa-solid fa-shield-cat"></i>';
       color = '#fbbf24';
-      border = '2.5px solid #f59e0b';
-      bg = 'rgba(245, 158, 11, 0.35)';
-      glow = '0 0 24px rgba(245, 158, 11, 0.7)';
+      tintBg = 'rgba(251, 191, 36, 0.25)';
     }
 
-    overlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.3rem;
-      background: ${bg};
-      color: ${color};
-      border: ${border};
-      border-radius: 6px;
-      opacity: 0;
-      z-index: 10;
-      pointer-events: none;
-      box-shadow: ${glow};
-      text-shadow: 0 0 10px ${color};
-      backdrop-filter: blur(2px);
-    `;
+    // 1. Create thin tint wash overlay inside stationary slot
+    const tintEl = document.createElement('div');
+    tintEl.className = 'card-action-tint';
+    tintEl.style.backgroundColor = tintBg;
+    slotHost.appendChild(tintEl);
 
-    const iconSpan = document.createElement('span');
-    iconSpan.style.fontSize = '2.4rem';
-    iconSpan.innerHTML = iconHtml;
+    // 2. Create compact top badge pill inside stationary slot
+    const badge = document.createElement('div');
+    badge.className = `card-action-badge ${actionType}`;
+    badge.style.color = color;
+    badge.innerHTML = `${iconHtml} <span>${text}</span>`;
+    slotHost.appendChild(badge);
 
-    const textSpan = document.createElement('span');
-    textSpan.style.fontFamily = 'var(--font-title)';
-    textSpan.style.fontSize = '0.85rem';
-    textSpan.style.fontWeight = '850';
-    textSpan.style.letterSpacing = '1px';
-    textSpan.style.textTransform = 'uppercase';
-    textSpan.style.textAlign = 'center';
-    textSpan.style.padding = '0 0.4rem';
-    textSpan.innerText = text;
+    // 3. Border pulse on card
+    const originalBorder = cardEl.style.borderColor;
+    const originalShadow = cardEl.style.boxShadow;
+    cardEl.style.borderColor = color;
+    cardEl.style.boxShadow = `0 0 0 2px ${color}`;
 
-    overlay.appendChild(iconSpan);
-    overlay.appendChild(textSpan);
-    cardEl.appendChild(overlay);
-
+    // 4. Animate both tint and badge
     anime({
-      targets: overlay,
+      targets: tintEl,
       opacity: [0, 1, 1, 0],
-      scale: [0.75, 1.05, 1],
       duration: 650,
-      easing: 'easeOutBack',
+      easing: 'easeInOutQuad',
+      complete: () => tintEl.remove()
+    });
+
+    anime.timeline({
       complete: () => {
-        overlay.remove();
+        badge.remove();
+        cardEl.style.borderColor = originalBorder;
+        cardEl.style.boxShadow = originalShadow;
         if (callback) callback();
       }
+    })
+    .add({
+      targets: badge,
+      scale: [0.4, 1.05],
+      opacity: [0, 1],
+      duration: 160,
+      easing: 'easeOutBack'
+    })
+    .add({
+      targets: badge,
+      scale: 1.0,
+      duration: 380,
+      easing: 'linear'
+    })
+    .add({
+      targets: badge,
+      opacity: 0,
+      translateY: -8,
+      duration: 160,
+      easing: 'easeInQuad'
     });
   },
 
@@ -750,7 +792,7 @@ const Animations = {
   },
 
   /**
-   * Animates Phoenix Heart resurrection: fiery burst ring & golden revival glow on card
+   * Animates Phoenix Heart resurrection: glorious card rising & golden revival glow (no ring overlay)
    */
   animatePhoenixRevive(cardEl, callback) {
     if (!cardEl) {
@@ -758,38 +800,26 @@ const Animations = {
       return;
     }
 
-    const burst = document.createElement('div');
-    burst.className = 'phoenix-burst-overlay';
-    cardEl.appendChild(burst);
     cardEl.classList.add('phoenix-revive-glow');
 
     anime({
-      targets: burst,
-      scale: [0.2, 1.8],
-      opacity: [0, 1, 0],
-      duration: 650,
-      easing: 'easeOutExpo',
+      targets: cardEl,
+      scale: [
+        { value: 0.92, duration: 120, easing: 'easeInOutQuad' },
+        { value: 1.08, duration: 280, easing: 'easeOutBack' },
+        { value: 1.0, duration: 250, easing: 'easeOutQuad' }
+      ],
       complete: () => {
-        burst.remove();
         setTimeout(() => {
           cardEl.classList.remove('phoenix-revive-glow');
         }, 400);
         if (callback) callback();
       }
     });
-
-    anime({
-      targets: cardEl,
-      scale: [
-        { value: 0.92, duration: 100, easing: 'easeInOutQuad' },
-        { value: 1.06, duration: 250, easing: 'easeOutBack' },
-        { value: 1.0, duration: 250, easing: 'easeOutQuad' }
-      ]
-    });
   },
 
   /**
-   * Animates Cleanse Sweep: upward light sweep washing away debuffs
+   * Animates Cleanse Sweep: upward light sweep starting from bottom of stationary slot and rising over card
    */
   animateCleanseSweep(cardEl, callback) {
     if (!cardEl) {
@@ -797,15 +827,16 @@ const Animations = {
       return;
     }
 
+    const slotHost = cardEl.closest('.card-play-slot') || cardEl;
     const sweep = document.createElement('div');
     sweep.className = 'cleanse-sweep-overlay';
-    cardEl.appendChild(sweep);
+    slotHost.appendChild(sweep);
 
     anime({
       targets: sweep,
       translateY: ['100%', '-100%'],
-      opacity: [0, 1, 0],
-      duration: 500,
+      opacity: [0.2, 1, 0],
+      duration: 550,
       easing: 'easeOutCubic',
       complete: () => {
         sweep.remove();
@@ -815,7 +846,7 @@ const Animations = {
   },
 
   /**
-   * Animates Dispel Strip: downward purple/violet strip stripping away buffs
+   * Animates Dispel Strip: downward purple/violet strip stripping away buffs inside stationary slot
    */
   animateDispelStrip(cardEl, callback) {
     if (!cardEl) {
@@ -823,15 +854,16 @@ const Animations = {
       return;
     }
 
+    const slotHost = cardEl.closest('.card-play-slot') || cardEl;
     const sweep = document.createElement('div');
     sweep.className = 'dispel-sweep-overlay';
-    cardEl.appendChild(sweep);
+    slotHost.appendChild(sweep);
 
     anime({
       targets: sweep,
       translateY: ['-100%', '100%'],
-      opacity: [0, 1, 0],
-      duration: 500,
+      opacity: [0.2, 1, 0],
+      duration: 550,
       easing: 'easeOutCubic',
       complete: () => {
         sweep.remove();

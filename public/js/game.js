@@ -1088,6 +1088,10 @@ const GameManager = {
     // Set state running
     this.isVisualPipelineRunning = true;
 
+    // Dim player hand during active clash sequence so cards remain legible but non-distracting
+    const handWrapper = document.querySelector('.hand-container-wrapper');
+    if (handWrapper) handWrapper.classList.add('clash-dimmed');
+
     try {
       // Lock controls UI text
       UI.arenaCombatText.innerText = 'CLASH!';
@@ -1859,6 +1863,8 @@ const GameManager = {
     } finally {
       // Mark visual pipeline as complete and check for pending overlays
       this.isVisualPipelineRunning = false;
+      const handWrapper = document.querySelector('.hand-container-wrapper');
+      if (handWrapper) handWrapper.classList.remove('clash-dimmed');
       this.checkAndTriggerEndPhase();
       if (window.SocketService && window.SocketService.clashFinished) {
         window.SocketService.clashFinished();
@@ -2133,9 +2139,13 @@ const GameManager = {
     UI.selectedCardInstanceId = null;
     UI.isLocked = false;
     UI.lockBtn.classList.add('disabled');
+    UI.lockBtn.classList.remove('ready-state', 'locked-state');
     UI.lockBtn.disabled = true;
-    UI.lockBtn.classList.remove('locked-state');
-    UI.lockBtn.querySelector('.lock-btn-text').innerText = 'SELECT CARD';
+    UI.lockBtn.innerHTML = '<span class="lock-btn-text">PILIH KARTU</span>';
+    
+    // Undim hand container
+    const handWrapper = document.querySelector('.hand-container-wrapper');
+    if (handWrapper) handWrapper.classList.remove('clash-dimmed');
 
     // Wipe arena slots clean
     UI.clearArenaSlots();
@@ -2150,14 +2160,40 @@ const GameManager = {
     // Sync HUD status bars, active badges, and points immediately
     UI.playerHpVal.innerText = this.myHp;
     UI.playerMaxHpVal.innerText = this.myMaxHp;
-    UI.playerHpFill.style.width = `${(this.myHp / this.myMaxHp) * 100}%`;
+    const playerPct = (this.myHp / this.myMaxHp) * 100;
+    UI.playerHpFill.style.width = `${playerPct}%`;
+    UI.playerHpFill.classList.remove('tier-high', 'tier-mid', 'tier-low');
+    if (playerPct > 50) UI.playerHpFill.classList.add('tier-high');
+    else if (playerPct > 25) UI.playerHpFill.classList.add('tier-mid');
+    else UI.playerHpFill.classList.add('tier-low');
+
+    const playerGhost = document.getElementById('player-hp-ghost');
+    if (playerGhost) {
+      playerGhost.classList.remove('ghost-heal');
+      playerGhost.style.transition = 'none';
+      playerGhost.style.width = `${playerPct}%`;
+    }
+
     UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
     UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
     UI.renderPoints(UI.playerPoints, this.myPoints);
 
     UI.enemyHpVal.innerText = this.opponentHp;
     UI.enemyMaxHpVal.innerText = this.opponentMaxHp;
-    UI.enemyHpFill.style.width = `${(this.opponentHp / this.opponentMaxHp) * 100}%`;
+    const enemyPct = (this.opponentHp / this.opponentMaxHp) * 100;
+    UI.enemyHpFill.style.width = `${enemyPct}%`;
+    UI.enemyHpFill.classList.remove('tier-high', 'tier-mid', 'tier-low');
+    if (enemyPct > 50) UI.enemyHpFill.classList.add('tier-high');
+    else if (enemyPct > 25) UI.enemyHpFill.classList.add('tier-mid');
+    else UI.enemyHpFill.classList.add('tier-low');
+
+    const enemyGhost = document.getElementById('enemy-hp-ghost');
+    if (enemyGhost) {
+      enemyGhost.classList.remove('ghost-heal');
+      enemyGhost.style.transition = 'none';
+      enemyGhost.style.width = `${enemyPct}%`;
+    }
+
     UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
     UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
     UI.renderPoints(UI.enemyPoints, this.opponentPoints);

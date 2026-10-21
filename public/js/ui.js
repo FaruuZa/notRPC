@@ -1193,8 +1193,9 @@ const UI = {
     if (!forceSelect && this.selectedCardInstanceId === instanceId) {
       this.selectedCardInstanceId = null;
       this.lockBtn.classList.add('disabled');
+      this.lockBtn.classList.remove('ready-state', 'locked-state');
       this.lockBtn.disabled = true;
-      this.lockBtn.querySelector('.lock-btn-text').innerText = 'SELECT CARD';
+      this.lockBtn.innerHTML = '<span class="lock-btn-text">PILIH KARTU</span>';
       
       const selectedCard = this.playerHand.querySelector('.card.selected');
       if (selectedCard) selectedCard.classList.remove('selected');
@@ -1206,9 +1207,10 @@ const UI = {
 
     // Set new selection
     this.selectedCardInstanceId = instanceId;
-    this.lockBtn.classList.remove('disabled');
+    this.lockBtn.classList.remove('disabled', 'locked-state');
+    this.lockBtn.classList.add('ready-state');
     this.lockBtn.disabled = false;
-    this.lockBtn.querySelector('.lock-btn-text').innerText = 'LOCK SELECTION';
+    this.lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> <span class="lock-btn-text">LOCK IN</span>';
 
     // Remove selection glow from all others
     const cards = this.playerHand.querySelectorAll('.card');
@@ -1244,9 +1246,10 @@ const UI = {
     if (!this.selectedCardInstanceId || this.isLocked) return;
     
     this.isLocked = true;
+    this.lockBtn.classList.remove('ready-state', 'disabled');
     this.lockBtn.classList.add('locked-state');
     this.lockBtn.disabled = true;
-    this.lockBtn.querySelector('.lock-btn-text').innerText = 'WAITING FOR OPPONENT';
+    this.lockBtn.innerHTML = '<span class="lock-waiting-dot"><i class="fa-solid fa-hourglass-half"></i></span> <span class="lock-btn-text">MENUNGGU LAWAN...</span>';
     
     // Add locked state border to card and animate it to play slot
     const selectedCard = this.playerHand.querySelector('.card.selected');
