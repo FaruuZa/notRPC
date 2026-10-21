@@ -257,9 +257,188 @@ function generatePlayerQuests(deck, targetRarities = null) {
   });
 }
 
+/**
+ * Updates a player's quest progress after a round clash
+ */
+function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg) {
+  if (!player.activeQuest) return;
+
+  const q = player.activeQuest;
+  if (player.questProgress >= q.target) return;
+
+  let progressDelta = 0;
+
+  switch (q.id) {
+    case 'superior_3':
+    case 'superior_4':
+      if (outcome === 'SUPERIOR') progressDelta = 1;
+      break;
+    case 'neutral_4':
+      if (outcome === 'NEUTRAL') progressDelta = 1;
+      break;
+    case 'inferior_3':
+      if (outcome === 'INFERIOR') progressDelta = 1;
+      break;
+    case 'superior_2_row':
+      if (outcome === 'SUPERIOR') {
+        progressDelta = 1;
+      } else {
+        player.questProgress = 0;
+      }
+      break;
+    case 'neutral_3_row':
+      if (outcome === 'NEUTRAL') {
+        progressDelta = 1;
+      } else {
+        player.questProgress = 0;
+      }
+      break;
+    case 'deal_30':
+    case 'deal_50':
+      progressDelta = damageDealt;
+      break;
+    case 'apply_burn_3':
+    case 'apply_burn_5':
+      progressDelta = appliedBurnToOpponent;
+      break;
+    case 'deal_15_burn':
+      progressDelta = opponentBurnTickDmg;
+      break;
+    case 'apply_poison_3':
+    case 'apply_poison_5':
+      progressDelta = appliedPoisonToOpponent;
+      break;
+    case 'gain_20_shield':
+    case 'gain_40_shield':
+      progressDelta = shieldGain;
+      break;
+    case 'heal_10':
+    case 'heal_20':
+      progressDelta = healGain;
+      break;
+    case 'play_3_fire':
+      if (cardPlayed.element === 'FIRE') progressDelta = 1;
+      break;
+    case 'play_3_water':
+      if (cardPlayed.element === 'WATER') progressDelta = 1;
+      break;
+    case 'play_3_nature':
+      if (cardPlayed.element === 'NATURE') progressDelta = 1;
+      break;
+    case 'play_2_chaos':
+      if (cardPlayed.element === 'CHAOS') progressDelta = 1;
+      break;
+    case 'play_2_neutral':
+      if (cardPlayed.element === 'NEUTRAL') progressDelta = 1;
+      break;
+    case 'gain_buff_5':
+      progressDelta = appliedBuffToSelf;
+      break;
+    case 'reach_buff_5':
+      player.questProgress = player.statuses.attackBuff || 0;
+      return;
+    case 'apply_weak_3':
+    case 'apply_weak_5':
+      progressDelta = appliedWeakToOpponent;
+      break;
+  }
+
+  player.questProgress = Math.min(q.target, player.questProgress + progressDelta);
+}
+
+/**
+ * Tracks and updates quest progress for a player based on clash parameters and status updates
+ */
+function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg) {
+  if (!player.activeQuest) return;
+
+  const q = player.activeQuest;
+  if (player.questProgress >= q.target) return;
+
+  let progressDelta = 0;
+
+  switch (q.id) {
+    case 'superior_3':
+    case 'superior_4':
+      if (outcome === 'SUPERIOR') progressDelta = 1;
+      break;
+    case 'neutral_4':
+      if (outcome === 'NEUTRAL') progressDelta = 1;
+      break;
+    case 'inferior_3':
+      if (outcome === 'INFERIOR') progressDelta = 1;
+      break;
+    case 'superior_2_row':
+      if (outcome === 'SUPERIOR') {
+        progressDelta = 1;
+      } else {
+        player.questProgress = 0;
+      }
+      break;
+    case 'neutral_3_row':
+      if (outcome === 'NEUTRAL') {
+        progressDelta = 1;
+      } else {
+        player.questProgress = 0;
+      }
+      break;
+    case 'deal_30':
+    case 'deal_50':
+      progressDelta = damageDealt;
+      break;
+    case 'apply_burn_3':
+    case 'apply_burn_5':
+      progressDelta = appliedBurnToOpponent;
+      break;
+    case 'deal_15_burn':
+      progressDelta = opponentBurnTickDmg;
+      break;
+    case 'apply_poison_3':
+    case 'apply_poison_5':
+      progressDelta = appliedPoisonToOpponent;
+      break;
+    case 'gain_20_shield':
+    case 'gain_40_shield':
+      progressDelta = shieldGain;
+      break;
+    case 'heal_10':
+    case 'heal_20':
+      progressDelta = healGain;
+      break;
+    case 'play_3_fire':
+      if (cardPlayed.element === 'FIRE') progressDelta = 1;
+      break;
+    case 'play_3_water':
+      if (cardPlayed.element === 'WATER') progressDelta = 1;
+      break;
+    case 'play_3_nature':
+      if (cardPlayed.element === 'NATURE') progressDelta = 1;
+      break;
+    case 'play_2_chaos':
+      if (cardPlayed.element === 'CHAOS') progressDelta = 1;
+      break;
+    case 'play_2_neutral':
+      if (cardPlayed.element === 'NEUTRAL') progressDelta = 1;
+      break;
+    case 'gain_buff_5':
+      progressDelta = appliedBuffToSelf;
+      break;
+    case 'reach_buff_5':
+      player.questProgress = player.statuses.attackBuff || 0;
+      return;
+    case 'apply_weak_3':
+    case 'apply_weak_5':
+      progressDelta = appliedWeakToOpponent;
+      break;
+  }
+
+  player.questProgress = Math.min(q.target, player.questProgress + progressDelta);
+}
+
 module.exports = {
   QUEST_TEMPLATES,
   generatePlayerQuests,
   generateMatchRaritySchedule,
-  getRemovalTokenReward
+  getRemovalTokenReward,
+  updateQuestProgress
 };

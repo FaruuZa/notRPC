@@ -1,0 +1,372 @@
+/**
+ * ELEMENT CLASH: STATUS AURA EFFECTS, HIGHLIGHTS & KEYFRAME ANIMATIONS
+ */
+
+/* ==========================================================================
+   KEYWORD HIGHLIGHTS & EXPLANATION PANEL
+   ========================================================================== */
+.keyword-info-box {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1.5px solid var(--border-brass);
+  background: var(--bg-inner-panel);
+  z-index: 10;
+}
+
+#draft-keyword-info {
+  margin: 0.5rem auto;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+
+/* Inline Keyword Highlights inside Cards */
+.kw-burn {
+  color: #ff5252;
+  font-weight: 700;
+  text-decoration: underline dotted #ff5252;
+}
+
+.kw-poison {
+  color: #2ecc71;
+  font-weight: 700;
+  text-decoration: underline dotted #2ecc71;
+}
+
+.kw-buff {
+  color: #ffd700;
+  font-weight: 700;
+  text-decoration: underline dotted #ffd700;
+}
+
+.kw-weak {
+  color: #a0aec0;
+  font-weight: 700;
+  text-decoration: underline dotted #a0aec0;
+}
+
+.kw-shield {
+  color: #00bcd4;
+  font-weight: 700;
+  text-decoration: underline dotted #00bcd4;
+}
+
+.kw-cleanse {
+  color: #9b59b6;
+  font-weight: 700;
+  text-decoration: underline dotted #9b59b6;
+}
+
+.kw-dispel {
+  color: #ff9f43;
+  font-weight: 700;
+  text-decoration: underline dotted #ff9f43;
+}
+
+.kw-heal {
+  color: #00ff88;
+  font-weight: 700;
+  text-decoration: underline dotted #00ff88;
+}
+
+.kw-outbreak {
+  color: #c084fc;
+  font-weight: 700;
+  text-decoration: underline dotted #a855f7;
+}
+
+.kw-leech {
+  color: #f43f5e;
+  font-weight: 700;
+  text-decoration: underline dotted #e11d48;
+}
+
+.kw-thorns {
+  color: #fbbf24;
+  font-weight: 700;
+  text-decoration: underline dotted #f59e0b;
+}
+
+.card.new-mulligan-glow {
+  border-color: #00ff88 !important;
+  outline: 4px solid #00ff88 !important;
+  animation: pulseNewCard 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseNewCard {
+  0% { transform: scale(1.0); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1.0); }
+}
+
+
+/* =============================================================================
+   HUD ACTIVE STATUS AURA EFFECTS & ANIMATIONS
+   ============================================================================= */
+
+/* 1. BURN STATUS EFFECT (Fiery orange flickering glow) */
+@keyframes burnGlow {
+  0% {
+    box-shadow: 0 0 4px rgba(255, 87, 34, 0.25), inset 0 0 4px rgba(255, 87, 34, 0.1);
+    border-color: rgba(255, 87, 34, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(255, 87, 34, 0.6), inset 0 0 4px rgba(255, 87, 34, 0.3);
+    border-color: rgba(255, 87, 34, 0.75);
+  }
+  100% {
+    box-shadow: 0 0 4px rgba(255, 87, 34, 0.25), inset 0 0 4px rgba(255, 87, 34, 0.1);
+    border-color: rgba(255, 87, 34, 0.35);
+  }
+}
+.hud-panel.status-active-burn {
+  animation: burnGlow 1.5s infinite ease-in-out;
+  background: rgba(44, 22, 22, 0.68) !important;
+}
+
+/* 2. POISON STATUS EFFECT (Venomous green breathing glow) */
+@keyframes poisonGlow {
+  0% {
+    box-shadow: 0 0 4px rgba(46, 204, 113, 0.2), inset 0 0 4px rgba(46, 204, 113, 0.1);
+    border-color: rgba(46, 204, 113, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.55), inset 0 0 4px rgba(46, 204, 113, 0.25);
+    border-color: rgba(46, 204, 113, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 4px rgba(46, 204, 113, 0.2), inset 0 0 4px rgba(46, 204, 113, 0.1);
+    border-color: rgba(46, 204, 113, 0.3);
+  }
+}
+.hud-panel.status-active-poison {
+  animation: poisonGlow 1.8s infinite ease-in-out;
+  background: rgba(22, 44, 30, 0.68) !important;
+}
+
+/* 3. BUFF STATUS EFFECT (Sparkling golden electric pulse) */
+@keyframes buffGlow {
+  0% {
+    box-shadow: 0 0 4px rgba(216, 192, 40, 0.2), inset 0 0 4px rgba(216, 192, 40, 0.1);
+    border-color: rgba(216, 192, 40, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(216, 192, 40, 0.58), inset 0 0 4px rgba(216, 192, 40, 0.3);
+    border-color: rgba(216, 192, 40, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 4px rgba(216, 192, 40, 0.2), inset 0 0 4px rgba(216, 192, 40, 0.1);
+    border-color: rgba(216, 192, 40, 0.3);
+  }
+}
+.hud-panel.status-active-buff {
+  animation: buffGlow 1.2s infinite ease-in-out;
+  background: rgba(41, 36, 22, 0.68) !important;
+}
+
+/* 4. WEAK STATUS EFFECT (Faded, shadow-sinking slow glow) */
+@keyframes weakGlow {
+  0% {
+    box-shadow: 0 0 3px rgba(160, 174, 192, 0.1), inset 0 0 3px rgba(0, 0, 0, 0.2);
+    border-color: rgba(160, 174, 192, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 6px rgba(160, 174, 192, 0.25), inset 0 0 5px rgba(0, 0, 0, 0.35);
+    border-color: rgba(160, 174, 192, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 3px rgba(160, 174, 192, 0.1), inset 0 0 3px rgba(0, 0, 0, 0.2);
+    border-color: rgba(160, 174, 192, 0.18);
+  }
+}
+.hud-panel.status-active-weak {
+  animation: weakGlow 2.0s infinite ease-in-out;
+  background: rgba(26, 29, 34, 0.68) !important;
+}
+
+/* 5. LEECH STATUS EFFECT (Vampiric crimson pulse) */
+@keyframes leechGlow {
+  0% {
+    box-shadow: 0 0 4px rgba(244, 63, 94, 0.2), inset 0 0 4px rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.45), inset 0 0 8px rgba(244, 63, 94, 0.25);
+    border-color: rgba(244, 63, 94, 0.65);
+  }
+  100% {
+    box-shadow: 0 0 4px rgba(244, 63, 94, 0.2), inset 0 0 4px rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+}
+.hud-panel.status-active-leech {
+  animation: leechGlow 1.6s infinite ease-in-out;
+  background: rgba(36, 16, 24, 0.68) !important;
+}
+
+/* Damage Tick Flash overlays */
+@keyframes burnFlashAnim {
+  0% { background: rgba(255, 87, 34, 0); }
+  25% { background: rgba(255, 87, 34, 0.38); }
+  100% { background: rgba(255, 87, 34, 0); }
+}
+.hud-panel.burn-flash {
+  animation: burnFlashAnim 0.5s ease-out;
+}
+
+@keyframes poisonFlashAnim {
+  0% { background: rgba(46, 204, 113, 0); }
+  25% { background: rgba(46, 204, 113, 0.38); }
+  100% { background: rgba(46, 204, 113, 0); }
+}
+.hud-panel.poison-flash {
+  animation: poisonFlashAnim 0.5s ease-out;
+}
+
+
+
+/* =============================================================================
+   CARD OUTCOME READABILITY & DIMMING EFFECTS
+   ============================================================================= */
+.outcome-text {
+  display: block;
+  text-align: left;
+  line-height: 1.35;
+  transition: opacity 0.3s ease, filter 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  font-family: inherit;
+  margin-bottom: 2px;
+}
+
+/* Base outcome styles (defaults back to standard description color) */
+.outcome-text.superior-outcome { color: var(--text-secondary); }
+.outcome-text.neutral-outcome { color: var(--text-secondary); }
+.outcome-text.inferior-outcome { color: var(--text-secondary); }
+
+/* Dim non-active outcomes gracefully (opacity 0.38 so still legible) */
+.card[data-active-outcome="superior"] .outcome-text:not(.superior-outcome),
+.card[data-active-outcome="neutral"] .outcome-text:not(.neutral-outcome),
+.card[data-active-outcome="inferior"] .outcome-text:not(.inferior-outcome) {
+  opacity: 0.38 !important;
+}
+
+/* Active outcome highlighting with soft colored glow as preferred by user */
+.card[data-active-outcome="superior"] .outcome-text.superior-outcome {
+  color: #2ecc71 !important; /* Soft emerald green */
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px rgba(46, 204, 113, 0.7);
+  transform: scale(1.02);
+  opacity: 1 !important;
+}
+.card[data-active-outcome="neutral"] .outcome-text.neutral-outcome {
+  color: #f1c40f !important; /* Soft warm gold */
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
+  transform: scale(1.02);
+  opacity: 1 !important;
+}
+.card[data-active-outcome="inferior"] .outcome-text.inferior-outcome {
+  color: #ff4757 !important; /* Soft rose red */
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px rgba(255, 71, 87, 0.7);
+  transform: scale(1.02);
+  opacity: 1 !important;
+}
+
+
+
+/* Status Badge: Leech */
+.status-badge.leech {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+
+/* -------------------------------------------------------------------------
+   NEW VISUAL EFFECTS: PHOENIX RESURRECTION, CLEANSE SWEEP, DISPEL STRIP
+   ------------------------------------------------------------------------- */
+
+/* Phoenix Resurrection Effect */
+/* Phoenix Revive Glow on Card (Ring removed as requested) */
+.card.phoenix-revive-glow {
+  box-shadow: 0 0 25px #ffaa00, 0 0 50px rgba(255, 100, 0, 0.7) !important;
+  border-color: #ffd700 !important;
+}
+
+/* Cleanse Sweep Effect (Stationary at arena slot, rising upward over card) */
+.cleanse-sweep-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+  background: linear-gradient(0deg, rgba(46, 213, 115, 0.5) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(46, 213, 115, 0) 100%);
+}
+
+/* Dispel Strip Effect (Stationary at arena slot, sweeping downward over card) */
+.dispel-sweep-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.55) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(147, 51, 234, 0) 100%);
+}
+
+
+/* -------------------------------------------------------------------------
+   CARD ACTION: THIN TINT WASH + TOP BADGE PILL + BORDER PULSE
+   (Stationary at arena slot coordinates, above card)
+   ------------------------------------------------------------------------- */
+.card-action-tint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 55;
+  opacity: 0;
+}
+
+.card-action-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.4);
+  z-index: 65;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  background: #141721;
+  border: 1.5px solid currentColor;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  font-family: var(--font-title);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.card-action-badge i {
+  font-size: 0.85em;
+}

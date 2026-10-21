@@ -1,0 +1,1033 @@
+/**
+ * ELEMENT CLASH: PREPARATION PHASE, DRAFT, PACKS & QUEST STYLES
+ */
+
+/* ==========================================================================
+   DRAFT SCREEN STYLING (OPTION A - SECRET DRAFT MODE)
+   ========================================================================== */
+#draft-screen,
+#bonus-pick-screen,
+#waiting-screen,
+#pack-selection-screen,
+#pack-reveal-screen,
+#quest-selection-screen,
+#card-removal-screen,
+#relic-selection-screen {
+  background: radial-gradient(circle at center, #1a2233, var(--bg-felt));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.draft-container {
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 5;
+}
+
+.draft-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.draft-title {
+  font-family: var(--font-title);
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.draft-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.draft-meta-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+
+.draft-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-family: var(--font-title);
+  font-size: 0.85rem;
+  font-weight: 800;
+  border: 1.5px solid var(--border-brass);
+}
+
+#draft-timer-box i {
+  color: var(--color-fire);
+}
+
+#draft-counter-box i {
+  color: var(--color-water);
+}
+
+#draft-elemental-box i {
+  color: var(--color-nature);
+}
+
+.draft-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  justify-items: center;
+}
+
+.draft-grid .card.draft-selected {
+  border-color: #ffffff !important;
+  outline: 4.5px solid #ffffff;
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+.draft-footer {
+  margin-top: 0.5rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+#draft-lock-btn {
+  width: 200px;
+}
+
+/* Mobile landscape overrides for Draft Screen */
+@media (max-width: 768px), (max-height: 550px) {
+  .draft-container {
+    max-width: 580px;
+    gap: 0.5rem;
+  }
+
+  .draft-title {
+    font-size: 1.6rem;
+  }
+
+  .draft-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .draft-meta-row {
+    margin-top: 0.3rem;
+    gap: 0.5rem;
+  }
+
+  .draft-meta-badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    border-width: 1px;
+  }
+
+  .draft-grid {
+    gap: 0.5rem;
+  }
+
+  .draft-grid .card.draft-selected {
+    outline: 2px solid #ffffff;
+    transform: scale(1.01);
+  }
+
+  #draft-lock-btn {
+    width: 130px;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+
+@media (max-width: 768px), (max-height: 550px) {
+  /* Optimize Draft screen container to prevent button cutoff */
+  .draft-container {
+    max-width: 95%;
+    gap: 0.3rem;
+  }
+  .draft-header {
+    gap: 0.05rem;
+  }
+  .draft-title {
+    font-size: 1.3rem;
+  }
+  .draft-subtitle {
+    font-size: 0.65rem;
+  }
+  .draft-meta-row {
+    margin-top: 0.1rem;
+    gap: 0.4rem;
+  }
+  .draft-meta-badge {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.65rem;
+    border-width: 1px;
+  }
+
+  /* 2 rows of 4 columns for 8 draft cards on mobile landscape */
+  .draft-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0.25rem 0.5rem;
+  }
+
+  /* Shrink cards inside draft grid to fit width */
+  .draft-grid .card {
+    width: 65px;
+    height: 91px;
+    border-width: 1.8px;
+    border-radius: 4px;
+  }
+
+  .draft-grid .card-face {
+    padding: 0.1rem;
+  }
+
+  .draft-grid .card-front {
+    outline-offset: -1px;
+  }
+
+  .draft-grid .card-name {
+    font-size: 0.45rem;
+    width: 100%;
+    text-align: center;
+    line-height: 1.0;
+  }
+
+  .draft-grid .card-badge {
+    font-size: 0.45rem;
+  }
+
+  .draft-grid .card-middle {
+    margin: 0.05rem 0;
+    border-radius: 2px;
+    padding: 0.02rem;
+  }
+
+  .draft-grid .card-element-icon {
+    font-size: 0.7rem;
+  }
+
+  .draft-grid .card-desc {
+    font-size: 0.38rem;
+    padding: 0.05rem;
+    line-height: 1.0;
+  }
+
+  .draft-grid .card-footer {
+    padding-top: 0;
+  }
+
+  .draft-grid .card-element-name {
+    font-size: 0.45rem;
+  }
+
+  .draft-grid .card.draft-selected {
+    outline: 2px solid #ffffff;
+  }
+
+  .draft-grid .card-back {
+    border-width: 2px;
+  }
+
+  .draft-grid .card-back::after {
+    width: 22px;
+    height: 22px;
+    font-size: 0.8rem;
+    border-width: 1.5px;
+  }
+
+  #draft-lock-btn {
+    width: 120px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Mobile Landscape Overrides for Pack/Draft Rework elements */
+  .packs-grid {
+    margin: 0.8rem auto;
+    gap: 1.2rem;
+    padding: 0.4rem;
+  }
+
+  .pack-item {
+    width: 135px;
+    height: 190px;
+    padding: 0.8rem 0.6rem;
+    border-width: 2px;
+  }
+
+  .pack-title {
+    font-size: 0.9rem;
+  }
+
+  .pack-desc {
+    font-size: 0.6rem;
+    margin-top: 0.4rem;
+    line-height: 1.2;
+  }
+
+  .pack-action-hint {
+    font-size: 0.65rem;
+    padding: 0.2rem;
+  }
+
+  .pack-opening-area {
+    min-height: 170px;
+  }
+
+  .pack-graphic {
+    width: 110px;
+    height: 160px;
+    padding: 0.8rem 0.6rem;
+    border-width: 2.5px;
+  }
+
+  .pack-logo {
+    font-size: 1.1rem;
+  }
+
+  .pack-name-text {
+    font-size: 0.7rem;
+  }
+
+  .horizontal-fan-container {
+    margin: 0.4rem auto;
+    min-height: 130px;
+    padding: 0.4rem;
+  }
+
+  .horizontal-fan-container .card {
+    margin-right: -0.9rem;
+  }
+
+  /* Shrink cards inside horizontal fan to fit mobile height */
+  .horizontal-fan-container .card {
+    width: 70px;
+    height: 98px;
+    border-width: 2px;
+  }
+
+  .horizontal-fan-container .card .card-face {
+    padding: 0.15rem;
+  }
+
+  .horizontal-fan-container .card .card-front {
+    outline-offset: -1px;
+  }
+
+  .horizontal-fan-container .card .card-name {
+    font-size: 0.44rem;
+    width: 100%;
+    text-align: center;
+    line-height: 1.0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.02em;
+  }
+
+  .horizontal-fan-container .card .card-middle {
+    margin: 0.05rem 0;
+    border-radius: 2px;
+    padding: 0.02rem;
+  }
+
+  .horizontal-fan-container .card .card-element-icon {
+    font-size: 0.72rem;
+  }
+
+  .horizontal-fan-container .card .card-desc {
+    font-size: 0.38rem;
+    padding: 0.05rem;
+    line-height: 1.0;
+  }
+
+  .horizontal-fan-container .card .card-element-name {
+    font-size: 0.48rem;
+  }
+
+  .horizontal-fan-container .card-back::after {
+    width: 22px;
+    height: 22px;
+    font-size: 0.8rem;
+    border-width: 1.5px;
+  }
+
+  .draft-footer {
+    margin-top: 0.3rem;
+  }
+}
+
+/* Pack Selection Grid */
+.packs-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 3rem auto;
+  padding: 1rem;
+}
+
+/* Booster Pack Items */
+.pack-item {
+  width: 220px;
+  height: 310px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.25);
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.28s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.8rem 1.2rem;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255,255,255,0.1);
+  text-align: center;
+  overflow: hidden;
+}
+
+.pack-item:hover {
+  transform: translateY(-10px) scale(1.03);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.15) !important;
+}
+
+.pack-item::before, .pack-graphic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 14px;
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,0,0,0.5) 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px);
+  border-bottom: 1px solid rgba(255,255,255,0.25);
+  z-index: 3;
+}
+
+.pack-item::after, .pack-graphic::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 14px;
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,0,0,0.5) 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px);
+  border-top: 1px solid rgba(255,255,255,0.25);
+  z-index: 3;
+}
+
+.pack-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pack-theme {
+  font-family: var(--font-title);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffd700;
+  text-transform: uppercase;
+}
+
+.pack-title {
+  font-family: var(--font-title);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.pack-desc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.4;
+  margin-top: 1rem;
+  background: rgba(10, 12, 18, 0.5); /* Semi-transparent dark glass backing */
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pack-action-hint {
+  font-family: var(--font-title);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.4rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  margin-top: auto;
+}
+
+/* Pack Reveal & Booster Graphic */
+.pack-opening-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  width: 100%;
+  position: relative;
+}
+
+.pack-graphic {
+  width: 220px;
+  height: 310px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.25);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.8rem 1.2rem;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255,255,255,0.1);
+  transition: transform 0.2s ease;
+  overflow: hidden;
+}
+
+.pack-graphic:hover {
+  animation: shakePack 0.6s ease infinite;
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.15) !important;
+}
+
+.pack-ribbon {
+  background: var(--color-fire);
+  color: #fff;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.pack-logo {
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #f5cf70;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.pack-name-text {
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Horizontal Fanned Cards Layout */
+.horizontal-fan-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 1.5rem auto;
+  position: relative;
+  min-height: 240px;
+  padding: 1rem;
+}
+
+/* Adjust negative overlap margins and slight rotations for fan effect */
+.horizontal-fan-container .card {
+  margin-right: -1.8rem;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), outline 0.15s ease, z-index 0s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.horizontal-fan-container .card:last-child {
+  margin-right: 0;
+}
+
+/* Specific rotation styles for fanning (1-indexed layout classing) */
+.horizontal-fan-container .card:nth-child(1) { transform: rotate(-6deg) translateY(6px); }
+.horizontal-fan-container .card:nth-child(2) { transform: rotate(-2deg) translateY(-2px); }
+.horizontal-fan-container .card:nth-child(3) { transform: rotate(2deg) translateY(-2px); }
+.horizontal-fan-container .card:nth-child(4) { transform: rotate(6deg) translateY(6px); }
+
+/* Double fan rotation for 3 cards (Loser bonus) */
+#bonus-cards-fan .card:nth-child(1) { transform: rotate(-5deg) translateY(4px); }
+#bonus-cards-fan .card:nth-child(2) { transform: rotate(0deg) translateY(-2px); }
+#bonus-cards-fan .card:nth-child(3) { transform: rotate(5deg) translateY(4px); }
+
+/* Premium Hover Highlight: pops cards straight up & pulls them above neighbors */
+.horizontal-fan-container .card:hover {
+  transform: translateY(-28px) scale(1.18) rotate(0deg) !important;
+  z-index: 100 !important;
+  outline: 4px solid #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75);
+}
+
+.horizontal-fan-container .card.draft-selected {
+  outline: 4px solid #f5cf70;
+  z-index: 90 !important;
+}
+
+/* Shake Animation for card packs */
+@keyframes shakePack {
+  0% { transform: translate(1px, 1px) rotate(0deg) scale(1); }
+  10% { transform: translate(-1px, -2px) rotate(-1.5deg) scale(1.01); }
+  20% { transform: translate(-2px, 0px) rotate(1.5deg) scale(1.02); }
+  30% { transform: translate(0px, 1.5px) rotate(0deg) scale(1.02); }
+  40% { transform: translate(1px, -1px) rotate(1.5deg) scale(1.01); }
+  50% { transform: translate(-1px, 1.5px) rotate(-1.5deg) scale(1.02); }
+  60% { transform: translate(-2px, 1px) rotate(0deg) scale(1.02); }
+  70% { transform: translate(1.5px, 1px) rotate(-1.5deg) scale(1.01); }
+  80% { transform: translate(-1px, -1px) rotate(1.5deg) scale(1.01); }
+  90% { transform: translate(1.5px, 1.5px) rotate(0deg) scale(1.02); }
+  100% { transform: translate(1px, -1.5px) rotate(-1.5deg) scale(1.01); }
+}
+
+@keyframes pulseText {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+@keyframes packBurst {
+  0% { transform: scale(1) rotate(0); filter: brightness(1); }
+  50% { transform: scale(1.3) rotate(3deg); filter: brightness(2) drop-shadow(0 0 15px #f5cf70); }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+.pack-bursting {
+  animation: packBurst 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+}
+
+
+
+/* Active Quest Tracker Widget (Battle Screen) */
+.quest-tracker-widget {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: 195px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-brass);
+  background: rgba(21, 24, 33, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  z-index: 10;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+}
+
+.tracker-header {
+  font-family: var(--font-title);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f5cf70;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tracker-text {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.tracker-progress-container {
+  width: 100%;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tracker-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+  border-radius: 5px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.tracker-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.tracker-reward {
+  font-family: var(--font-title);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffd700;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+}
+
+/* Quest Selection Cards styling */
+.quest-selection-grid {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: stretch;
+  max-width: 900px;
+  margin: 2.5rem auto;
+  padding: 1rem;
+}
+
+.quest-card {
+  width: 220px;
+  background: linear-gradient(135deg, rgba(21, 24, 33, 0.9) 0%, rgba(30, 35, 50, 0.95) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1.8rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(255,255,255,0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.quest-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.quest-card.selected {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+}
+
+/* Difficulty framing (Solid flat tabletop borders, No-Neon Rule) */
+.quest-card.EASY {
+  border-color: var(--color-nature);
+  color: var(--color-nature);
+}
+.quest-card.EASY:hover {
+  border-color: var(--color-nature);
+}
+.quest-card.EASY.selected {
+  outline: 2px solid var(--color-nature);
+  border-color: var(--color-nature);
+  background: linear-gradient(135deg, rgba(45, 154, 89, 0.12) 0%, var(--bg-cardboard) 100%);
+}
+
+.quest-card.MEDIUM {
+  border-color: var(--color-water);
+  color: var(--color-water);
+}
+.quest-card.MEDIUM:hover {
+  border-color: var(--color-water);
+}
+.quest-card.MEDIUM.selected {
+  outline: 2px solid var(--color-water);
+  border-color: var(--color-water);
+  background: linear-gradient(135deg, rgba(44, 123, 229, 0.12) 0%, var(--bg-cardboard) 100%);
+}
+
+.quest-card.HARD {
+  border-color: var(--color-chaos);
+  color: var(--color-chaos);
+}
+.quest-card.HARD:hover {
+  border-color: var(--color-chaos);
+}
+.quest-card.HARD.selected {
+  outline: 2px solid var(--color-chaos);
+  border-color: var(--color-chaos);
+  background: linear-gradient(135deg, rgba(142, 68, 173, 0.14) 0%, var(--bg-cardboard) 100%);
+}
+
+.quest-card-difficulty {
+  font-family: var(--font-title);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: -0.2rem;
+}
+.quest-card-difficulty.EASY { color: var(--color-nature); }
+.quest-card-difficulty.MEDIUM { color: var(--color-water); }
+.quest-card-difficulty.HARD { color: var(--color-chaos); }
+
+.quest-card-text {
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.35;
+  margin: 0;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest-card-reward-box {
+  background: var(--bg-inner-panel);
+  border: 1px solid var(--border-mat);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.quest-card-reward-label {
+  font-family: var(--font-title);
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.quest-card-reward-text {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.quest-card-token-label {
+  font-family: var(--font-title);
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 0.35rem;
+}
+
+.quest-token-bonus {
+  font-family: var(--font-title);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.quest-token-bonus.zero {
+  color: var(--text-secondary);
+  opacity: 0.65;
+}
+
+/* Battle HUD & Removal Token Badge */
+.hud-token-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-inner-panel);
+  border: 1px solid var(--border-brass);
+  color: var(--color-primary);
+  font-family: var(--font-title);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.hud-token-badge i {
+  color: var(--color-primary);
+  font-size: 0.8rem;
+}
+
+
+/* Card removal styles */
+.removal-selected {
+  outline: 4px solid var(--color-fire) !important;
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.5) !important;
+}
+
+
+@media (max-width: 768px), (max-height: 550px) {
+  /* Position Quest tracker widget elegantly below the player HUD */
+  .quest-tracker-widget {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: 135px;
+    padding: 0.3rem 0.5rem;
+    border-width: 1px;
+    gap: 0.2rem;
+  }
+  
+  .tracker-header {
+    font-size: 0.52rem;
+    gap: 0.2rem;
+  }
+  
+  .tracker-text {
+    font-size: 0.58rem;
+    line-height: 1.1;
+  }
+  
+  .tracker-progress-container {
+    height: 7px;
+  }
+  
+  .tracker-progress-text {
+    font-size: 0.48rem;
+  }
+  
+  .tracker-reward {
+    font-size: 0.52rem;
+  }
+
+
+  /* Shrink Quest Selection Cards on mobile */
+  .quest-selection-grid {
+    margin: 0.4rem auto;
+    gap: 0.8rem;
+    padding: 0.2rem;
+  }
+
+  .quest-card {
+    width: 140px;
+    padding: 0.6rem 0.5rem;
+    gap: 0.4rem;
+    border-width: 1.5px;
+    border-radius: 4px;
+  }
+
+  .quest-card-difficulty {
+    font-size: 0.55rem;
+    letter-spacing: 0.8px;
+  }
+
+  .quest-card-text {
+    font-size: 0.76rem;
+    line-height: 1.25;
+  }
+
+  .quest-card-reward-box {
+    padding: 0.3rem;
+    gap: 0.1rem;
+  }
+
+  .quest-card-reward-label {
+    font-size: 0.5rem;
+  }
+
+  .quest-card-reward-text {
+    font-size: 0.58rem;
+    line-height: 1.1;
+  }
+
+}
+
+/* Relic Choice Selection Highlight */
+#relic-choices-grid .relic-card-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid var(--border-mat);
+  max-width: 220px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+#relic-choices-grid .relic-card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  border-color: #ffd700;
+}
+
+#relic-choices-grid .relic-card-item.selected {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 6px rgba(245, 207, 112, 0.4) !important;
+  background: rgba(245, 207, 112, 0.08) !important;
+  transform: translateY(-4px) scale(1.02);
+}
+
+
+/* Prep Timer Banner Styling */
+.prep-timer-banner {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(231, 76, 60, 0.95);
+  color: #fff;
+  padding: 0.6rem 1.5rem;
+  border-radius: 30px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(231, 76, 60, 0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  animation: pulseTimer 1s infinite alternate ease-in-out;
+}
+
+.prep-timer-banner i {
+  color: #fff;
+  font-size: 1.2rem;
+  animation: rotateClock 5s infinite linear;
+}
+
+@keyframes pulseTimer {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.06); }
+}
+
+@keyframes rotateClock {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

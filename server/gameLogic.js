@@ -1,5 +1,7 @@
 const { nanoid } = require('nanoid');
-const { CARD_POOL, CLASH_RULES, HAND_SIZE, ELEMENTS, PACK_TYPES } = require('./constants');
+const { CLASH_RULES, HAND_SIZE, ELEMENTS } = require('./constants');
+const { CARD_POOL } = require('./cards');
+const { PACK_TYPES } = require('./packs');
 
 const generalPool = CARD_POOL.filter(c => !c.isDraftExclusive);
 const draftExclusivePool = CARD_POOL.filter(c => c.isDraftExclusive);

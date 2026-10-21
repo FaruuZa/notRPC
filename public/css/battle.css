@@ -1,0 +1,1334 @@
+/**
+ * ELEMENT CLASH: BATTLE ARENA, HUD, CARDS & COMBAT STYLES
+ */
+
+/* BATTLE ARENA SCREEN (DESKTOP DEFAULT VALUES - EPIC SCALE) */
+#battle-screen {
+  background: var(--bg-felt);
+  display: grid;
+  grid-template-rows: 1fr auto; /* Arena top, Hand bottom */
+  padding: 1.5rem;
+  height: 100dvh;
+}
+
+.arena-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grid-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center center;
+}
+
+/* Relocated HUD Panels (Top Left and Top Right) */
+.hud-panel {
+  width: 290px;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  z-index: 30;
+  position: absolute;
+  overflow: visible;
+}
+.player-hud {
+  top: 1.5rem;
+  left: 1.5rem;
+}
+
+.enemy-hud {
+  top: 1.5rem;
+  right: 1.5rem;
+}
+
+.player-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.hud-name {
+  font-family: var(--font-title);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 180px;
+  cursor: pointer;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  position: relative;
+}
+.hud-name::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: var(--color-fire);
+  transition: width 0.2s ease;
+}
+.hud-name:hover {
+  color: #f5cf70;
+}
+.hud-name:hover::after {
+  width: 100%;
+}
+
+/* Small info icon inside the HUD player name (indicates click to see statuses) */
+.hud-info-icon {
+  font-size: 0.7rem;
+  opacity: 0.4;
+  vertical-align: middle;
+  margin-left: 0.15rem;
+  transition: opacity 0.2s ease;
+}
+.hud-name:hover .hud-info-icon {
+  opacity: 0.9;
+  color: #f5cf70;
+}
+
+.shield-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--shield-bg);
+  border: 1.5px solid var(--shield-color);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--shield-color);
+}
+
+.shield-indicator.shield-flash {
+  animation: shieldHitFlash 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes shieldHitFlash {
+  0% {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: #ffffff;
+    box-shadow: 0 0 15px #ffffff;
+    transform: scale(1.2) rotate(-3deg);
+  }
+  50% {
+    background-color: rgba(77, 171, 247, 0.8);
+    border-color: #4dabf7;
+    box-shadow: 0 0 10px #4dabf7;
+    transform: scale(1.1) rotate(3deg);
+  }
+  100% {
+    background: var(--shield-bg);
+    border-color: var(--shield-color);
+    box-shadow: none;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.shield-indicator.empty {
+  display: none !important; /* Hide shield completely if 0 */
+}
+
+/* Status Badges Styling */
+.status-container {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.5rem;
+  margin-right: auto;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  font-family: var(--font-title);
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.status-badge.burn {
+  background: #2c1616;
+  border: 1.5px solid var(--color-fire);
+  color: #ff5252;
+}
+
+.status-badge.poison {
+  background: #162c1e;
+  border: 1.5px solid var(--color-nature);
+  color: #2ecc71;
+}
+
+.status-badge.attack-buff {
+  background: #292416;
+  border: 1.5px solid #d8c028;
+  color: #d8c028;
+}
+
+.status-badge.weakness {
+  background: #22252a;
+  border: 1.5px solid var(--color-neutral);
+  color: var(--color-neutral);
+}
+
+.hp-bar-container {
+  width: 100%;
+  height: 16px;
+  background: #0d1117;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hp-bar-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: rgba(235, 77, 75, 0.85); /* Pale red for damage ghost behind fill */
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1;
+}
+
+.hp-bar-ghost.ghost-heal {
+  background: #00ff88; /* Bright green heal preview */
+  transition: none;
+  z-index: 1;
+}
+
+.hp-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: #2ecc71; /* High HP Green */
+  transition: width 0.35s ease-out, background-color 0.25s ease;
+  z-index: 2;
+}
+
+/* HP Tier Colors applied to fill */
+.hp-bar-fill.tier-high {
+  background: #2ecc71 !important;
+}
+.hp-bar-fill.tier-mid {
+  background: #f1c40f !important;
+}
+.hp-bar-fill.tier-low {
+  background: #ff4757 !important;
+  animation: hpCriticalPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes hpCriticalPulse {
+  0% { opacity: 0.65; }
+  100% { opacity: 1; }
+}
+
+.hp-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 4px #000;
+  z-index: 10; /* Always on top of fill and ghost */
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hand-size-indicator {
+  display: flex;
+  margin-top: 0.25rem;
+  justify-content: flex-end;
+}
+
+.hand-card-dots {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.hand-card-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+/* ARENA ZONE (CENTRAL SLOTS & LOCK BUTTON - DESKTOP LARGE SCALE) */
+.arena-zone {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rem;
+  z-index: 5;
+  width: 100%;
+  margin-top: auto;
+  margin-bottom: auto; /* Vertically centered between top HUDs and hand */
+}
+
+/* Dim player hand during active clash resolution so layout remains stable without distraction */
+.hand-container-wrapper.clash-dimmed {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.play-slot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slot-label {
+  font-family: var(--font-title);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+}
+
+.card-play-slot {
+  width: 140px; /* Epic scale slots */
+  height: 196px;
+  border: 2px dashed var(--border-mat);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: visible; /* Allow damage popups to float above slot */
+}
+
+.card-play-slot.filled {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Cards inside arena slots: fill slot, no hover transforms */
+.card-play-slot .card {
+  transition: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  cursor: default !important;
+}
+
+.clash-effects-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 200px;
+  gap: 0.8rem;
+}
+
+.vs-badge {
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #f5cf70; /* Solid Gold */
+  border: 2.5px solid var(--border-brass); /* Solid Brass border */
+  border-radius: 4px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #231915;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+.combat-text {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  min-height: 1.4rem;
+  color: #fff;
+  z-index: 10;
+}
+
+/* Lock Button inside center clash zone */
+.btn-lock {
+  background: #2a2e38;
+  color: var(--text-secondary);
+  width: 180px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  box-sizing: border-box;
+  border-radius: 4px;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--border-mat);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+/* State 1: Disabled / Select Card */
+.btn-lock:disabled:not(.locked-state) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* State 2: Ready to Lock */
+.btn-lock.ready-state {
+  background: var(--color-chaos, #9b59b6);
+  color: #fff;
+  border-color: #d187f5;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(155, 89, 182, 0.45);
+}
+.btn-lock.ready-state:hover {
+  background: #a855f7;
+  transform: translateY(-1px);
+}
+
+/* State 3: Locked in / Waiting for opponent */
+.btn-lock.locked-state {
+  background: #171b24;
+  color: #94a3b8;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  cursor: default;
+}
+.btn-lock.locked-state .lock-waiting-dot {
+  animation: waitingPulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes waitingPulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Element Legend Toggle Button (small icon in clash zone) */
+.btn-legend-toggle {
+  background: transparent;
+  border: 1.5px solid var(--border-brass);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  z-index: 10;
+}
+.btn-legend-toggle:hover {
+  color: #f5cf70;
+  border-color: #f5cf70;
+  background: rgba(245, 207, 112, 0.1);
+}
+.btn-legend-toggle.active {
+  color: #f5cf70;
+  border-color: #f5cf70;
+  background: rgba(245, 207, 112, 0.15);
+}
+
+/* Element Matchup Legend Panel */
+.element-legend {
+  position: absolute;
+  right: 2rem;
+  bottom: 2rem;
+  width: 300px;
+  padding: 0.6rem 0.9rem;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.legend-title {
+  font-family: var(--font-title);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #f5cf70;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.15rem;
+  text-transform: uppercase;
+}
+
+.legend-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+}
+
+.legend-note {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.67rem;
+  margin-top: 0.1rem;
+}
+
+.arrow {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Element tags inside legend */
+.el-tag {
+  font-family: var(--font-title);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+.el-tag.fire    { background: var(--bg-fire-matte);    color: var(--color-fire);    border: 1px solid var(--color-fire);    }
+.el-tag.water   { background: var(--bg-water-matte);   color: var(--color-water);   border: 1px solid var(--color-water);   }
+.el-tag.nature  { background: var(--bg-nature-matte);  color: var(--color-nature);  border: 1px solid var(--color-nature);  }
+.el-tag.neutral { background: var(--bg-neutral-matte); color: var(--color-neutral); border: 1px solid var(--color-neutral); }
+.el-tag.chaos   { background: var(--bg-chaos-matte);   color: var(--color-chaos);   border: 1px solid var(--color-chaos);   }
+.el-tag.elem    { background: #1a1f2a; color: var(--text-secondary); border: 1px solid var(--border-mat); }
+
+/* DAMAGE POPUP - JUICY FLOATING COMBAT NUMBERS */
+.damage-popup {
+  position: absolute;
+  font-family: var(--font-title, sans-serif);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  z-index: 120;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  white-space: nowrap;
+  user-select: none;
+  /* 8-way dark outline so numbers pop against any background */
+  text-shadow:
+    2px  0   0 #14101f,
+   -2px  0   0 #14101f,
+    0    2px 0 #14101f,
+    0   -2px 0 #14101f,
+    2px  2px 0 #14101f,
+   -2px -2px 0 #14101f,
+    2px -2px 0 #14101f,
+   -2px  2px 0 #14101f,
+    0    6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.damage-popup i {
+  font-size: 0.75em;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Size tiers based on impact value */
+.damage-popup.small {
+  font-size: 1.4rem;
+}
+.damage-popup.mid {
+  font-size: 2.0rem;
+}
+.damage-popup.big {
+  font-size: 3.0rem;
+  letter-spacing: -0.03em;
+  text-shadow:
+    3px  0   0 #14101f,
+   -3px  0   0 #14101f,
+    0    3px 0 #14101f,
+    0   -3px 0 #14101f,
+    3px  3px 0 #14101f,
+   -3px -3px 0 #14101f,
+    3px -3px 0 #14101f,
+   -3px  3px 0 #14101f,
+    0    8px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* 1. Clash Attack Damage (Red/Crimson) */
+.damage-popup.combat-dmg,
+.damage-popup.red {
+  color: #ff3b3b;
+}
+
+/* 2. Self Damage / Recoil (Vivid Fuchsia/Violet Hazard) */
+.damage-popup.self-dmg {
+  color: #f06292;
+}
+
+/* 3. Thorns Damage (Spiked Amber/Gold) */
+.damage-popup.thorns-dmg {
+  color: #fbbf24;
+}
+
+/* 4. Shield Absorbed Damage */
+.damage-popup.shield-dmg {
+  color: #38bdf8;
+}
+
+/* 5. Shield Gained */
+.damage-popup.shield-gain,
+.damage-popup.blue {
+  color: #00e5ff;
+}
+
+/* 6. Base Heal */
+.damage-popup.heal-gain,
+.damage-popup.green {
+  color: #00ff88;
+}
+
+/* 7. Leech Drain Heal (Crimson-Rose Siphon) */
+.damage-popup.leech-heal {
+  color: #f43f5e;
+}
+
+/* 8. Burn Tick */
+.damage-popup.burn-tick {
+  color: #ff6b35;
+}
+
+/* 9. Poison Tick */
+.damage-popup.poison-tick {
+  color: #4ade80;
+}
+
+/* 10. Shield Decay */
+.damage-popup.shield-decay {
+  color: #94a3b8;
+}
+
+/* CARDS DESIGN (TCG PHYSICAL PLAYCARD LOOK - DESKTOP EPIC SCALE) */
+.card {
+  width: 140px; /* Epic scale card size */
+  height: 196px;
+  border-radius: 8px;
+  position: relative;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  background: transparent;
+  transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1), outline 0.15s ease, border-color 0.15s ease;
+  z-index: 1;
+}
+
+/* Solid TCG Frame Borders (No Glows) */
+.card[data-element="FIRE"] { border: 4px solid var(--color-fire); }
+.card[data-element="WATER"] { border: 4px solid var(--color-water); }
+.card[data-element="NATURE"] { border: 4px solid var(--color-nature); }
+.card[data-element="NEUTRAL"] { border: 4px solid var(--color-neutral); }
+.card[data-element="CHAOS"] { border: 4px solid var(--color-chaos); }
+
+.card-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.6rem;
+}
+
+/* Inset thin inner lining to feel like paper board frames */
+.card-front {
+  background: var(--bg-cardboard);
+  outline: 1.5px solid rgba(255, 255, 255, 0.05);
+  outline-offset: -3px;
+}
+
+/* Element solid colored header banners */
+.card-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.2rem 0.35rem;
+  border-radius: 3px;
+  color: #fff;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.card[data-element="FIRE"] .card-header { background: var(--color-fire); }
+.card[data-element="WATER"] .card-header { background: var(--color-water); }
+.card[data-element="NATURE"] .card-header { background: var(--color-nature); }
+.card[data-element="NEUTRAL"] .card-header { background: var(--color-neutral); }
+.card[data-element="CHAOS"] .card-header { background: var(--color-chaos); }
+
+.card-name {
+  font-family: var(--font-title);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.card-badge {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Middle artwork container box */
+.card-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0.4rem 0;
+  background: rgba(0, 0, 0, 0.35); /* Solid box inlay */
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.2rem 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.card-element-icon {
+  font-size: 2rem;
+}
+
+.card[data-element="FIRE"] .card-element-icon { color: var(--color-fire); }
+.card[data-element="WATER"] .card-element-icon { color: var(--color-water); }
+.card[data-element="NATURE"] .card-element-icon { color: var(--color-nature); }
+.card[data-element="NEUTRAL"] .card-element-icon { color: var(--color-neutral); }
+.card[data-element="CHAOS"] .card-element-icon { color: var(--color-chaos); }
+
+.card-desc {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.25;
+  padding: 0.2rem 0.4rem;
+  height: 60px; /* Equal fixed height for description content container */
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+  -ms-overflow-style: none;  /* Hide scrollbar IE/Edge */
+  width: 100%;
+}
+.card-desc::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari/Webkit */
+}
+
+.card-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.15rem;
+}
+
+.card-element-name {
+  font-family: var(--font-title);
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card[data-element="FIRE"] .card-element-name { color: var(--color-fire); }
+.card[data-element="WATER"] .card-element-name { color: var(--color-water); }
+.card[data-element="NATURE"] .card-element-name { color: var(--color-nature); }
+.card[data-element="NEUTRAL"] .card-element-name { color: var(--color-neutral); }
+.card[data-element="CHAOS"] .card-element-name { color: var(--color-chaos); }
+
+/* Card Back Panel */
+.card-back {
+  background: var(--bg-cardboard);
+  border: 5px solid var(--border-brass); /* Rich warm brass border */
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.65);
+}
+
+.card-back::after {
+  content: 'E';
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 2.2rem;
+  color: var(--border-brass);
+  border: 3px solid var(--border-brass);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Card Selection outline (Solid clean border, NO GLOW) */
+.card.selected {
+  border-color: #ffffff !important;
+  outline: 4px solid #ffffff;
+  z-index: 100 !important;
+}
+
+.card.locked {
+  border-color: var(--color-neutral) !important;
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+/* STABLE HOVER CARD-SPREAD LAYOUT (NO JUMPS OR TWITCHING) - DESKTOP LAYOUT */
+.player-controls-zone {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+  padding-bottom: 2.5rem; /* Give it space from bottom edge */
+  position: relative; /* Set relative parent for absolute keyword box */
+}
+
+/* Tall enough to fit fanned and selected card heights fully without clipping */
+.hand-container-wrapper {
+  position: relative;
+  width: 100%;
+  height: 250px; /* High enough to prevent cropping */
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+}
+
+.hand-container {
+  display: flex;
+  position: relative;
+  width: 100%;
+  max-width: 750px; /* Wider desktop hand area */
+  justify-content: center;
+  height: 100%;
+}
+
+/* CSS-calculated stable fan layout positioning (Clean & Smooth) */
+.hand-container .card {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform-origin: bottom center;
+  --offset: calc(var(--index) - (var(--total) - 1) / 2);
+  
+  /* Non-hovered state: cards overlap in fan */
+  transform: translate(calc(-50% + var(--offset) * 32px), calc(var(--offset) * var(--offset) * 2px)) rotate(calc(var(--offset) * 5deg));
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), outline 0.15s ease, border-color 0.15s ease;
+}
+
+/* Hovering container: spread flatly to avoid bunching and make clicking stable */
+.hand-container:hover .card:not(.locked) {
+  transform: translate(calc(-50% + var(--offset) * 130px), -15px) rotate(calc(var(--offset) * 0.5deg));
+}
+
+/* Selected lift offset: applied stably */
+.hand-container .card.selected {
+  transform: translate(calc(-50% + var(--offset) * 32px), -45px) rotate(0deg) !important;
+  z-index: 90 !important;
+}
+
+.hand-container:hover .card.selected {
+  transform: translate(calc(-50% + var(--offset) * 130px), -55px) rotate(0deg) !important;
+  z-index: 90 !important;
+}
+
+
+/* RESPONSIVE DESIGN ADAPTATIONS (MOBILE OPTIMIZATIONS) */
+@media (max-width: 768px), (max-height: 550px) {
+  #battle-screen {
+    padding: 0.6rem;
+    display: block;
+    position: relative;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .logo-main {
+    font-size: 2.1rem;
+  }
+  
+  /* Compact Mobile Corner HUDs */
+  .hud-panel {
+    width: 170px;
+    padding: 0.25rem 0.45rem;
+    border-radius: 3px;
+    border-width: 1.5px;
+    z-index: 30;
+    overflow: visible;
+  }
+  .player-hud {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+  
+  .enemy-hud {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+  
+  .hud-name {
+    font-size: 0.75rem;
+    max-width: 110px;
+  }
+  
+  .hud-info-icon {
+    font-size: 0.55rem;
+  }
+  
+  .shield-indicator {
+    padding: 0.05rem 0.25rem;
+    font-size: 0.7rem;
+    border-width: 1px;
+    border-radius: 2px;
+  }
+
+  .status-container {
+    gap: 0.2rem;
+    margin-left: 0.3rem;
+  }
+
+  .status-badge {
+    padding: 0.05rem 0.25rem;
+    font-size: 0.62rem;
+    border-width: 1px;
+    border-radius: 2px;
+  }
+
+  .hp-bar-container {
+    height: 10px;
+    border-radius: 2px;
+  }
+  
+  .hp-text {
+    font-size: 0.6rem;
+  }
+
+  .hand-size-indicator {
+    margin-top: 0.15rem;
+  }
+
+  .hand-card-dots span {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* Compact Mobile Slots & Margins (Completely solves overlapping) */
+  .arena-zone {
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    justify-content: center;
+    gap: 1.8rem;
+    margin-top: 0;
+    z-index: 5;
+  }
+
+  .slot-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.5px;
+  }
+
+  .card-play-slot {
+    width: 85px; /* Compact mobile size slots */
+    height: 119px;
+    border-width: 1.2px;
+    border-radius: 5px;
+    overflow: visible;
+  }
+  
+  /* Compact Mobile Card sizes */
+  .card {
+    width: 85px;
+    height: 119px;
+    border-width: 2.2px;
+    border-radius: 5px;
+  }
+  
+  .card-face {
+    padding: 0.2rem; /* Less padding to prevent cutoff */
+  }
+  
+  .card-front {
+    outline-width: 1px;
+    outline-offset: -2px;
+  }
+
+  .card-header {
+    padding: 0.1rem 0.2rem;
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .card-name {
+    font-size: 0.48rem;
+    width: 100%;
+    text-align: center;
+    line-height: 1.05;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.02em;
+  }
+
+  .card-badge {
+    font-size: 0.55rem;
+  }
+
+  .card-middle {
+    margin: 0.1rem 0;
+    border-radius: 2px;
+    padding: 0.2rem 0.1rem;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .card-element-icon {
+    font-size: 0.9rem; /* Smaller icon to save vertical space */
+  }
+
+  .card-desc {
+    font-size: 0.44rem;
+    padding: 0.1rem 0.2rem;
+    line-height: 1.15;
+    height: 38px; /* Fixed height for mobile card descriptions */
+    box-sizing: border-box;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: 100%;
+  }
+  .card-desc::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card-footer {
+    padding-top: 0.05rem;
+  }
+
+  .card-element-name {
+    font-size: 0.52rem;
+  }
+
+  .card.selected {
+    outline: 2px solid #ffffff; /* Thinner selected card outline */
+  }
+
+  .card-back {
+    border-width: 3px;
+  }
+
+  .card-back::after {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+    border-width: 2px;
+  }
+  
+  .vs-badge {
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+    border-width: 1.5px;
+  }
+  .combat-text {
+    font-size: 0.78rem;
+    min-height: 0.9rem;
+    margin-top: 0.3rem;
+  }
+  
+  .btn-lock {
+    width: 145px !important;
+    height: 34px !important;
+    font-size: 0.65rem !important;
+    padding: 0 0.4rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+    border-width: 1px !important;
+    border-radius: 3px !important;
+    margin-top: -12px !important;
+  }
+
+  .damage-popup.small { font-size: 1.15rem; }
+  .damage-popup.mid   { font-size: 1.5rem; }
+  .damage-popup.big   { font-size: 2.1rem; }
+
+  /* Legend button & panel mobile styles */
+  .btn-legend-toggle {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+  }
+
+  .element-legend {
+    right: 0.5rem;
+    bottom: 0.5rem;
+    width: calc(100vw - 1rem);
+    max-width: 340px;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .legend-title {
+    font-size: 0.68rem;
+  }
+
+  .legend-row {
+    font-size: 0.62rem;
+    gap: 0.25rem;
+  }
+
+  .el-tag {
+    font-size: 0.58rem;
+    padding: 0.08rem 0.3rem;
+  }
+
+  /* Compact Mobile Hand container height to avoid overlapping slots */
+  .hand-container-wrapper {
+    height: 145px;
+  }
+
+  .player-controls-zone {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Compact hand coordinates */
+  .hand-container {
+    max-width: 380px;
+  }
+  
+  /* Mobile fanning transforms (Lower, compact, and spaced) */
+  .hand-container .card {
+    bottom: 5px;
+    transform: translate(calc(-50% + var(--offset) * 18px), calc(var(--offset) * var(--offset) * 1px)) rotate(calc(var(--offset) * 4deg));
+  }
+  
+  /* Spread flatly on mobile hover */
+  .hand-container:hover .card:not(.locked) {
+    transform: translate(calc(-50% + var(--offset) * 65px), -8px) rotate(calc(var(--offset) * 0.5deg));
+  }
+  
+  /* Stable lift parameters on mobile */
+  .hand-container .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 18px), -20px) rotate(0deg) !important;
+  }
+  
+  .hand-container:hover .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 78px), -30px) rotate(0deg) !important;
+  }
+}
+
+
+/* =============================================================================
+   GAMEPLAY REWORK STYLING (3 ROUNDS & PACK DRAFT SYSTEM)
+   ============================================================================= */
+
+/* HUD Point indicators */
+.points-indicator {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+  align-items: center;
+}
+
+.point-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1.5px solid var(--border-mat);
+  transition: all 0.3s ease;
+}
+
+.point-dot.filled {
+  background: var(--color-primary);
+  border-color: var(--border-brass);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+
+/* Bottom row container in player HUD panel */
+.hud-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+.hud-bottom-row .points-indicator {
+  margin-top: 0;
+}
+
+/* View Deck Button in HUD bottom row */
+.hud-deck-btn {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1.2px solid var(--border-brass);
+  color: #f5cf70;
+  padding: 0.15rem 0.5rem;
+  font-family: var(--font-title);
+  font-size: 0.68rem;
+  font-weight: 750;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+  z-index: 12;
+  letter-spacing: 0.5px;
+}
+.hud-deck-btn:hover {
+  background: rgba(245, 207, 112, 0.2);
+  color: #fff;
+  border-color: #f5cf70;
+  box-shadow: 0 0 6px rgba(245, 207, 112, 0.3);
+}
+
+
+/* Battle Top Actions Bar */
+.battle-top-bar {
+  position: absolute;
+  top: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.battle-top-bar .btn-surrender {
+  position: static;
+  transform: none;
+}
+.btn-clash-log {
+  padding: 0.45rem 1.1rem;
+  font-family: var(--font-title);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: rgba(20, 24, 34, 0.75);
+  border: 1.5px solid var(--border-brass);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-clash-log:hover {
+  background: rgba(35, 42, 58, 0.95);
+  border-color: #f5cf70;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Turn Timer Badge */
+.turn-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #f5cf70;
+  background: rgba(15, 18, 26, 0.85);
+  border: 1.5px solid var(--border-brass);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  margin-top: 0.25rem;
+  transition: all 0.3s ease;
+}
+.turn-timer-badge.urgent {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+  background: rgba(60, 15, 20, 0.85);
+  animation: pulseTimerUrgent 1s infinite alternate;
+}
+@keyframes pulseTimerUrgent {
+  0% { transform: scale(1); box-shadow: 0 0 4px rgba(255, 107, 107, 0.4); }
+  100% { transform: scale(1.08); box-shadow: 0 0 12px rgba(255, 107, 107, 0.8); }
+}
+
+
+/* Status Badge & Relic Badge Hover Affordance */
+.status-badge {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.status-badge:hover {
+  transform: scale(1.08);
+}
+.hud-relic-badge {
+  cursor: pointer !important;
+  transition: transform 0.15s ease !important;
+}
+.hud-relic-badge:hover {
+  transform: scale(1.08) !important;
+}

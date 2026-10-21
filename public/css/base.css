@@ -1,0 +1,217 @@
+/**
+ * ELEMENT CLASH: BASE STYLES & DESIGN TOKENS
+ */
+
+/* ELEMENT CLASH: TRADING CARD GAME DESIGN SYSTEM */
+
+:root {
+  /* Classic TCG Color Palette */
+  --bg-felt: #121620; /* Clean dark carbon felt poker mat */
+  --bg-cardboard: #1c202d;
+  --bg-inner-panel: #181c26;
+  --border-mat: #293245;
+  --border-brass: #a68058; /* Warm brass frame border for TCG style */
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-dark: #0f172a;
+  
+  /* Solid Element Colors (No Neon Glows) */
+  --color-fire: #d93838;
+  --bg-fire-matte: #2c1616;
+  
+  --color-water: #2c7be5;
+  --bg-water-matte: #16202c;
+  
+  --color-nature: #2d9a59;
+  --bg-nature-matte: #162c1e;
+  
+  --color-neutral: #64748b;
+  --bg-neutral-matte: #20242c;
+  
+  --color-chaos: #8e44ad;
+  --bg-chaos-matte: #25162c;
+
+  --shield-color: #00bcd4;
+  --shield-bg: rgba(0, 188, 212, 0.15);
+  
+  /* Typography */
+  --font-title: 'Space Grotesk', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+}
+
+/* RESET & SETUP */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100dvh; /* Dynamic viewport height to prevent mobile crop */
+  background-color: var(--bg-felt);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow: hidden;
+  position: fixed;
+}
+
+/* ORIENTATION OVERLAY (PORTRAIT BLOCKER) */
+#orientation-overlay {
+  display: none;
+  background-color: var(--bg-felt);
+  z-index: 9999;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100dvh;
+}
+
+#orientation-overlay i {
+  font-size: 3.5rem;
+  color: var(--color-fire);
+  margin-bottom: 1.5rem;
+  animation: rotateDevice 2s infinite ease-in-out;
+}
+
+#orientation-overlay h2 {
+  font-family: var(--font-title);
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+
+#orientation-overlay p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  max-width: 80%;
+}
+
+@keyframes rotateDevice {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@media (orientation: portrait) {
+  #orientation-overlay {
+    display: none !important;
+  }
+}
+
+/* Force Landscape Auto-rotation in Portrait Orientation */
+@media (max-width: 1024px) and (orientation: portrait) {
+  body.force-landscape {
+    width: 100vh !important;
+    height: 100vw !important;
+    transform: rotate(90deg) !important;
+    transform-origin: top left !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 100vw !important;
+    overflow: hidden !important;
+  }
+  
+  body.force-landscape .screen {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* LAYOUT SCREENS */
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100dvh;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 1;
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100dvh;
+  background-color: rgba(10, 12, 18, 0.95);
+  z-index: 99;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.overlay.active {
+  display: flex;
+}
+
+/* TCG Solid Wood/Brass Border Panels (No transparency/glass effects) */
+.glass {
+  background: var(--bg-inner-panel);
+  border: 2px solid var(--border-brass);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* BUTTONS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.8rem;
+  border-radius: 4px;
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background: var(--color-fire);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(217, 56, 56, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #f04848;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--color-neutral);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
