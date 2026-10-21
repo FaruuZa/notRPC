@@ -44,7 +44,7 @@ function createRoom(roomId, player1, player2, io) {
         selectedCardId: null,
         locked: false,
         points: 0,
-        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0 },
+        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 },
         relics: {},
         phoenixUsedThisRound: false,
         prepRerollsLeft: 0,
@@ -70,7 +70,7 @@ function createRoom(roomId, player1, player2, io) {
         selectedCardId: null,
         locked: false,
         points: 0,
-        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0 },
+        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 },
         relics: {},
         phoenixUsedThisRound: false,
         prepRerollsLeft: 0,
@@ -303,6 +303,66 @@ function startRound(roomId, io) {
       relics: p1.relics
     }
   });
+
+  room.state = 'BATTLE';
+
+  // Authoritative 20-second turn timer
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+  io.to(roomId).emit('turnTimerStarted', { duration: 20 });
+  room.turnTimer = setTimeout(() => {
+    handleTurnTimeout(roomId, io);
+  }, 20000);
+}
+
+/**
+ * Handles turn timeout (20s reached without both locking)
+ * Selects hovered/selected card, or fallback to Neutral card/first card in hand, locks, and resolves round.
+ */
+function handleTurnTimeout(roomId, io) {
+  const room = rooms[roomId];
+  if (!room || room.state === 'OVER' || room.state !== 'BATTLE') return;
+
+  if (room.turnTimer) {
+    clearTimeout(room.turnTimer);
+    room.turnTimer = null;
+  }
+
+  const playerIds = Object.keys(room.players);
+
+  playerIds.forEach(id => {
+    const player = room.players[id];
+    if (!player.locked) {
+      let cardInstanceId = player.selectedCardId;
+      const inHand = player.hand.some(c => c.instanceId === cardInstanceId);
+      if (!cardInstanceId || !inHand) {
+        // Fallback: pick a Neutral card if available, else first card in hand
+        const neutralCard = player.hand.find(c => c.element === 'NEUTRAL');
+        const fallbackCard = neutralCard || player.hand[0];
+        cardInstanceId = fallbackCard ? fallbackCard.instanceId : null;
+        player.selectedCardId = cardInstanceId;
+      }
+      player.locked = true;
+
+      // Notify the player of auto-play
+      player.socket.emit('autoPlayTriggered', {
+        cardInstanceId: player.selectedCardId
+      });
+
+      // Notify opponent that this player is locked
+      const oppId = playerIds.find(pid => pid !== id);
+      if (oppId && room.players[oppId]?.socket) {
+        room.players[oppId].socket.emit('lockSelection', {
+          opponentLocked: true
+        });
+      }
+    }
+  });
+
+  console.log(`[RoomManager] Room ${roomId} turn timed out. Auto-played and resolving round.`);
+  resolveRound(roomId, io);
 }
 
 /**
@@ -350,6 +410,10 @@ function handleLockSelection(socket, io) {
   });
 
   if (opponent.locked) {
+    if (room.turnTimer) {
+      clearTimeout(room.turnTimer);
+      room.turnTimer = null;
+    }
     resolveRound(roomId, io);
   }
 }
@@ -367,6 +431,7 @@ function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain,
 
   switch (q.id) {
     case 'superior_3':
+    case 'superior_4':
       if (outcome === 'SUPERIOR') progressDelta = 1;
       break;
     case 'neutral_4':
@@ -464,31 +529,51 @@ function resolveRound(roomId, io) {
     return;
   }
 
-  // Evaluate clash considering active statuses and relics
-  const result = evaluateClash(card1, card2, p1.shield, p2.shield, p1.statuses, p2.statuses, p1.relics, p2.relics);
+  // Evaluate clash considering active statuses, relics, and HP
+  const result = evaluateClash(card1, card2, p1.shield, p2.shield, p1.statuses, p2.statuses, p1.relics, p2.relics, p1.hp, p1.maxHp, p2.hp, p2.maxHp);
 
   const shieldDamageA = Math.max(0, (p1.shield + result.shieldGainA) - result.newShieldA);
   const shieldDamageB = Math.max(0, (p2.shield + result.shieldGainB) - result.newShieldB);
 
-  // Apply clash results to server states (including HEAL and player maxHp)
+  // Apply clash results to server states: Phase 1 Heal (clamped) THEN Phase 2 Damage
   p1.shield = result.newShieldA;
   p2.shield = result.newShieldB;
   
   p1.maxHp = p1.maxHp || MAX_HP;
   p2.maxHp = p2.maxHp || MAX_HP;
-  p1.hp = Math.max(0, Math.min(p1.maxHp, p1.hp - result.hpDamageA + result.healGainA));
-  p2.hp = Math.max(0, Math.min(p2.maxHp, p2.hp - result.hpDamageB + result.healGainB));
+
+  // Phase 1: Apply Heal and clamp to maxHp BEFORE damage
+  p1.hp = Math.min(p1.maxHp, p1.hp + (result.healGainA || 0));
+  p2.hp = Math.min(p2.maxHp, p2.hp + (result.healGainB || 0));
+
+  // Phase 2: Apply Clash HP damage
+  p1.hp = Math.max(0, p1.hp - result.hpDamageA);
+  p2.hp = Math.max(0, p2.hp - result.hpDamageB);
 
   // Purifying Amulet & Briar Armor (Clash HP Damage)
+  const p1Briar = (p1.relics.relic_spite_thorns_epic || p1.relics.relic_spite_thorns_rare || 0);
+  const p2Briar = (p2.relics.relic_spite_thorns_epic || p2.relics.relic_spite_thorns_rare || 0);
+
+  let p1ThornsDmg = 0;
+  let p2ThornsDmg = 0;
+
   if (result.hpDamageA > 0) {
     if ((p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
       p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
       io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
     }
-    if ((p1.relics.relic_spite_thorns_rare || 0) > 0) {
-      const thorns = 3 * p1.relics.relic_spite_thorns_rare;
+    if (p1Briar > 0) {
+      const thorns = 3 * p1Briar;
       p2.hp = Math.max(0, p2.hp - thorns);
-      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Briar Armor', message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!` });
+      p2ThornsDmg += thorns;
+      io.to(roomId).emit('relicTriggered', {
+        playerId: p1.id,
+        targetPlayerId: p2.id,
+        relicName: 'Briar Armor',
+        relicType: 'thorns',
+        damage: thorns,
+        message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!`
+      });
     }
   }
   if (result.hpDamageB > 0) {
@@ -496,11 +581,51 @@ function resolveRound(roomId, io) {
       p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
       io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
     }
-    if ((p2.relics.relic_spite_thorns_rare || 0) > 0) {
-      const thorns = 3 * p2.relics.relic_spite_thorns_rare;
+    if (p2Briar > 0) {
+      const thorns = 3 * p2Briar;
       p1.hp = Math.max(0, p1.hp - thorns);
-      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Briar Armor', message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!` });
+      p1ThornsDmg += thorns;
+      io.to(roomId).emit('relicTriggered', {
+        playerId: p2.id,
+        targetPlayerId: p1.id,
+        relicName: 'Briar Armor',
+        relicType: 'thorns',
+        damage: thorns,
+        message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!`
+      });
     }
+  }
+
+  // Leech keyword: Heals 3 HP per stack on direct unblocked HP damage, consumes 1 stack
+  let p1LeechHeal = 0;
+  let p2LeechHeal = 0;
+  if (result.hpDamageB > 0 && (p1.statuses.leech || 0) > 0) {
+    const leechHeal = (p1.statuses.leech || 0) * 3;
+    const actualHeal = Math.min(leechHeal, p1.maxHp - p1.hp);
+    p1.hp = Math.min(p1.maxHp, p1.hp + actualHeal);
+    p1.statuses.leech = Math.max(0, p1.statuses.leech - 1);
+    p1LeechHeal = actualHeal;
+    io.to(roomId).emit('relicTriggered', {
+      playerId: p1.id,
+      relicName: 'Leech',
+      relicType: 'leech',
+      heal: actualHeal,
+      message: `${p1.username}'s Leech restored ${actualHeal} HP!`
+    });
+  }
+  if (result.hpDamageA > 0 && (p2.statuses.leech || 0) > 0) {
+    const leechHeal = (p2.statuses.leech || 0) * 3;
+    const actualHeal = Math.min(leechHeal, p2.maxHp - p2.hp);
+    p2.hp = Math.min(p2.maxHp, p2.hp + actualHeal);
+    p2.statuses.leech = Math.max(0, p2.statuses.leech - 1);
+    p2LeechHeal = actualHeal;
+    io.to(roomId).emit('relicTriggered', {
+      playerId: p2.id,
+      relicName: 'Leech',
+      relicType: 'leech',
+      heal: actualHeal,
+      message: `${p2.username}'s Leech restored ${actualHeal} HP!`
+    });
   }
 
   // Helper to apply status to a player (Buff and Weakness capping at 5 removed)
@@ -518,12 +643,19 @@ function resolveRound(roomId, io) {
     // Process Dispel if present in the outcome
     if (statusObj.dispel && statusObj.dispel > 0) {
       player.statuses.attackBuff = 0;
+      player.statuses.leech = 0;
       console.log(`[RoomManager] Player ${player.username} was dispelled.`);
+    }
+
+    // Outbreak: doubles current poison stacks
+    if (statusObj.outbreak && statusObj.outbreak > 0) {
+      player.statuses.poison = (player.statuses.poison > 0) ? player.statuses.poison * 2 : 1;
+      console.log(`[RoomManager] Player ${player.username} Outbreak! Poison doubled to ${player.statuses.poison}`);
     }
 
     // Now process other statuses (capping removed)
     Object.keys(statusObj).forEach(stat => {
-      if (stat === 'cleanse' || stat === 'dispel') return; // already handled
+      if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
       player.statuses[stat] = (player.statuses[stat] || 0) + statusObj[stat];
     });
   };
@@ -547,10 +679,12 @@ function resolveRound(roomId, io) {
     }
     if (effect1.applyStatus.opponent && effect1.applyStatus.opponent.dispel > 0) {
       p2.statuses.attackBuff = 0;
+      p2.statuses.leech = 0;
       console.log(`[RoomManager] Player ${p2.username} was dispelled (pre-tick).`);
     }
     if (effect1.applyStatus.self && effect1.applyStatus.self.dispel > 0) {
       p1.statuses.attackBuff = 0;
+      p1.statuses.leech = 0;
     }
   }
 
@@ -568,10 +702,12 @@ function resolveRound(roomId, io) {
     }
     if (effect2.applyStatus.opponent && effect2.applyStatus.opponent.dispel > 0) {
       p1.statuses.attackBuff = 0;
+      p1.statuses.leech = 0;
       console.log(`[RoomManager] Player ${p1.username} was dispelled (pre-tick).`);
     }
     if (effect2.applyStatus.self && effect2.applyStatus.self.dispel > 0) {
       p2.statuses.attackBuff = 0;
+      p2.statuses.leech = 0;
     }
   }
 
@@ -632,43 +768,49 @@ function resolveRound(roomId, io) {
     p2.statuses.poison = Math.max(0, p2.statuses.poison - 1);
   }
 
-  // Purifying Amulet & Briar Armor (Status Tick HP Damage)
+  // Briar Armor (Status Tick HP Damage - Purifying Amulet is clash-only)
   const p1StatusHpDmg = p1BurnHpDmg + p1PoisonTick;
-  if (p1StatusHpDmg > 0) {
-    if ((p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
-      p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
-      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
-    }
-    if ((p1.relics.relic_spite_thorns_rare || 0) > 0) {
-      const thorns = 3 * p1.relics.relic_spite_thorns_rare;
-      p2.hp = Math.max(0, p2.hp - thorns);
-      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Briar Armor', message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!` });
-    }
+  if (p1StatusHpDmg > 0 && p1Briar > 0) {
+    const thorns = 3 * p1Briar;
+    p2.hp = Math.max(0, p2.hp - thorns);
+    p2ThornsDmg += thorns;
+    io.to(roomId).emit('relicTriggered', {
+      playerId: p1.id,
+      targetPlayerId: p2.id,
+      relicName: 'Briar Armor',
+      relicType: 'thorns',
+      damage: thorns,
+      message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!`
+    });
   }
 
   const p2StatusHpDmg = p2BurnHpDmg + p2PoisonTick;
-  if (p2StatusHpDmg > 0) {
-    if ((p2.relics.relic_reactive_cleanse_legendary || 0) > 0) {
-      p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
-      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
-    }
-    if ((p2.relics.relic_spite_thorns_rare || 0) > 0) {
-      const thorns = 3 * p2.relics.relic_spite_thorns_rare;
-      p1.hp = Math.max(0, p1.hp - thorns);
-      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Briar Armor', message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!` });
-    }
+  if (p2StatusHpDmg > 0 && p2Briar > 0) {
+    const thorns = 3 * p2Briar;
+    p1.hp = Math.max(0, p1.hp - thorns);
+    p1ThornsDmg += thorns;
+    io.to(roomId).emit('relicTriggered', {
+      playerId: p2.id,
+      targetPlayerId: p1.id,
+      relicName: 'Briar Armor',
+      relicType: 'thorns',
+      damage: thorns,
+      message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!`
+    });
   }
 
-  // Phoenix Heart check: if HP drops to 0 or below, resurrect once per round
+  // Phoenix Heart check: if HP drops to 0 or below, resurrect once per round and inflict Burn [2] on opponent
   if (p1.hp <= 0 && (p1.relics.relic_phoenix_down_legendary || 0) > 0 && !p1.phoenixUsedThisRound) {
     p1.hp = 30;
     p1.phoenixUsedThisRound = true;
-    io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Phoenix Heart', message: `${p1.username}'s Phoenix Heart activated!` });
+    p2.statuses.burn = (p2.statuses.burn || 0) + 2;
+    io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Phoenix Heart', message: `${p1.username}'s Phoenix Heart activated and inflicted Burn [2] on ${p2.username}!` });
   }
   if (p2.hp <= 0 && (p2.relics.relic_phoenix_down_legendary || 0) > 0 && !p2.phoenixUsedThisRound) {
     p2.hp = 30;
     p2.phoenixUsedThisRound = true;
-    io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Phoenix Heart', message: `${p2.username}'s Phoenix Heart activated!` });
+    p1.statuses.burn = (p1.statuses.burn || 0) + 2;
+    io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Phoenix Heart', message: `${p2.username}'s Phoenix Heart activated and inflicted Burn [2] on ${p1.username}!` });
   }
 
   // Store intermediate shield values before decay (after clash and status ticks)
@@ -766,17 +908,48 @@ function resolveRound(roomId, io) {
     }
   }
 
-  // Apply outcome Buffs from relics: Last Stand (Inferior outcome gives Buff(1))
+  // Apply outcome Buffs from relics: Last Stand (Inferior outcome gives Buff(2))
   if (result.outcomeA === 'INFERIOR' && (p1.relics.last_stand || 0) > 0) {
-    p1.statuses.attackBuff = (p1.statuses.attackBuff || 0) + (p1.relics.last_stand || 0);
+    p1.statuses.attackBuff = (p1.statuses.attackBuff || 0) + (p1.relics.last_stand || 0) * 2;
   }
   if (result.outcomeB === 'INFERIOR' && (p2.relics.last_stand || 0) > 0) {
-    p2.statuses.attackBuff = (p2.statuses.attackBuff || 0) + (p2.relics.last_stand || 0);
+    p2.statuses.attackBuff = (p2.statuses.attackBuff || 0) + (p2.relics.last_stand || 0) * 2;
   }
 
   // Update Quest Progress for both players
   updateQuestProgress(p1, result.outcomeA, result.damageDealtByA, result.shieldGainA, result.healGainA, card1, p1TotalBurnApplied, p1TotalPoisonApplied, p1BuffSelf, p1WeakOpponent, p2BurnTick);
   updateQuestProgress(p2, result.outcomeB, result.damageDealtByB, result.shieldGainB, result.healGainB, card2, p2TotalBurnApplied, p2TotalPoisonApplied, p2BuffSelf, p2WeakOpponent, p1BurnTick);
+
+  // Record clash log history
+  if (!room.clashHistory) room.clashHistory = [];
+  const clashEntry = {
+    turn: room.clashHistory.length + 1,
+    round: room.round,
+    p1: {
+      id: p1.id,
+      name: p1.username,
+      cardName: card1.name,
+      element: card1.element,
+      outcome: result.outcomeA,
+      dmgDealt: result.damageDealtByA,
+      hpDmg: result.hpDamageA,
+      shieldGain: result.shieldGainA,
+      healGain: result.healGainA
+    },
+    p2: {
+      id: p2.id,
+      name: p2.username,
+      cardName: card2.name,
+      element: card2.element,
+      outcome: result.outcomeB,
+      dmgDealt: result.damageDealtByB,
+      hpDmg: result.hpDamageB,
+      shieldGain: result.shieldGainB,
+      healGain: result.healGainB
+    }
+  };
+  room.clashHistory.push(clashEntry);
+  if (room.clashHistory.length > 10) room.clashHistory.shift();
 
   // Remove played cards from hands
   p1.hand.splice(card1Index, 1);
@@ -805,7 +978,7 @@ function resolveRound(roomId, io) {
     opponentCard: card1
   });
 
-  // Emit roundResult with new statuses and status tick damages
+  // Emit roundResult with new statuses, status tick damages, and clash history
   p1.socket.emit('roundResult', {
     outcome: result.outcomeA,
     shieldGain: result.shieldGainA,
@@ -820,8 +993,13 @@ function resolveRound(roomId, io) {
     shieldDecay: shieldDecayedA,  // Amount decayed
     newHp: p1.hp,
     newStatuses: p1.statuses,
+    thornsDamage: p1ThornsDmg,
+    opponentThornsDamage: p2ThornsDmg,
+    leechHeal: p1LeechHeal,
+    opponentLeechHeal: p2LeechHeal,
     statusDamage: { burn: p1BurnTick, poison: p1PoisonTick, burnHpDmg: p1BurnHpDmg, burnShieldDmg: p1BurnShieldDmg },
     activeQuest: p1.activeQuest ? { ...p1.activeQuest, progress: p1.questProgress } : null,
+    clashHistory: room.clashHistory,
     
     opponentOutcome: result.outcomeB,
     opponentShieldGain: result.shieldGainB,
@@ -855,8 +1033,13 @@ function resolveRound(roomId, io) {
     shieldDecay: shieldDecayedB,  // Amount decayed
     newHp: p2.hp,
     newStatuses: p2.statuses,
+    thornsDamage: p2ThornsDmg,
+    opponentThornsDamage: p1ThornsDmg,
+    leechHeal: p2LeechHeal,
+    opponentLeechHeal: p1LeechHeal,
     statusDamage: { burn: p2BurnTick, poison: p2PoisonTick, burnHpDmg: p2BurnHpDmg, burnShieldDmg: p2BurnShieldDmg },
     activeQuest: p2.activeQuest ? { ...p2.activeQuest, progress: p2.questProgress } : null,
+    clashHistory: room.clashHistory,
     
     opponentOutcome: result.outcomeA,
     opponentShieldGain: result.shieldGainA,
@@ -1180,7 +1363,7 @@ function handleReconnectMatch(socket, token, io) {
     offeredQuests: playerObj.offeredQuests || [],
     questLocked: playerObj.questLocked || false,
     questRerollCount: playerObj.questRerollCount || 0,
-    pendingRelicChoices: playerObj.pendingRelicChoices || [],
+    pendingRelicChoices: (playerObj.prepQueue?.find(s => s.type === 'RELIC_CHOICE')?.options || playerObj.pendingRelicChoices || []).map(item => typeof item === 'string' ? RELIC_POOL[item] : item).filter(Boolean),
     yourRemovalTokens: playerObj.removalTokens || 0,
     opponentHp: opponent ? opponent.hp : 100,
     opponentMaxHp: opponent ? opponent.maxHp : 100,
@@ -1188,7 +1371,8 @@ function handleReconnectMatch(socket, token, io) {
     opponentPoints: opponent ? opponent.points : 0,
     opponentHandCount: opponent ? (opponent.hand ? opponent.hand.length : 0) : 0,
     opponentStatuses: opponent ? opponent.statuses : {},
-    opponentRelics: opponent ? opponent.relics : {}
+    opponentRelics: opponent ? opponent.relics : {},
+    clashHistory: room.clashHistory || []
   };
 
   socket.emit('reconnectSuccess', payload);
@@ -1329,7 +1513,7 @@ function handleRequestRematch(socket, io) {
     p1.maxHp = MAX_HP;
     p1.hp = MAX_HP;
     p1.shield = 0;
-    p1.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0 };
+    p1.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 };
     p1.points = 0;
     p1.deck = deck1;
     p1.hand = drawHandFromDeck(deck1, 4);
@@ -1350,7 +1534,7 @@ function handleRequestRematch(socket, io) {
     p2.maxHp = MAX_HP;
     p2.hp = MAX_HP;
     p2.shield = 0;
-    p2.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0 };
+    p2.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 };
     p2.points = 0;
     p2.deck = deck2;
     p2.hand = drawHandFromDeck(deck2, 4);
@@ -1373,6 +1557,7 @@ function handleRequestRematch(socket, io) {
     room.state = 'QUEST_PHASE';
     room.draft = null;
     room.rematchRequests = {};
+    room.clashHistory = [];
 
     console.log(`[RoomManager] Rematch started for room ${roomId}.`);
     io.to(roomId).emit('rematchStarted');
@@ -1630,7 +1815,11 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
           const reward = p.activeQuest.reward;
           
           if (reward.type === 'relic') {
-            const relicsOfQuality = Object.values(RELIC_POOL).filter(r => r.quality === reward.quality);
+            const relicsOfQuality = Object.values(RELIC_POOL).filter(r => {
+              if (r.quality !== reward.quality) return false;
+              if ((r.unique || r.maxStacks === 1) && (p.relics[r.id] || 0) >= 1) return false;
+              return true;
+            });
             if (relicsOfQuality.length > 0) {
               // Pick 3 unique random relic options to choose from
               const shuffled = [...relicsOfQuality].sort(() => 0.5 - Math.random());
@@ -1803,7 +1992,12 @@ function handleSelectRelic(socket, relicId, io) {
   if (!currentStep.options.includes(relicId)) return;
 
   // Award the relic!
-  player.relics[relicId] = (player.relics[relicId] || 0) + 1;
+  const selectedRelic = RELIC_POOL[relicId];
+  if (selectedRelic && (selectedRelic.unique || selectedRelic.maxStacks === 1)) {
+    player.relics[relicId] = 1;
+  } else {
+    player.relics[relicId] = (player.relics[relicId] || 0) + 1;
+  }
 
   // Apply HP buff immediately if it is a vitality relic
   if (relicId.startsWith('relic_vitality_')) {
@@ -1813,8 +2007,6 @@ function handleSelectRelic(socket, relicId, io) {
     player.maxHp = (player.maxHp || MAX_HP) + buffVal;
     player.hp += buffVal;
   }
-
-  const selectedRelic = RELIC_POOL[relicId];
 
   // Notify client of success
   socket.emit('relicChosen', { relicId, name: selectedRelic.name });
@@ -1841,7 +2033,11 @@ function handleRerollPrep(socket, io) {
   player.prepRerollsLeft -= 1;
   
   if (currentStep.type === 'RELIC_CHOICE') {
-    const relicsOfQuality = Object.values(RELIC_POOL).filter(r => r.quality === currentStep.quality);
+    const relicsOfQuality = Object.values(RELIC_POOL).filter(r => {
+      if (r.quality !== currentStep.quality) return false;
+      if ((r.unique || r.maxStacks === 1) && (player.relics[r.id] || 0) >= 1) return false;
+      return true;
+    });
     const shuffled = [...relicsOfQuality].sort(() => 0.5 - Math.random());
     const options = shuffled.slice(0, Math.min(3, shuffled.length));
     currentStep.options = options.map(o => o.id);

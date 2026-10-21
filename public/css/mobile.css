@@ -303,3 +303,23 @@
     gap: 0.8rem !important;
   }
 }
+
+/* Mobile adjustments for Clash Log, Turn Timer, and Top Bar */
+@media (max-width: 768px) {
+  .battle-top-bar {
+    top: 0.4rem;
+    gap: 0.5rem;
+  }
+  .btn-surrender,
+  .btn-clash-log {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.72rem;
+  }
+  .turn-timer-badge {
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+  }
+  .clash-log-drawer {
+    width: 290px;
+  }
+}

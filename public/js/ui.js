@@ -325,7 +325,7 @@ const RELIC_DATABASE = {
     name: 'Last Stand',
     quality: 'LEGENDARY',
     icon: 'fa-shield-heart',
-    description: 'When obtaining Inferior outcome: gain Buff(1) per stack.'
+    description: 'When obtaining Inferior outcome: gain Buff(2) per stack.'
   },
   relic_vitality_common: {
     name: 'Vitality Boost',
@@ -350,6 +350,18 @@ const RELIC_DATABASE = {
     quality: 'RARE',
     icon: 'fa-shield-halved',
     description: 'At the start of each turn: gain 5 Shield per stack.'
+  },
+  relic_desperation_rare: {
+    name: 'Desperation',
+    quality: 'RARE',
+    icon: 'fa-heart-crack',
+    description: 'Deal +1 bonus damage per 10 HP missing from Max HP per stack.'
+  },
+  relic_chaos_affinity_rare: {
+    name: 'Chaos Affinity',
+    quality: 'RARE',
+    icon: 'fa-burst',
+    description: 'All Chaos cards: +2 Damage per stack.'
   },
   relic_vitality_epic: {
     name: 'Godly Vitality',
@@ -397,11 +409,19 @@ const RELIC_DATABASE = {
     name: 'Purifying Amulet',
     quality: 'LEGENDARY',
     icon: 'fa-hands-holding',
-    description: 'When you take HP damage: instantly cleanse all Poison, Burn, and Weakness.'
+    unique: true,
+    maxStacks: 1,
+    description: 'When you take direct clash HP damage: instantly cleanse all Poison, Burn, and Weakness. (Unique - max 1)'
+  },
+  relic_spite_thorns_epic: {
+    name: 'Briar Armor',
+    quality: 'EPIC',
+    icon: 'fa-swords',
+    description: 'When you take HP damage: deal 3 true damage to opponent per stack.'
   },
   relic_spite_thorns_rare: {
     name: 'Briar Armor',
-    quality: 'RARE',
+    quality: 'EPIC',
     icon: 'fa-swords',
     description: 'When you take HP damage: deal 3 true damage to opponent per stack.'
   },
@@ -409,7 +429,9 @@ const RELIC_DATABASE = {
     name: 'Phoenix Heart',
     quality: 'LEGENDARY',
     icon: 'fa-fire-flame-simple',
-    description: 'Once per round: when HP drops to 0, restore HP to 30 instead.'
+    unique: true,
+    maxStacks: 1,
+    description: 'Once per round: when HP drops to 0, restore HP to 30 and inflict Burn [2] on opponent. (Unique - max 1)'
   }
 };
 
@@ -781,7 +803,28 @@ const UI = {
         desc: 'Restores HP to the player (up to 100 max HP).'
       });
     }
+    if (cardDescription.includes('kw-outbreak') || cardDescription.includes('OUTBREAK')) {
+      keywords.push({
+        title: 'OUTBREAK',
+        class: 'outbreak',
+        desc: 'Doubles all active Poison stacks on target (minimum 1 stack if unpoisoned).'
+      });
+    }
+    if (cardDescription.includes('kw-leech') || cardDescription.includes('LEECH')) {
+      keywords.push({
+        title: 'LEECH',
+        class: 'leech',
+        desc: 'When dealing unblocked HP damage, heals 3 HP per stack and consumes 1 stack.'
+      });
+    }
     
+    if (cardDescription.includes('kw-thorns') || cardDescription.includes('THORNS')) {
+      keywords.push({
+        title: 'THORNS',
+        class: 'thorns',
+        desc: 'Reflects true damage back to the attacker whenever taking direct HP damage.'
+      });
+    }
     if (keywords.length === 0) {
       container.classList.add('hidden');
     } else {
@@ -829,6 +872,13 @@ const UI = {
         title: 'WEAK',
         class: 'weak',
         desc: `Currently active stack: ${statuses.weakness}. Reduces card clash damage by -10% per stack. Stack decreases by 1 when attacking.`
+      });
+    }
+    if (statuses && statuses.leech > 0) {
+      keywords.push({
+        title: 'LEECH',
+        class: 'leech',
+        desc: `Currently active stack: ${statuses.leech}. Heals 3 HP per stack on direct unblocked HP damage, consuming 1 stack per trigger.`
       });
     }
 
@@ -923,11 +973,12 @@ const UI = {
     // Toggle HUD aura classes on parent HUD panel
     const hudPanel = container.closest('.hud-panel');
     if (hudPanel) {
-      hudPanel.classList.remove('status-active-burn', 'status-active-poison', 'status-active-buff', 'status-active-weak');
+      hudPanel.classList.remove('status-active-burn', 'status-active-poison', 'status-active-buff', 'status-active-weak', 'status-active-leech');
       if (statuses.burn > 0) hudPanel.classList.add('status-active-burn');
       if (statuses.poison > 0) hudPanel.classList.add('status-active-poison');
       if (statuses.attackBuff > 0) hudPanel.classList.add('status-active-buff');
       if (statuses.weakness > 0) hudPanel.classList.add('status-active-weak');
+      if (statuses.leech > 0) hudPanel.classList.add('status-active-leech');
     }
 
     // Burn status
@@ -983,6 +1034,20 @@ const UI = {
         'WEAKENED', 
         `Clash damage dealt is reduced by <strong>-${statuses.weakness * 10}%</strong>. (Decays by 1 stack when player attacks).`,
         `Stacks: ${statuses.weakness}`
+      );
+    }
+
+    // Leech status
+    if (statuses.leech > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'status-badge leech';
+      badge.innerHTML = `<i class="fa-solid fa-droplet"></i> ${statuses.leech}`;
+      container.appendChild(badge);
+      this.bindTooltip(
+        badge,
+        'LEECH',
+        `Heals <strong>${statuses.leech * 3} HP</strong> on direct unblocked HP damage. (Consumes 1 stack per trigger).`,
+        `Stacks: ${statuses.leech}`
       );
     }
   },
@@ -1423,8 +1488,9 @@ const UI = {
       `;
       container.appendChild(badge);
       
+      const isUnique = def.unique || def.maxStacks === 1;
       // Bind custom responsive tooltip
-      this.bindTooltip(badge, def.name, def.description, `Quality: ${def.quality} Relic | Stacks: ${count}`);
+      this.bindTooltip(badge, def.name, def.description, `Quality: ${def.quality} ${isUnique ? 'Unique Relic' : 'Relic'} | Stacks: ${count}`);
     });
   },
 
@@ -1444,6 +1510,10 @@ const UI = {
       const def = window.gameManager?.compendiumRelics?.find(r => r.id === relicId) || RELIC_DATABASE[relicId];
       if (!def) return;
       
+      const isUnique = def.unique || def.maxStacks === 1;
+      const stackLabel = isUnique ? 'UNIQUE' : `x${count}`;
+      const tagText = isUnique ? `${def.quality} • UNIQUE` : `${def.quality} RELIC`;
+
       const itemEl = document.createElement('div');
       itemEl.className = `relic-card-item ${def.quality}`;
       
@@ -1453,9 +1523,9 @@ const UI = {
             <i class="fa-solid ${def.icon || 'fa-gem'}" style="margin-right: 0.5rem;"></i>
             ${def.name}
           </div>
-          <span class="relic-stack-badge">x${count}</span>
+          <span class="relic-stack-badge">${stackLabel}</span>
         </div>
-        <div class="relic-quality-tag ${def.quality}">${def.quality} RELIC</div>
+        <div class="relic-quality-tag ${def.quality}">${tagText}</div>
         <p class="relic-card-desc">${def.description}</p>
       `;
       container.appendChild(itemEl);
@@ -1582,14 +1652,17 @@ const UI = {
       itemEl.className = `relic-card-item ${relic.quality}`;
       itemEl.dataset.relicId = relic.id;
 
+      const isUnique = relic.unique || relic.maxStacks === 1;
+      const tagText = isUnique ? `${relic.quality} • UNIQUE` : `${relic.quality} RELIC`;
+
       itemEl.innerHTML = `
         <div class="relic-header-row">
           <div class="relic-title-name">
-            <i class="fa-solid ${relic.icon}" style="margin-right: 0.5rem;"></i>
+            <i class="fa-solid ${relic.icon || 'fa-gem'}" style="margin-right: 0.5rem;"></i>
             ${relic.name}
           </div>
         </div>
-        <div class="relic-quality-tag ${relic.quality}">${relic.quality} RELIC</div>
+        <div class="relic-quality-tag ${relic.quality}">${tagText}</div>
         <p class="relic-card-desc">${relic.description}</p>
       `;
 
@@ -1779,6 +1852,180 @@ const UI = {
       
       grid.appendChild(itemEl);
     });
+  },
+
+  /**
+   * Starts live 20s authoritative turn countdown
+   */
+  startTurnTimer(duration = 20) {
+    if (this._turnTimerInterval) {
+      clearInterval(this._turnTimerInterval);
+      this._turnTimerInterval = null;
+    }
+    const timerBadge = document.getElementById('battle-turn-timer');
+    const timerVal = document.getElementById('turn-timer-val');
+    if (!timerBadge || !timerVal) return;
+
+    let remaining = duration;
+    timerVal.innerText = remaining;
+    timerBadge.classList.remove('hidden', 'urgent');
+
+    this._turnTimerInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        remaining = 0;
+        clearInterval(this._turnTimerInterval);
+        this._turnTimerInterval = null;
+      }
+      timerVal.innerText = remaining;
+      if (remaining <= 5) {
+        timerBadge.classList.add('urgent');
+      }
+    }, 1000);
+  },
+
+  /**
+   * Stops and hides turn timer countdown
+   */
+  stopTurnTimer() {
+    if (this._turnTimerInterval) {
+      clearInterval(this._turnTimerInterval);
+      this._turnTimerInterval = null;
+    }
+    const timerBadge = document.getElementById('battle-turn-timer');
+    if (timerBadge) {
+      timerBadge.classList.add('hidden');
+      timerBadge.classList.remove('urgent');
+    }
+  },
+
+  /**
+   * Visually locks the card auto-played by server timeout
+   */
+  handleAutoPlay(cardInstanceId) {
+    this.stopTurnTimer();
+    if (!cardInstanceId) return;
+
+    const cardEl = this.playerHand ? this.playerHand.querySelector(`.card[data-instance-id="${cardInstanceId}"]`) : null;
+    if (cardEl && this.selectedCardInstanceId !== cardInstanceId) {
+      this.selectCard(cardEl, cardInstanceId);
+    }
+    this.lockSelection();
+    this.showToast('Time expired! Card auto-played.');
+  },
+
+  /**
+   * Displays 30s countdown overlay for opponent disconnection
+   */
+  showOpponentDcOverlay(playerName, timeoutSeconds = 30) {
+    if (this._dcCountdownInterval) {
+      clearInterval(this._dcCountdownInterval);
+      this._dcCountdownInterval = null;
+    }
+    const overlay = document.getElementById('opponent-dc-overlay');
+    const nameEl = document.getElementById('dc-player-name');
+    const countdownEl = document.getElementById('dc-countdown-val');
+    if (!overlay) return;
+
+    if (nameEl) nameEl.innerText = playerName || 'Opponent';
+    let remaining = timeoutSeconds;
+    if (countdownEl) countdownEl.innerText = remaining;
+    overlay.classList.remove('hidden');
+
+    this._dcCountdownInterval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        remaining = 0;
+        clearInterval(this._dcCountdownInterval);
+        this._dcCountdownInterval = null;
+      }
+      if (countdownEl) countdownEl.innerText = remaining;
+    }, 1000);
+  },
+
+  /**
+   * Hides opponent disconnection overlay
+   */
+  hideOpponentDcOverlay() {
+    if (this._dcCountdownInterval) {
+      clearInterval(this._dcCountdownInterval);
+      this._dcCountdownInterval = null;
+    }
+    const overlay = document.getElementById('opponent-dc-overlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  /**
+   * Renders the last 5-10 clash history logs in the drawer
+   */
+  updateClashLog(history = []) {
+    const list = document.getElementById('clash-log-list');
+    if (!list) return;
+
+    if (!history || history.length === 0) {
+      list.innerHTML = '<div class="clash-log-empty">No clashes recorded yet this match.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    const reversed = [...history].reverse();
+    reversed.forEach(entry => {
+      const entryDiv = document.createElement('div');
+      entryDiv.className = 'clash-log-entry';
+
+      const p1OutcomeClass = (entry.p1.outcome || '').toLowerCase();
+      entryDiv.innerHTML = `
+        <div class="clash-log-meta">
+          <span class="clash-turn-badge">ROUND ${entry.round} &bull; TURN ${entry.turn}</span>
+          <span class="clash-outcome-badge ${p1OutcomeClass}">${entry.p1.outcome}</span>
+        </div>
+        <div class="clash-cards-row">
+          <div class="clash-card-side you">
+            <span class="clash-card-name">${entry.p1.cardName} (${entry.p1.element})</span>
+            <div class="clash-stat-line">Dmg: ${entry.p1.dmgDealt} &bull; Shield: +${entry.p1.shieldGain}</div>
+          </div>
+          <span class="clash-vs-sep">VS</span>
+          <div class="clash-card-side opponent">
+            <span class="clash-card-name">${entry.p2.cardName} (${entry.p2.element})</span>
+            <div class="clash-stat-line">Dmg: ${entry.p2.dmgDealt} &bull; Shield: +${entry.p2.shieldGain}</div>
+          </div>
+        </div>
+      `;
+      list.appendChild(entryDiv);
+    });
+  },
+
+  /**
+   * Displays a stylized floating combat toast near HUD on relic activation
+   */
+  showRelicCombatToast(isPlayer, relicName, message) {
+    const container = isPlayer ? document.querySelector('.player-hud') : document.querySelector('.enemy-hud');
+    if (!container) {
+      this.showToast(message || `${relicName} activated!`);
+      return;
+    }
+
+    // Remove existing toast in this container to prevent overlapping clutter
+    const existing = container.querySelector('.relic-combat-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `relic-combat-toast ${isPlayer ? 'player-toast' : 'enemy-toast'}`;
+    toast.innerHTML = `<i class="fa-solid fa-sparkles"></i> <strong>${relicName}</strong>: ${message || 'Activated!'}`;
+
+    // Player toast is anchored safely to the right of the player HUD, completely clear of the left sidebar & quest tracker
+    if (isPlayer) {
+      toast.style.top = '8px';
+      toast.style.left = 'calc(100% + 12px)';
+    } else {
+      toast.style.top = '100%';
+      toast.style.right = '10px';
+    }
+
+    container.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 2400);
   }
 };
 

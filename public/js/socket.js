@@ -278,6 +278,18 @@ socket.on('roundStart', (data) => {
   }
 });
 
+socket.on('turnTimerStarted', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onTurnTimerStarted(data);
+  }
+});
+
+socket.on('autoPlayTriggered', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onAutoPlayTriggered(data);
+  }
+});
+
 socket.on('selectCard', (data) => {
   if (window.gameManager) {
     window.gameManager.onOpponentSelect(data);
@@ -351,8 +363,8 @@ const SocketService = {
   reconnectMatch(token) {
     socket.emit('reconnectMatch', token);
   },
-  joinQueue(username) {
-    socket.emit('joinQueue', username);
+  joinQueue(username, roomCode = '') {
+    socket.emit('joinQueue', { username, roomCode });
   },
   leaveQueue() {
     socket.emit('leaveQueue');

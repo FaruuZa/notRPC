@@ -269,62 +269,140 @@ const Animations = {
   /**
    * Animates a floating combat damage popup (HP or Shield)
    */
-  animateDamagePopup(container, value, type) {
-    if (!value || value === 0) return;
-    
+  animateDamagePopup(container, value, type, delay = 0) {
+    if (!value || value === 0 || !container) return;
+
     const popup = document.createElement('div');
-    let colorClass = 'red';
-    let text = `-${value} HP`;
+
+    // 1. Determine type, color class, sign and icon
+    let colorClass = 'combat-dmg red';
+    let iconHtml = '<i class="fa-solid fa-burst"></i>';
+    let sign = '-';
 
     if (type === 'shield' || type === true) {
-      colorClass = 'blue';
-      text = `<i class="fa-solid fa-shield-halved"></i> +${value} SHIELD`;
+      colorClass = 'shield-gain blue';
+      iconHtml = '<i class="fa-solid fa-shield-halved"></i>';
+      sign = '+';
     } else if (type === 'shield-damage') {
-      colorClass = 'blue';
-      text = `<i class="fa-solid fa-shield-halved"></i> -${value} SHIELD`;
+      colorClass = 'shield-dmg blue';
+      iconHtml = '<i class="fa-solid fa-shield-halved"></i>';
+      sign = '-';
     } else if (type === 'heal') {
-      colorClass = 'green';
-      text = `<i class="fa-solid fa-heart"></i> +${value} HP`;
+      colorClass = 'heal-gain green';
+      iconHtml = '<i class="fa-solid fa-heart"></i>';
+      sign = '+';
+    } else if (type === 'leech') {
+      colorClass = 'leech-heal';
+      iconHtml = '<i class="fa-solid fa-droplet"></i>';
+      sign = '+';
     } else if (type === 'burn') {
       colorClass = 'burn-tick';
-      text = `<i class="fa-solid fa-fire"></i> -${value} BURN`;
+      iconHtml = '<i class="fa-solid fa-fire"></i>';
+      sign = '-';
     } else if (type === 'poison') {
       colorClass = 'poison-tick';
-      text = `<i class="fa-solid fa-skull-crossbones"></i> -${value} POISON`;
+      iconHtml = '<i class="fa-solid fa-skull-crossbones"></i>';
+      sign = '-';
     } else if (type === 'shield-decay') {
       colorClass = 'shield-decay';
-      text = `<i class="fa-solid fa-shield-halved"></i> -${value} DECAY`;
+      iconHtml = '<i class="fa-solid fa-shield-halved"></i>';
+      sign = '-';
     } else if (type === 'self-damage') {
       colorClass = 'self-dmg';
-      text = `<i class="fa-solid fa-heart-crack"></i> -${value} SELF`;
+      iconHtml = '<i class="fa-solid fa-heart-crack"></i>';
+      sign = '-';
+    } else if (type === 'thorns') {
+      colorClass = 'thorns-dmg';
+      iconHtml = '<i class="fa-solid fa-shield-cat"></i>';
+      sign = '-';
     } else {
-      colorClass = 'red';
-      text = `-${value} HP`;
+      colorClass = 'combat-dmg red';
+      iconHtml = '<i class="fa-solid fa-burst"></i>';
+      sign = '-';
     }
 
-    popup.className = `damage-popup ${colorClass}`;
-    popup.innerHTML = text;
-    
-    popup.style.left = `${50 + (Math.random() * 30 - 15)}%`;
-    popup.style.top = `${40 + (Math.random() * 15 - 7.5)}%`;
-    popup.style.transform = 'translate(-50%, -50%) scale(0.6)';
+    // 2. Size tiers based on value
+    const numericVal = Math.abs(Number(value)) || 0;
+    const isDotOrDecay = (type === 'burn' || type === 'poison' || type === 'shield-decay');
+    let tier = 'mid';
+    if (numericVal < 8 || isDotOrDecay) {
+      tier = 'small';
+    } else if (numericVal >= 15) {
+      tier = 'big';
+    }
+
+    // 3. Peak scale based on tier & type
+    let peakScale = 1.25;
+    if (tier === 'big') {
+      peakScale = 1.45;
+    } else if (type === 'thorns') {
+      peakScale = 1.35;
+    } else if (tier === 'small') {
+      peakScale = 1.15;
+    }
+
+    popup.className = `damage-popup ${colorClass} ${tier}`;
+    // Clean numbers only: icon + sign + value (no redundant HP/DMG labels)
+    popup.innerHTML = `${iconHtml}<span>${sign}${numericVal}</span>`;
+
+    // 4. Tight jitter around center so numbers don't wander off-card
+    const jitterX = Math.random() * 12 - 6; // ±6%
+    const jitterY = Math.random() * 8 - 4;   // ±4%
+    popup.style.left = `${50 + jitterX}%`;
+    popup.style.top = `${45 + jitterY}%`;
+    popup.style.transform = 'translate(-50%, -50%) scale(0.3)';
     popup.style.opacity = '0';
-    
+
     container.appendChild(popup);
 
-    const isDotOrDecay = (type === 'burn' || type === 'poison' || type === 'shield-decay');
-    const targetY = isDotOrDecay ? 60 : -60;
+    // 5. Target micro-shake for big impacts
+    if (tier === 'big') {
+      anime({
+        targets: container,
+        translateX: [
+          { value: -4, duration: 35 },
+          { value:  4, duration: 35 },
+          { value: -2, duration: 35 },
+          { value:  2, duration: 35 },
+          { value:  0, duration: 40 }
+        ],
+        delay: delay + 120,
+        easing: 'easeInOutQuad'
+      });
+    }
 
-    anime({
+    // 6. Arced trajectory & 3-phase punch animation
+    const riseY = isDotOrDecay ? 28 : -38;
+    const arcX = Math.random() * 40 - 20; // slight arc left or right
+
+    anime.timeline({
+      delay: delay,
+      complete: () => popup.remove()
+    })
+    // Phase 1: Punch in with overshoot (0 - 130ms)
+    .add({
       targets: popup,
-      translateY: [0, targetY],
-      scale: [0.6, 1.1, 1],
-      opacity: [0, 1, 1, 0],
-      duration: 600,
-      easing: 'easeOutQuad',
-      complete: () => {
-        popup.remove();
-      }
+      opacity: [0, 1],
+      scale: [0.3, peakScale],
+      duration: 130,
+      easing: 'easeOutBack'
+    })
+    // Phase 2: Settle to normal scale & arc trajectory (130 - 580ms)
+    .add({
+      targets: popup,
+      scale: 1.0,
+      translateX: arcX,
+      translateY: riseY,
+      duration: 450,
+      easing: 'easeOutCubic'
+    }, '-=30')
+    // Phase 3: Fast vanish (580 - 740ms)
+    .add({
+      targets: popup,
+      opacity: 0,
+      translateY: riseY + (isDotOrDecay ? 10 : -14),
+      duration: 160,
+      easing: 'easeInQuad'
     });
   },
 
@@ -398,63 +476,81 @@ const Animations = {
     if (actionType === 'buff') {
       iconHtml = '<i class="fa-solid fa-bolt"></i>';
       color = '#ff9f43';
-      border = '3px solid #ff9f43';
+      border = '2px solid #ff9f43';
       bg = 'rgba(255, 159, 67, 0.28)';
       glow = '0 0 20px rgba(255, 159, 67, 0.6)';
     } else if (actionType === 'debuff') {
       iconHtml = '<i class="fa-solid fa-arrow-down-long"></i>';
       color = '#a55eea';
-      border = '3px solid #a55eea';
+      border = '2px solid #a55eea';
       bg = 'rgba(165, 94, 234, 0.28)';
       glow = '0 0 20px rgba(165, 94, 234, 0.6)';
     } else if (actionType === 'heal') {
       iconHtml = '<i class="fa-solid fa-heart"></i>';
       color = '#2ed573';
-      border = '3px solid #2ed573';
+      border = '2px solid #2ed573';
       bg = 'rgba(46, 213, 115, 0.28)';
       glow = '0 0 20px rgba(46, 213, 115, 0.6)';
     } else if (actionType === 'self-damage') {
       iconHtml = '<i class="fa-solid fa-heart-crack"></i>';
-      color = '#ff4757';
-      border = '3px solid #ff4757';
-      bg = 'rgba(255, 71, 87, 0.28)';
-      glow = '0 0 20px rgba(255, 71, 87, 0.6)';
+      color = '#e040fb';
+      border = '2.5px solid #e040fb';
+      bg = 'rgba(224, 64, 251, 0.32)';
+      glow = '0 0 24px rgba(224, 64, 251, 0.7)';
     } else if (actionType === 'shield-gain') {
       iconHtml = '<i class="fa-solid fa-shield-halved"></i>';
       color = '#4dabf7';
-      border = '3px solid #4dabf7';
+      border = '2px solid #4dabf7';
       bg = 'rgba(77, 171, 247, 0.28)';
       glow = '0 0 20px rgba(77, 171, 247, 0.6)';
     } else if (actionType === 'cleanse') {
       iconHtml = '<i class="fa-solid fa-wand-magic-sparkles"></i>';
       color = '#f1f2f6';
-      border = '3px solid #f1f2f6';
+      border = '2px solid #f1f2f6';
       bg = 'rgba(241, 242, 246, 0.28)';
       glow = '0 0 20px rgba(241, 242, 246, 0.6)';
     } else if (actionType === 'dispel') {
       iconHtml = '<i class="fa-solid fa-bolt-slash"></i>';
       color = '#ff9f43';
-      border = '3px solid #ff9f43';
+      border = '2px solid #ff9f43';
       bg = 'rgba(255, 159, 67, 0.28)';
       glow = '0 0 20px rgba(255, 159, 67, 0.6)';
     } else if (actionType === 'burn') {
       iconHtml = '<i class="fa-solid fa-fire"></i>';
       color = '#ff4d4d';
-      border = '3px solid #ff4d4d';
+      border = '2px solid #ff4d4d';
       bg = 'rgba(255, 77, 77, 0.28)';
       glow = '0 0 20px rgba(255, 77, 77, 0.6)';
     } else if (actionType === 'poison') {
       iconHtml = '<i class="fa-solid fa-skull-crossbones"></i>';
       color = '#2ecc71';
-      border = '3px solid #2ecc71';
+      border = '2px solid #2ecc71';
       bg = 'rgba(46, 204, 113, 0.28)';
       glow = '0 0 20px rgba(46, 204, 113, 0.6)';
     } else if (actionType === 'weak') {
       iconHtml = '<i class="fa-solid fa-shield-halved" style="transform: rotate(180deg);"></i>';
-      color = '#7f8c8d';
-      border = '3px solid #7f8c8d';
+      color = '#a0aec0';
+      border = '2px solid #a0aec0';
       bg = 'rgba(127, 140, 141, 0.28)';
       glow = '0 0 20px rgba(127, 140, 141, 0.6)';
+    } else if (actionType === 'outbreak') {
+      iconHtml = '<i class="fa-solid fa-biohazard"></i>';
+      color = '#c084fc';
+      border = '2.5px solid #a855f7';
+      bg = 'rgba(168, 85, 247, 0.35)';
+      glow = '0 0 24px rgba(168, 85, 247, 0.7)';
+    } else if (actionType === 'leech') {
+      iconHtml = '<i class="fa-solid fa-droplet"></i>';
+      color = '#f43f5e';
+      border = '2.5px solid #f43f5e';
+      bg = 'rgba(244, 63, 94, 0.35)';
+      glow = '0 0 24px rgba(244, 63, 94, 0.7)';
+    } else if (actionType === 'thorns') {
+      iconHtml = '<i class="fa-solid fa-shield-cat"></i>';
+      color = '#fbbf24';
+      border = '2.5px solid #f59e0b';
+      bg = 'rgba(245, 158, 11, 0.35)';
+      glow = '0 0 24px rgba(245, 158, 11, 0.7)';
     }
 
     overlay.style.cssText = `
@@ -471,12 +567,13 @@ const Animations = {
       background: ${bg};
       color: ${color};
       border: ${border};
-      border-radius: 4px;
+      border-radius: 6px;
       opacity: 0;
       z-index: 10;
       pointer-events: none;
       box-shadow: ${glow};
       text-shadow: 0 0 10px ${color};
+      backdrop-filter: blur(2px);
     `;
 
     const iconSpan = document.createElement('span');
@@ -485,10 +582,12 @@ const Animations = {
 
     const textSpan = document.createElement('span');
     textSpan.style.fontFamily = 'var(--font-title)';
-    textSpan.style.fontSize = '0.82rem';
+    textSpan.style.fontSize = '0.85rem';
     textSpan.style.fontWeight = '850';
     textSpan.style.letterSpacing = '1px';
     textSpan.style.textTransform = 'uppercase';
+    textSpan.style.textAlign = 'center';
+    textSpan.style.padding = '0 0.4rem';
     textSpan.innerText = text;
 
     overlay.appendChild(iconSpan);
@@ -499,7 +598,7 @@ const Animations = {
       targets: overlay,
       opacity: [0, 1, 1, 0],
       scale: [0.75, 1.05, 1],
-      duration: 400,
+      duration: 650,
       easing: 'easeOutBack',
       complete: () => {
         overlay.remove();
@@ -648,6 +747,97 @@ const Animations = {
     setTimeout(() => {
       hudEl.classList.remove('poison-flash');
     }, 500);
+  },
+
+  /**
+   * Animates Phoenix Heart resurrection: fiery burst ring & golden revival glow on card
+   */
+  animatePhoenixRevive(cardEl, callback) {
+    if (!cardEl) {
+      if (callback) callback();
+      return;
+    }
+
+    const burst = document.createElement('div');
+    burst.className = 'phoenix-burst-overlay';
+    cardEl.appendChild(burst);
+    cardEl.classList.add('phoenix-revive-glow');
+
+    anime({
+      targets: burst,
+      scale: [0.2, 1.8],
+      opacity: [0, 1, 0],
+      duration: 650,
+      easing: 'easeOutExpo',
+      complete: () => {
+        burst.remove();
+        setTimeout(() => {
+          cardEl.classList.remove('phoenix-revive-glow');
+        }, 400);
+        if (callback) callback();
+      }
+    });
+
+    anime({
+      targets: cardEl,
+      scale: [
+        { value: 0.92, duration: 100, easing: 'easeInOutQuad' },
+        { value: 1.06, duration: 250, easing: 'easeOutBack' },
+        { value: 1.0, duration: 250, easing: 'easeOutQuad' }
+      ]
+    });
+  },
+
+  /**
+   * Animates Cleanse Sweep: upward light sweep washing away debuffs
+   */
+  animateCleanseSweep(cardEl, callback) {
+    if (!cardEl) {
+      if (callback) callback();
+      return;
+    }
+
+    const sweep = document.createElement('div');
+    sweep.className = 'cleanse-sweep-overlay';
+    cardEl.appendChild(sweep);
+
+    anime({
+      targets: sweep,
+      translateY: ['100%', '-100%'],
+      opacity: [0, 1, 0],
+      duration: 500,
+      easing: 'easeOutCubic',
+      complete: () => {
+        sweep.remove();
+        if (callback) callback();
+      }
+    });
+  },
+
+  /**
+   * Animates Dispel Strip: downward purple/violet strip stripping away buffs
+   */
+  animateDispelStrip(cardEl, callback) {
+    if (!cardEl) {
+      if (callback) callback();
+      return;
+    }
+
+    const sweep = document.createElement('div');
+    sweep.className = 'dispel-sweep-overlay';
+    cardEl.appendChild(sweep);
+
+    anime({
+      targets: sweep,
+      translateY: ['-100%', '100%'],
+      opacity: [0, 1, 0],
+      duration: 500,
+      easing: 'easeOutCubic',
+      complete: () => {
+        sweep.remove();
+        if (callback) callback();
+      }
+    });
   }
 };
 

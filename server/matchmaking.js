@@ -12,7 +12,7 @@ let queue = [];
  * @param {Object} io The Socket.IO server instance
  * @param {Object} roomManager The Room Manager instance
  */
-function join(socket, username, userId, io, roomManager) {
+function join(socket, username, userId, io, roomManager, roomCode = '') {
   // Check if player is already in queue
   const exists = queue.some(item => item.socketId === socket.id || (item.userId && item.userId === userId));
   if (exists) return;
@@ -23,19 +23,21 @@ function join(socket, username, userId, io, roomManager) {
     return;
   }
 
-  // Sanitize username
+  // Sanitize username and roomCode
   const name = username ? username.trim().substring(0, 15) : 'Player';
   const uid = userId || socket.id;
+  const cleanCode = roomCode ? String(roomCode).trim().toUpperCase() : '';
   
   // Push to queue
   queue.push({
     socketId: socket.id,
     userId: uid,
     username: name,
-    socket
+    socket,
+    roomCode: cleanCode
   });
 
-  console.log(`[Queue] ${name} (${uid}) joined. Queue size: ${queue.length}`);
+  console.log(`[Queue] ${name} (${uid}) joined queue${cleanCode ? ` [RoomCode: ${cleanCode}]` : ''}. Queue size: ${queue.length}`);
   
   // Broadcast updated queue count
   broadcastQueueCount(io);
@@ -78,39 +80,48 @@ function broadcastQueueCount(io) {
  * Pairs up the first two players in the queue if available
  */
 function checkAndMatch(io, roomManager) {
-  if (queue.length >= 2) {
-    const player1 = queue.shift();
-    const player2 = queue.shift();
+  // Find two players with matching roomCode (or both empty for public queue)
+  for (let i = 0; i < queue.length; i++) {
+    const player1 = queue[i];
+    const matchIndex = queue.findIndex((p2, idx) => idx > i && p2.roomCode === player1.roomCode);
 
-    broadcastQueueCount(io);
+    if (matchIndex !== -1) {
+      const player2 = queue.splice(matchIndex, 1)[0];
+      queue.splice(i, 1); // remove player1
 
-    const roomId = 'room_' + nanoid(10);
-    console.log(`[Matchmaking] Match found! Creating Room ${roomId} for ${player1.username} vs ${player2.username}`);
+      broadcastQueueCount(io);
 
-    player1.socket.join(roomId);
-    player2.socket.join(roomId);
+      const roomId = 'room_' + nanoid(10);
+      console.log(`[Matchmaking] Match found! Creating Room ${roomId} for ${player1.username} vs ${player2.username}${player1.roomCode ? ` [Code: ${player1.roomCode}]` : ''}`);
 
-    player1.socket.emit('matchFound', {
-      roomId,
-      opponentName: player2.username,
-      opponentId: player2.socketId,
-      opponentUserId: player2.userId,
-      yourName: player1.username,
-      yourId: player1.socketId,
-      yourUserId: player1.userId
-    });
+      player1.socket.join(roomId);
+      player2.socket.join(roomId);
 
-    player2.socket.emit('matchFound', {
-      roomId,
-      opponentName: player1.username,
-      opponentId: player1.socketId,
-      opponentUserId: player1.userId,
-      yourName: player2.username,
-      yourId: player2.socketId,
-      yourUserId: player2.userId
-    });
+      player1.socket.emit('matchFound', {
+        roomId,
+        opponentName: player2.username,
+        opponentId: player2.socketId,
+        opponentUserId: player2.userId,
+        yourName: player1.username,
+        yourId: player1.socketId,
+        yourUserId: player1.userId,
+        roomCode: player1.roomCode
+      });
 
-    roomManager.createRoom(roomId, player1, player2, io);
+      player2.socket.emit('matchFound', {
+        roomId,
+        opponentName: player1.username,
+        opponentId: player1.socketId,
+        opponentUserId: player1.userId,
+        yourName: player2.username,
+        yourId: player2.socketId,
+        yourUserId: player2.userId,
+        roomCode: player2.roomCode
+      });
+
+      roomManager.createRoom(roomId, player1, player2, io);
+      break;
+    }
   }
 }
 

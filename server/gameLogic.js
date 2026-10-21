@@ -271,7 +271,7 @@ function generateBonusPickCards() {
  * @param {Object} relicsB Player B's active relics
  * @returns {Object} Complete details of the clash outcomes and damage calculations
  */
-function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, statusesB = {}, relicsA = {}, relicsB = {}) {
+function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, statusesB = {}, relicsA = {}, relicsB = {}, hpA = 100, maxHpA = 100, hpB = 100, maxHpB = 100) {
   // Determine clash outcome based on elements
   const outcomeA = CLASH_RULES[cardA.element][cardB.element];
   const outcomeB = CLASH_RULES[cardB.element][cardA.element];
@@ -293,7 +293,7 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   let selfDamageB = effectB.selfDamage || 0;
 
   // --- RELICS PASSIVES PRE-MODIFICATIONS ---
-  // 1. Element specific damage (Mastery relics)
+  // 1. Element specific damage (Mastery relics & Chaos Affinity)
   if (cardA.element === 'FIRE') {
     damageDealtByA += 2 * (relicsA.fire_mastery || 0);
   } else if (cardA.element === 'WATER') {
@@ -302,6 +302,7 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
     damageDealtByA += 2 * (relicsA.nature_mastery || 0);
   } else if (cardA.element === 'CHAOS') {
     damageDealtByA += 3 * (relicsA.chaos_engine || 0);
+    damageDealtByA += 2 * (relicsA.relic_chaos_affinity_rare || 0);
   }
 
   if (['FIRE', 'WATER', 'NATURE'].includes(cardA.element)) {
@@ -316,6 +317,17 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
     damageDealtByB += 2 * (relicsB.nature_mastery || 0);
   } else if (cardB.element === 'CHAOS') {
     damageDealtByB += 3 * (relicsB.chaos_engine || 0);
+    damageDealtByB += 2 * (relicsB.relic_chaos_affinity_rare || 0);
+  }
+
+  // Desperation: +1 bonus damage per 10 HP missing from max HP
+  if (damageDealtByA > 0 && (relicsA.relic_desperation_rare || 0) > 0) {
+    const missingHpA = Math.max(0, (maxHpA || 100) - (hpA || 100));
+    damageDealtByA += Math.floor(missingHpA / 10) * relicsA.relic_desperation_rare;
+  }
+  if (damageDealtByB > 0 && (relicsB.relic_desperation_rare || 0) > 0) {
+    const missingHpB = Math.max(0, (maxHpB || 100) - (hpB || 100));
+    damageDealtByB += Math.floor(missingHpB / 10) * relicsB.relic_desperation_rare;
   }
 
   if (['FIRE', 'WATER', 'NATURE'].includes(cardB.element)) {

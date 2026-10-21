@@ -458,11 +458,11 @@ const CARD_POOL = [
     id: 'chaos_blast',
     name: 'Chaos Blast',
     element: ELEMENTS.CHAOS,
-    description: 'Superior: 14 dmg. Neutral: 12 self dmg. Inferior: 8 self dmg & <span class="kw-weak">WEAK [2]</span> to self.',
+    description: 'Superior: 15 dmg. Neutral: 6 self dmg. Inferior: 6 self dmg & <span class="kw-weak">WEAK [1]</span> to self.',
     outcomes: {
-      SUPERIOR: { damage: 14, shield: 0, selfDamage: 0 },
-      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 12 },
-      INFERIOR: { damage: 0,  shield: 0, selfDamage: 8, applyStatus: { self: { weakness: 2 } } }
+      SUPERIOR: { damage: 15, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0,  shield: 0, selfDamage: 6 },
+      INFERIOR: { damage: 0,  shield: 0, selfDamage: 6, applyStatus: { self: { weakness: 1 } } }
     }
   },
   {
@@ -661,11 +661,11 @@ const CARD_POOL = [
     id: 'wild_magic',
     name: 'Wild Magic',
     element: ELEMENTS.CHAOS,
-    description: 'Superior: 18 dmg. Neutral: 5 self dmg. Inferior: <span class="kw-buff">BUFF [2]</span>.',
+    description: 'Superior: 14 dmg. Neutral: 6 self dmg. Inferior: 6 self dmg & <span class="kw-buff">BUFF [1]</span> to self.',
     outcomes: {
-      SUPERIOR: { damage: 18, shield: 0, selfDamage: 0 },
-      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 5 },
-      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { attackBuff: 2 } } }
+      SUPERIOR: { damage: 14, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 6 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 6, applyStatus: { self: { attackBuff: 1 } } }
     }
   },
   {
@@ -677,6 +677,39 @@ const CARD_POOL = [
       SUPERIOR: { damage: 10, shield: 0, selfDamage: 0, applyStatus: { opponent: { burn: 2, poison: 2 } } },
       NEUTRAL:  { damage: 0, shield: 0, selfDamage: 0 },
       INFERIOR: { damage: 0, shield: 0, selfDamage: 6 }
+    }
+  },
+  {
+    id: 'heavy_impact',
+    name: 'Heavy Impact',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 13 dmg. Neutral: 5 dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 13, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 5, shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'epidemic_burst',
+    name: 'Epidemic Burst',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 10 dmg & <span class="kw-outbreak">OUTBREAK</span>. Neutral: 4 shield. Inferior: 3 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 10, shield: 0, selfDamage: 0, applyStatus: { opponent: { outbreak: true } } },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 3 }
+    }
+  },
+  {
+    id: 'vampiric_slash',
+    name: 'Vampiric Slash',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 11 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 3 dmg. Inferior: 4 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 11, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
+      NEUTRAL:  { damage: 3, shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 4 }
     }
   }
 ];

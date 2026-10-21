@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/style.css?v=1.0.3">
+  <link rel="stylesheet" href="css/mobile.css?v=1.0.3">
   
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -123,6 +123,13 @@
             </div>
           </div>
           
+          <div class="input-group room-code-group" id="room-code-group">
+            <label for="room-code-input">
+              <i class="fa-solid fa-key"></i> Room Code <span class="label-optional">(Optional)</span>
+            </label>
+            <input type="text" id="room-code-input" placeholder="e.g. DUEL42 (Leave empty for public queue)" maxlength="12" autocomplete="off" spellcheck="false">
+          </div>
+
           <div class="matchmaking-status-box">
             <div id="status-text">Ready to enter the arena...</div>
             <div id="queue-status-sub" class="hidden">
@@ -265,10 +272,24 @@
 
   <!-- Screen 2: Battle Screen -->
   <div id="battle-screen" class="screen">
-    <!-- Surrender Button floating in top center -->
-    <button id="surrender-btn" class="btn-surrender" title="Surrender Match">
-      <i class="fa-solid fa-flag"></i> SURRENDER
-    </button>
+    <!-- Battle Top Actions Bar -->
+    <div class="battle-top-bar">
+      <button id="surrender-btn" class="btn-surrender" title="Surrender Match">
+        <i class="fa-solid fa-flag"></i> SURRENDER
+      </button>
+      <button id="clash-log-toggle" class="btn-clash-log" title="View Clash History Log">
+        <i class="fa-solid fa-clock-rotate-left"></i> LOG
+      </button>
+    </div>
+
+    <!-- Opponent Disconnect Countdown Overlay -->
+    <div id="opponent-dc-overlay" class="opponent-dc-banner glass hidden">
+      <i class="fa-solid fa-triangle-exclamation dc-icon"></i>
+      <div class="dc-text">
+        <strong id="dc-player-name">Opponent</strong> disconnected.
+        <span>Waiting for reconnect: <strong id="dc-countdown-val">30</strong>s</span>
+      </div>
+    </div>
 
     <div class="arena-background">
       <div class="grid-lines"></div>
@@ -364,6 +385,9 @@
       <div class="clash-effects-zone">
         <div class="vs-badge" id="vs-badge">VS</div>
         <div class="combat-text" id="arena-combat-text">Select your card!</div>
+        <div id="battle-turn-timer" class="turn-timer-badge hidden" title="Time remaining to select card">
+          <i class="fa-solid fa-stopwatch"></i> <span id="turn-timer-val">20</span>s
+        </div>
         <button id="lock-btn" class="btn btn-lock disabled" disabled>
           <span class="lock-btn-text">SELECT CARD</span>
           <span class="btn-glow"></span>
@@ -378,6 +402,17 @@
         <div class="card-play-slot" id="enemy-play-slot">
           <!-- Card drops here -->
         </div>
+      </div>
+    </div>
+
+    <!-- Clash History Drawer -->
+    <div id="clash-log-drawer" class="clash-log-drawer glass hidden">
+      <div class="clash-log-header">
+        <span class="clash-log-title"><i class="fa-solid fa-clock-rotate-left"></i> CLASH HISTORY</span>
+        <button id="clash-log-close" class="clash-log-close-btn">&times;</button>
+      </div>
+      <div id="clash-log-list" class="clash-log-list">
+        <div class="clash-log-empty">No clashes recorded yet this match.</div>
       </div>
     </div>
 
@@ -726,12 +761,18 @@
                 <li><strong style="color: var(--color-fire);">INFERIOR:</strong> Your card is countered. Inferior outcomes trigger.</li>
               </ul>
             </li>
-            <li><strong>Status Effects:</strong>
-              <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary);">
-                <li><strong style="color: var(--color-fire);">BURN:</strong> Deals damage equal to 3x stack size at round end. Absorbed by shields first. Stacks consume after ticking.</li>
-                <li><strong style="color: var(--color-nature);">POISON:</strong> Deals damage equal to stack size at start of round, bypassing shields. Ticks down by 1 stack per round.</li>
-                <li><strong style="color: var(--color-water);">BUFF:</strong> Increases all damage dealt by the buff stack size.</li>
-                <li><strong style="color: var(--color-chaos);">WEAKNESS:</strong> Reduces damage dealt by 2 per stack (minimum 0).</li>
+            <li><strong>Status Effects & Combat Keywords:</strong>
+              <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.3rem;">
+                <li><strong style="color: var(--color-fire);">BURN:</strong> Deals damage equal to 3x stack size at round end. Absorbed by shields first. Stacks are fully consumed after ticking.</li>
+                <li><strong style="color: var(--color-nature);">POISON:</strong> Deals direct damage equal to stack size at round start, bypassing shields completely. Decreases by 1 stack per round.</li>
+                <li><strong style="color: #ffd700);">BUFF:</strong> Increases card clash damage by +10% per stack. Decreases by 1 stack when attacking.</li>
+                <li><strong style="color: #a0aec0);">WEAKNESS:</strong> Reduces card clash damage dealt by -10% per stack. Decreases by 1 stack when attacking.</li>
+                <li><strong style="color: #00bcd4);">SHIELD:</strong> Blocks incoming clash & burn damage. Decays by 50% at round end (surviving shield carries over).</li>
+                <li><strong style="color: #c084fc);">OUTBREAK:</strong> Instantly doubles all active Poison stacks on target (minimum 1 stack if unpoisoned).</li>
+                <li><strong style="color: #f43f5e);">LEECH:</strong> When dealing direct unblocked HP damage, restores 3 HP per stack and consumes 1 stack.</li>
+                <li><strong style="color: #fbbf24);">THORNS:</strong> Reflects true retaliation damage back to the attacker whenever taking direct HP damage.</li>
+                <li><strong style="color: #9b59b6);">CLEANSE:</strong> Instantly purges all active debuffs (Poison, Burn, Weakness) from self.</li>
+                <li><strong style="color: #ff9f43);">DISPEL:</strong> Instantly strips all positive buffs from the opponent.</li>
               </ul>
             </li>
             <li><strong>Deck Purification & Tokens:</strong> Unused Removal Tokens persist in your inventory across rounds. During Preparation Phase, spend 1 token to permanently burn an unwanted card from your deck (minimum deck size is 4 cards).</li>
@@ -854,15 +895,15 @@
   </div>
 
   <!-- Local Vendor Scripts (Bypasses Discord Activity CSP Restrictions) -->
-  <script src="js/vendor/discord-sdk.js?v=1.0.2"></script>
-  <script src="/socket.io/socket.io.js?v=1.0.2"></script>
-  <script src="js/vendor/anime.min.js?v=1.0.2"></script>
-  <script src="js/vendor/howler.min.js?v=1.0.2"></script>
+  <script src="js/vendor/discord-sdk.js?v=1.0.4"></script>
+  <script src="/socket.io/socket.io.js?v=1.0.4"></script>
+  <script src="js/vendor/anime.min.js?v=1.0.4"></script>
+  <script src="js/vendor/howler.min.js?v=1.0.4"></script>
   
   <!-- Client Application scripts -->
-  <script src="js/socket.js?v=1.0.2"></script>
-  <script src="js/animations.js?v=1.0.2"></script>
-  <script src="js/ui.js?v=1.0.2"></script>
-  <script src="js/game.js?v=1.0.2"></script>
+  <script src="js/socket.js?v=1.0.4"></script>
+  <script src="js/animations.js?v=1.0.4"></script>
+  <script src="js/ui.js?v=1.0.4"></script>
+  <script src="js/game.js?v=1.0.4"></script>
 </body>
 </html>

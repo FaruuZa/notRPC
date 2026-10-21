@@ -121,10 +121,10 @@ const RELIC_POOL = {
   last_stand: {
     id: 'last_stand',
     name: 'Last Stand',
-    description: 'When obtaining Inferior outcome: gain Buff(1) per stack.',
+    description: 'When obtaining Inferior outcome: gain <span class="kw-buff">BUFF [2]</span> per stack.',
     quality: 'LEGENDARY',
     icon: 'fa-shield-heart',
-    effect: { type: 'outcome_status_self', outcome: 'INFERIOR', status: 'attackBuff', value: 1 }
+    effect: { type: 'outcome_status_self', outcome: 'INFERIOR', status: 'attackBuff', value: 2 }
   },
   relic_vitality_common: {
     id: 'relic_vitality_common',
@@ -220,26 +220,58 @@ const RELIC_POOL = {
   relic_reactive_cleanse_legendary: {
     id: 'relic_reactive_cleanse_legendary',
     name: 'Purifying Amulet',
-    description: 'When you take HP damage (clash or status tick): instantly cleanse all your Poison, Burn, and Weakness stacks.',
+    description: 'When you take HP damage from a card clash: instantly cleanse all your Poison, Burn, and Weakness stacks. (Unique - max 1)',
     quality: 'LEGENDARY',
+    icon: 'fa-hands-holding',
+    unique: true,
+    maxStacks: 1,
     effect: { type: 'reactive_cleanse' }
   },
 
-  // Spite Thorns
+  // Spite Thorns (Briar Armor - Epic quality)
+  relic_spite_thorns_epic: {
+    id: 'relic_spite_thorns_epic',
+    name: 'Briar Armor',
+    description: 'When you take HP damage (clash or status tick): deal 3 true damage to your opponent per stack.',
+    quality: 'EPIC',
+    effect: { type: 'spite_thorns', value: 3 }
+  },
+  // Backwards-compatibility alias for older saves/references
   relic_spite_thorns_rare: {
-    id: 'relic_spite_thorns_rare',
+    id: 'relic_spite_thorns_epic',
     name: 'Briar Armor',
     description: 'When you take HP damage (clash or status tick): deal 3 true damage to your opponent per stack.',
     quality: 'EPIC',
     effect: { type: 'spite_thorns', value: 3 }
   },
 
+  // Desperation (Scaling damage as HP drops)
+  relic_desperation_rare: {
+    id: 'relic_desperation_rare',
+    name: 'Desperation',
+    description: 'Deal +1 bonus damage for every 10 HP missing from your Max HP.',
+    quality: 'RARE',
+    effect: { type: 'desperation_scaling', value: 1 }
+  },
+
+  // Chaos Affinity (Smooths Chaos curve)
+  relic_chaos_affinity_rare: {
+    id: 'relic_chaos_affinity_rare',
+    name: 'Chaos Affinity',
+    description: 'Increase damage dealt by your Chaos cards by +2 per stack.',
+    quality: 'RARE',
+    effect: { type: 'element_mastery', element: 'CHAOS', value: 2 }
+  },
+
   // Phoenix Heart
   relic_phoenix_down_legendary: {
     id: 'relic_phoenix_down_legendary',
     name: 'Phoenix Heart',
-    description: 'Once per round: when your HP would drop to 0 or below, instead restore your HP to 30.',
+    description: 'Once per round: when your HP would drop to 0 or below, restore your HP to 30 and inflict <span class="kw-burn">BURN [2]</span> on opponent. (Unique - max 1)',
     quality: 'LEGENDARY',
+    icon: 'fa-fire-flame-simple',
+    unique: true,
+    maxStacks: 1,
     effect: { type: 'phoenix_resurrection', value: 30 }
   }
 };

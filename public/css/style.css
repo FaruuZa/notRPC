@@ -592,10 +592,10 @@ body, html {
   width: 290px;
   padding: 0.6rem 1rem;
   border-radius: 4px;
-  z-index: 10;
+  z-index: 30;
   position: absolute;
+  overflow: visible;
 }
-
 .player-hud {
   top: 1.5rem;
   left: 1.5rem;
@@ -1007,45 +1007,114 @@ body, html {
 .el-tag.chaos   { background: var(--bg-chaos-matte);   color: var(--color-chaos);   border: 1px solid var(--color-chaos);   }
 .el-tag.elem    { background: #1a1f2a; color: var(--text-secondary); border: 1px solid var(--border-mat); }
 
+/* DAMAGE POPUP - JUICY FLOATING COMBAT NUMBERS */
 .damage-popup {
   position: absolute;
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 2rem;
+  font-family: var(--font-title, sans-serif);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
   pointer-events: none;
-  z-index: 99;
+  z-index: 120;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  white-space: nowrap;
+  user-select: none;
+  /* 8-way dark outline so numbers pop against any background */
+  text-shadow:
+    2px  0   0 #14101f,
+   -2px  0   0 #14101f,
+    0    2px 0 #14101f,
+    0   -2px 0 #14101f,
+    2px  2px 0 #14101f,
+   -2px -2px 0 #14101f,
+    2px -2px 0 #14101f,
+   -2px  2px 0 #14101f,
+    0    6px 14px rgba(0, 0, 0, 0.45);
 }
 
+.damage-popup i {
+  font-size: 0.75em;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Size tiers based on impact value */
+.damage-popup.small {
+  font-size: 1.4rem;
+}
+.damage-popup.mid {
+  font-size: 2.0rem;
+}
+.damage-popup.big {
+  font-size: 3.0rem;
+  letter-spacing: -0.03em;
+  text-shadow:
+    3px  0   0 #14101f,
+   -3px  0   0 #14101f,
+    0    3px 0 #14101f,
+    0   -3px 0 #14101f,
+    3px  3px 0 #14101f,
+   -3px -3px 0 #14101f,
+    3px -3px 0 #14101f,
+   -3px  3px 0 #14101f,
+    0    8px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* 1. Clash Attack Damage (Red/Crimson) */
+.damage-popup.combat-dmg,
 .damage-popup.red {
-  color: #f24646;
+  color: #ff3b3b;
 }
 
+/* 2. Self Damage / Recoil (Vivid Fuchsia/Violet Hazard) */
+.damage-popup.self-dmg {
+  color: #f06292;
+}
+
+/* 3. Thorns Damage (Spiked Amber/Gold) */
+.damage-popup.thorns-dmg {
+  color: #fbbf24;
+}
+
+/* 4. Shield Absorbed Damage */
+.damage-popup.shield-dmg {
+  color: #38bdf8;
+}
+
+/* 5. Shield Gained */
+.damage-popup.shield-gain,
 .damage-popup.blue {
-  color: var(--shield-color);
+  color: #00e5ff;
 }
 
+/* 6. Base Heal */
+.damage-popup.heal-gain,
 .damage-popup.green {
   color: #00ff88;
 }
 
+/* 7. Leech Drain Heal (Crimson-Rose Siphon) */
+.damage-popup.leech-heal {
+  color: #f43f5e;
+}
+
+/* 8. Burn Tick */
 .damage-popup.burn-tick {
-  color: #ff5722;
-  text-shadow: 0 0 8px rgba(255, 87, 34, 0.4);
+  color: #ff6b35;
 }
 
+/* 9. Poison Tick */
 .damage-popup.poison-tick {
-  color: #2ecc71;
-  text-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
+  color: #4ade80;
 }
 
+/* 10. Shield Decay */
 .damage-popup.shield-decay {
-  color: #a0aec0; /* Dusty gray/faded blue */
-  text-shadow: 0 0 8px rgba(160, 174, 192, 0.4);
-}
-
-.damage-popup.self-dmg {
-  color: #e040fb; /* bright fuchsia */
-  text-shadow: 0 0 8px rgba(224, 64, 251, 0.45);
+  color: #94a3b8;
 }
 
 /* CARDS DESIGN (TCG PHYSICAL PLAYCARD LOOK - DESKTOP EPIC SCALE) */
@@ -1379,8 +1448,9 @@ body, html {
     padding: 0.25rem 0.45rem;
     border-radius: 3px;
     border-width: 1.5px;
+    z-index: 30;
+    overflow: visible;
   }
-  
   .player-hud {
     top: 0.5rem;
     left: 0.5rem;
@@ -1579,9 +1649,9 @@ body, html {
     margin-top: -12px !important;
   }
 
-  .damage-popup {
-    font-size: 1.2rem;
-  }
+  .damage-popup.small { font-size: 1.15rem; }
+  .damage-popup.mid   { font-size: 1.5rem; }
+  .damage-popup.big   { font-size: 2.1rem; }
 
   /* Legend button & panel mobile styles */
   .btn-legend-toggle {
@@ -1878,6 +1948,9 @@ body, html {
 .keyword-title.cleanse { color: #9b59b6; }
 .keyword-title.dispel { color: #ff9f43; }
 .keyword-title.heal { color: #00ff88; }
+.keyword-title.outbreak { color: #c084fc; }
+.keyword-title.leech { color: #f43f5e; }
+.keyword-title.thorns { color: #fbbf24; }
 
 /* Inline Keyword Highlights inside Cards */
 .kw-burn {
@@ -1926,6 +1999,24 @@ body, html {
   color: #00ff88;
   font-weight: 700;
   text-decoration: underline dotted #00ff88;
+}
+
+.kw-outbreak {
+  color: #c084fc;
+  font-weight: 700;
+  text-decoration: underline dotted #a855f7;
+}
+
+.kw-leech {
+  color: #f43f5e;
+  font-weight: 700;
+  text-decoration: underline dotted #e11d48;
+}
+
+.kw-thorns {
+  color: #fbbf24;
+  font-weight: 700;
+  text-decoration: underline dotted #f59e0b;
 }
 
 .card.new-mulligan-glow {
@@ -2834,6 +2925,26 @@ body, html {
 .hud-panel.status-active-weak {
   animation: weakGlow 2.0s infinite ease-in-out;
   background: rgba(26, 29, 34, 0.68) !important;
+}
+
+/* 5. LEECH STATUS EFFECT (Vampiric crimson pulse) */
+@keyframes leechGlow {
+  0% {
+    box-shadow: 0 0 4px rgba(244, 63, 94, 0.2), inset 0 0 4px rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.45), inset 0 0 8px rgba(244, 63, 94, 0.25);
+    border-color: rgba(244, 63, 94, 0.65);
+  }
+  100% {
+    box-shadow: 0 0 4px rgba(244, 63, 94, 0.2), inset 0 0 4px rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+}
+.hud-panel.status-active-leech {
+  animation: leechGlow 1.6s infinite ease-in-out;
+  background: rgba(36, 16, 24, 0.68) !important;
 }
 
 /* Damage Tick Flash overlays */
@@ -4280,3 +4391,374 @@ body, html {
 }
 
 
+
+/* ==========================================================================
+   PLAYTEST FEEDBACK POLISH: TURN TIMER, CLASH LOG, DC OVERLAY, RELIC TOASTS
+   ========================================================================== */
+
+/* Room Code Input */
+.room-code-group .label-optional {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-transform: none;
+}
+.room-code-group input {
+  font-family: var(--font-title);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Battle Top Actions Bar */
+.battle-top-bar {
+  position: absolute;
+  top: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.battle-top-bar .btn-surrender {
+  position: static;
+  transform: none;
+}
+.btn-clash-log {
+  padding: 0.45rem 1.1rem;
+  font-family: var(--font-title);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: rgba(20, 24, 34, 0.75);
+  border: 1.5px solid var(--border-brass);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-clash-log:hover {
+  background: rgba(35, 42, 58, 0.95);
+  border-color: #f5cf70;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Turn Timer Badge */
+.turn-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #f5cf70;
+  background: rgba(15, 18, 26, 0.85);
+  border: 1.5px solid var(--border-brass);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  margin-top: 0.25rem;
+  transition: all 0.3s ease;
+}
+.turn-timer-badge.urgent {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+  background: rgba(60, 15, 20, 0.85);
+  animation: pulseTimerUrgent 1s infinite alternate;
+}
+@keyframes pulseTimerUrgent {
+  0% { transform: scale(1); box-shadow: 0 0 4px rgba(255, 107, 107, 0.4); }
+  100% { transform: scale(1.08); box-shadow: 0 0 12px rgba(255, 107, 107, 0.8); }
+}
+
+/* Opponent Disconnect Countdown Overlay */
+.opponent-dc-banner {
+  position: absolute;
+  top: 4.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1.6rem;
+  border-radius: 6px;
+  background: rgba(32, 14, 14, 0.92);
+  border: 1.5px solid #ff5555;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  animation: slideDownBanner 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes slideDownBanner {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.opponent-dc-banner .dc-icon {
+  font-size: 1.3rem;
+  color: #ffaa33;
+}
+.opponent-dc-banner .dc-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+}
+.opponent-dc-banner .dc-text strong {
+  font-family: var(--font-title);
+  color: #ffdd88;
+}
+
+/* Clash History Drawer */
+.clash-log-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 330px;
+  max-width: 90vw;
+  height: 100vh;
+  background: rgba(18, 21, 30, 0.96);
+  border-left: 2px solid var(--border-brass);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.clash-log-drawer.hidden {
+  transform: translateX(105%);
+  display: flex !important;
+  pointer-events: none;
+}
+.clash-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  border-bottom: 1.5px solid var(--border-mat);
+}
+.clash-log-title {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #f5cf70;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.clash-log-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  transition: color 0.2s;
+}
+.clash-log-close-btn:hover {
+  color: #fff;
+}
+.clash-log-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.clash-log-empty {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+.clash-log-entry {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-mat);
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.78rem;
+}
+.clash-log-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-title);
+  font-size: 0.72rem;
+}
+.clash-turn-badge {
+  color: var(--text-secondary);
+}
+.clash-outcome-badge {
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.clash-outcome-badge.superior {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+}
+.clash-outcome-badge.neutral {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.15);
+}
+.clash-outcome-badge.inferior {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+.clash-cards-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+.clash-card-side {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.clash-card-side.opponent {
+  text-align: right;
+}
+.clash-card-name {
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clash-stat-line {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+.clash-vs-sep {
+  color: var(--text-secondary);
+  font-family: var(--font-title);
+  font-size: 0.75rem;
+}
+
+/* Floating Relic Combat Toast */
+.relic-combat-toast {
+  position: absolute;
+  z-index: 250;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.85rem;
+  font-family: var(--font-title);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffe082;
+  background: rgba(18, 22, 32, 0.96);
+  border: 1.5px solid #d4af37;
+  border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Player toast is anchored safely to the right of Player HUD, completely clear of the left sidebar & quest tracker */
+.relic-combat-toast.player-toast {
+  left: calc(100% + 12px);
+  top: 8px;
+  animation: relicCombatFloatPlayer 2.4s ease-out forwards;
+}
+
+.relic-combat-toast.enemy-toast {
+  right: 10px;
+  top: 100%;
+  animation: relicCombatFloatEnemy 2.4s ease-out forwards;
+}
+
+@keyframes relicCombatFloatPlayer {
+  0% { opacity: 0; transform: translateX(-10px) scale(0.92); }
+  15% { opacity: 1; transform: translateX(0) scale(1.02); }
+  80% { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 0; transform: translateX(8px) scale(0.95); }
+}
+
+@keyframes relicCombatFloatEnemy {
+  0% { opacity: 0; transform: translateY(10px) scale(0.92); }
+  15% { opacity: 1; transform: translateY(0) scale(1.02); }
+  80% { opacity: 1; transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-18px) scale(0.95); }
+}
+
+@media (max-width: 768px), (max-height: 550px) {
+  .relic-combat-toast {
+    font-size: 0.68rem;
+    padding: 0.22rem 0.55rem;
+  }
+  .relic-combat-toast.player-toast {
+    left: calc(100% + 6px);
+    top: 4px;
+  }
+}
+
+/* Status Badge: Leech */
+.status-badge.leech {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+
+/* -------------------------------------------------------------------------
+   NEW VISUAL EFFECTS: PHOENIX RESURRECTION, CLEANSE SWEEP, DISPEL STRIP
+   ------------------------------------------------------------------------- */
+
+/* Phoenix Resurrection Effect */
+.phoenix-burst-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140%;
+  height: 140%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 170, 0, 0.9) 0%, rgba(255, 77, 0, 0.6) 45%, rgba(255, 200, 0, 0) 75%);
+  pointer-events: none;
+  z-index: 150;
+  box-shadow: 0 0 50px rgba(255, 140, 0, 0.8), inset 0 0 30px rgba(255, 220, 0, 0.9);
+}
+
+.card.phoenix-revive-glow {
+  box-shadow: 0 0 35px #ffaa00, 0 0 70px rgba(255, 80, 0, 0.8) !important;
+  border-color: #ffd700 !important;
+}
+
+/* Cleanse Sweep Effect */
+.cleanse-sweep-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 140;
+  background: linear-gradient(0deg, rgba(46, 213, 115, 0.5) 0%, rgba(255, 255, 255, 0.85) 50%, rgba(46, 213, 115, 0) 100%);
+  box-shadow: 0 0 25px rgba(46, 213, 115, 0.7);
+}
+
+/* Dispel Strip Effect */
+.dispel-sweep-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 140;
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.7) 0%, rgba(255, 255, 255, 0.7) 50%, rgba(147, 51, 234, 0) 100%);
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.7);
+}

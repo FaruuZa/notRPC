@@ -156,10 +156,12 @@ io.on('connection', (socket) => {
     roomManager.handleReconnectMatch(socket, token, io);
   });
 
-  socket.on('joinQueue', (customUsername) => {
+  socket.on('joinQueue', (data) => {
+    const customUsername = typeof data === 'object' && data !== null ? data.username : data;
+    const roomCode = typeof data === 'object' && data !== null ? data.roomCode : '';
     const name = socket.user ? socket.user.username : (customUsername || 'Guest');
     const userId = socket.user ? socket.user.userId : socket.id;
-    matchmaking.join(socket, name, userId, io, roomManager);
+    matchmaking.join(socket, name, userId, io, roomManager, roomCode);
   });
 
   socket.on('leaveQueue', () => {
