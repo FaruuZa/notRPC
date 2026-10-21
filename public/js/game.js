@@ -624,6 +624,21 @@ const GameManager = {
       });
     }
 
+    const questViewDeckBtn = document.getElementById('quest-view-deck-btn');
+    if (questViewDeckBtn && deckModal) {
+      questViewDeckBtn.addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        if (tabCardsBtn && tabRelicsBtn && tabCardsContent && tabRelicsContent) {
+          tabCardsBtn.classList.add('active');
+          tabRelicsBtn.classList.remove('active');
+          tabCardsContent.style.display = 'block';
+          tabRelicsContent.style.display = 'none';
+        }
+        this.renderDeckModal();
+        deckModal.classList.add('active');
+      });
+    }
+
     if (deckCloseBtn && deckModal) {
       deckCloseBtn.addEventListener('click', () => {
         window.AudioSynth.playClick();
@@ -1103,6 +1118,8 @@ const GameManager = {
 
   onQuestSelectionStart(data) {
     const UI = window.UI;
+    if (data.deck) this.deck = data.deck;
+    if (data.relics) this.myRelics = data.relics;
     
     // Hide prep timers
     const globalTimer = document.getElementById('global-prep-timer');
@@ -1715,6 +1732,15 @@ const GameManager = {
   triggerPackSelectionStart(data) {
     const UI = window.UI;
     UI.packsSelectionGrid.innerHTML = '';
+
+    const subtitle = document.querySelector('#pack-selection-screen .draft-subtitle');
+    if (subtitle) {
+      if (data.isQuestBonus) {
+        subtitle.innerHTML = '<strong>Bonus Quest Reward:</strong> Select <strong>1 Card Pack</strong> (you will receive all 4 cards in the pack)';
+      } else {
+        subtitle.innerHTML = 'Select <strong>1 Card Pack</strong> (you will receive all 4 cards in the pack)';
+      }
+    }
 
     const rerollsVal = document.getElementById('pack-rerolls-val');
     const rerollBtn = document.getElementById('pack-reroll-btn');

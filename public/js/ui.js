@@ -373,22 +373,22 @@ const UI = {
       keywords.push({
         title: 'OUTBREAK',
         class: 'outbreak',
-        desc: 'Doubles all active Poison stacks on target (minimum 1 stack if unpoisoned).'
+        desc: 'Doubles all active Poison stacks on target (amplifier only; unpoisoned target receives 0).'
       });
     }
     if (cardDescription.includes('kw-leech') || cardDescription.includes('LEECH')) {
       keywords.push({
         title: 'LEECH',
         class: 'leech',
-        desc: 'When dealing unblocked HP damage, heals 3 HP per stack and consumes 1 stack.'
+        desc: 'When dealing unblocked HP damage, heals 20% per stack of damage dealt (max 10 HP per hit). Consumes 1 stack per trigger.'
       });
     }
     
-    if (cardDescription.includes('kw-thorns') || cardDescription.includes('THORNS')) {
+    if (cardDescription.includes('kw-thorn') || cardDescription.includes('kw-thorns') || cardDescription.includes('THORN')) {
       keywords.push({
-        title: 'THORNS',
+        title: 'THORN',
         class: 'thorns',
-        desc: 'Reflects true damage back to the attacker whenever taking direct HP damage.'
+        desc: 'When taking clash HP damage, reflects damage equal to current stack back to attacker (bypasses shield). Decays by 1 stack per trigger.'
       });
     }
     if (keywords.length === 0) {
@@ -444,7 +444,14 @@ const UI = {
       keywords.push({
         title: 'LEECH',
         class: 'leech',
-        desc: `Currently active stack: ${statuses.leech}. Heals 3 HP per stack on direct unblocked HP damage, consuming 1 stack per trigger.`
+        desc: `Currently active stack: ${statuses.leech}. Heals ${statuses.leech * 20}% of unblocked HP damage dealt (max 10 HP). Consumes 1 stack per trigger.`
+      });
+    }
+    if (statuses && statuses.thorn > 0) {
+      keywords.push({
+        title: 'THORN',
+        class: 'thorns',
+        desc: `Currently active stack: ${statuses.thorn}. When taking clash HP damage, reflects ${statuses.thorn} damage back to attacker (bypasses shield). Consumes 1 stack per trigger.`
       });
     }
 
@@ -545,6 +552,7 @@ const UI = {
       if (statuses.attackBuff > 0) hudPanel.classList.add('status-active-buff');
       if (statuses.weakness > 0) hudPanel.classList.add('status-active-weak');
       if (statuses.leech > 0) hudPanel.classList.add('status-active-leech');
+      if (statuses.thorn > 0) hudPanel.classList.add('status-active-thorns');
     }
 
     // Burn status
@@ -612,8 +620,22 @@ const UI = {
       this.bindTooltip(
         badge,
         'LEECH',
-        `Heals <strong>${statuses.leech * 3} HP</strong> on direct unblocked HP damage. (Consumes 1 stack per trigger).`,
+        `Heals <strong>${statuses.leech * 20}%</strong> of unblocked HP damage dealt (max 10 HP). (Consumes 1 stack per trigger).`,
         `Stacks: ${statuses.leech}`
+      );
+    }
+
+    // Thorn status
+    if (statuses.thorn > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'status-badge thorns';
+      badge.innerHTML = `<i class="fa-solid fa-shield-cat"></i> ${statuses.thorn}`;
+      container.appendChild(badge);
+      this.bindTooltip(
+        badge,
+        'THORN',
+        `Reflects <strong>${statuses.thorn} damage</strong> back to attacker on clash HP damage. (Consumes 1 stack per trigger).`,
+        `Stacks: ${statuses.thorn}`
       );
     }
   },
@@ -1367,12 +1389,38 @@ const UI = {
         if (data.applyStatus) {
           if (data.applyStatus.opponent) {
             Object.entries(data.applyStatus.opponent).forEach(([stat, val]) => {
-              details.push(`<span style="color: #e74c3c; font-weight: bold;">+${val} Opponent ${stat.toUpperCase()}</span>`);
+              const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
+              if (typeof val === 'boolean') {
+                details.push(`<span style="color: #e74c3c; font-weight: bold;">Opponent ${statName}</span>`);
+              } else if (stat === 'dispel' || stat === 'cleanse') {
+                details.push(`<span style="color: #e74c3c; font-weight: bold;">Opponent ${statName}</span>`);
+              } else {
+                details.push(`<span style="color: #e74c3c; font-weight: bold;">+${val} Opponent ${statName}</span>`);
+              }
             });
           }
           if (data.applyStatus.self) {
             Object.entries(data.applyStatus.self).forEach(([stat, val]) => {
-              details.push(`<span style="color: #f1c40f; font-weight: bold;">+${val} Self ${stat.toUpperCase()}</span>`);
+              const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
+              if (typeof val === 'boolean') {
+                details.push(`<span style="color: #f1c40f; font-weight: bold;">Self ${statName}</span>`);
+              } else if (stat === 'cleanse' || stat === 'dispel') {
+                details.push(`<span style="color: #f1c40f; font-weight: bold;">Self ${statName}</span>`);
+              } else {
+                details.push(`<span style="color: #f1c40f; font-weight: bold;">+${val} Self ${statName}</span>`);
+              }
+            });
+          }
+          if (data.applyStatus.both) {
+            Object.entries(data.applyStatus.both).forEach(([stat, val]) => {
+              const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
+              if (typeof val === 'boolean') {
+                details.push(`<span style="color: #c084fc; font-weight: bold;">Both ${statName}</span>`);
+              } else if (stat === 'cleanse' || stat === 'dispel') {
+                details.push(`<span style="color: #c084fc; font-weight: bold;">Both ${statName}</span>`);
+              } else {
+                details.push(`<span style="color: #c084fc; font-weight: bold;">+${val} Both ${statName}</span>`);
+              }
             });
           }
         }

@@ -236,14 +236,6 @@ const RELIC_POOL = {
     quality: 'EPIC',
     effect: { type: 'spite_thorns', value: 3 }
   },
-  // Backwards-compatibility alias for older saves/references
-  relic_spite_thorns_rare: {
-    id: 'relic_spite_thorns_epic',
-    name: 'Briar Armor',
-    description: 'When you take HP damage (clash or status tick): deal 3 true damage to your opponent per stack.',
-    quality: 'EPIC',
-    effect: { type: 'spite_thorns', value: 3 }
-  },
 
   // Desperation (Scaling damage as HP drops)
   relic_desperation_rare: {
@@ -273,6 +265,18 @@ const RELIC_POOL = {
     unique: true,
     maxStacks: 1,
     effect: { type: 'phoenix_resurrection', value: 30 }
+  },
+
+  // Venomheart Briar
+  relic_venomheart_briar_legendary: {
+    id: 'relic_venomheart_briar_legendary',
+    name: 'Venomheart Briar',
+    quality: 'LEGENDARY',
+    icon: 'fa-heart-circle-bolt',
+    unique: true,
+    maxStacks: 1,
+    description: 'Your Thorns no longer deal instant damage. Instead, attackers are Poisoned equal to the Thorns damage (max 3 stacks per trigger).',
+    effect: { type: 'venomheart_briar' }
   }
 };
 

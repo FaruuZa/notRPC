@@ -774,9 +774,9 @@
                 <li><strong style="color: #ffd700);">BUFF:</strong> Increases card clash damage by +10% per stack. Decreases by 1 stack when attacking.</li>
                 <li><strong style="color: #a0aec0);">WEAKNESS:</strong> Reduces card clash damage dealt by -10% per stack. Decreases by 1 stack when attacking.</li>
                 <li><strong style="color: #00bcd4);">SHIELD:</strong> Blocks incoming clash & burn damage. Decays by 50% at round end (surviving shield carries over).</li>
-                <li><strong style="color: #c084fc);">OUTBREAK:</strong> Instantly doubles all active Poison stacks on target (minimum 1 stack if unpoisoned).</li>
-                <li><strong style="color: #f43f5e);">LEECH:</strong> When dealing direct unblocked HP damage, restores 3 HP per stack and consumes 1 stack.</li>
-                <li><strong style="color: #fbbf24);">THORNS:</strong> Reflects true retaliation damage back to the attacker whenever taking direct HP damage.</li>
+                <li><strong style="color: #c084fc);">OUTBREAK:</strong> Instantly doubles all active Poison stacks on target (amplifier only; unpoisoned target receives 0).</li>
+                <li><strong style="color: #f43f5e);">LEECH:</strong> When dealing direct unblocked HP damage, restores 20% HP per stack of damage dealt (capped at 10 HP per hit) and consumes 1 stack.</li>
+                <li><strong style="color: #fbbf24);">THORN:</strong> When taking direct clash HP damage, reflects damage equal to current stack back to attacker (bypasses shield) and consumes 1 stack.</li>
                 <li><strong style="color: #9b59b6);">CLEANSE:</strong> Instantly purges all active debuffs (Poison, Burn, Weakness) from self.</li>
                 <li><strong style="color: #ff9f43);">DISPEL:</strong> Instantly strips all positive buffs from the opponent.</li>
               </ul>
@@ -818,6 +818,9 @@
       <div id="quest-keyword-info" class="keyword-info-box glass hidden" style="margin-top: 1rem;"></div>
       
       <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 1.5rem;">
+        <button id="quest-view-deck-btn" class="btn btn-secondary">
+          <i class="fa-solid fa-layer-group"></i> LIHAT DECK
+        </button>
         <button id="quest-reroll-btn" class="btn btn-secondary">
           REROLL QUESTS
         </button>

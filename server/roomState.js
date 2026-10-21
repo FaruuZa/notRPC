@@ -1,6 +1,5 @@
 const { MAX_HP } = require('./constants');
 const { generateStarterDeck } = require('./gameLogic');
-const { generateMatchRaritySchedule } = require('./quests');
 const auth = require('./auth');
 
 // Active game rooms map: roomId -> roomState
@@ -43,7 +42,7 @@ function createRoom(roomId, player1, player2, io) {
         selectedCardId: null,
         locked: false,
         points: 0,
-        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 },
+        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0, thorn: 0 },
         relics: {},
         phoenixUsedThisRound: false,
         prepRerollsLeft: 0,
@@ -54,6 +53,7 @@ function createRoom(roomId, player1, player2, io) {
         offeredQuests: [],
         removalTokens: 0,
         pendingBonusDraft: false,
+        pendingBonusPack: false,
         pendingRewardNotification: null
       },
       [player2.socketId]: {
@@ -69,7 +69,7 @@ function createRoom(roomId, player1, player2, io) {
         selectedCardId: null,
         locked: false,
         points: 0,
-        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 },
+        statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0, thorn: 0 },
         relics: {},
         phoenixUsedThisRound: false,
         prepRerollsLeft: 0,
@@ -85,7 +85,6 @@ function createRoom(roomId, player1, player2, io) {
     },
     reconnectTimers: {},
     round: 1,
-    raritySchedule: generateMatchRaritySchedule(10),
     state: 'QUEST_PHASE'
   };
 

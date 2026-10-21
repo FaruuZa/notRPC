@@ -2,6 +2,7 @@ const { nanoid } = require('nanoid');
 const { CLASH_RULES, HAND_SIZE, ELEMENTS } = require('./constants');
 const { CARD_POOL } = require('./cards');
 const { PACK_TYPES } = require('./packs');
+const { getCardProfile } = require('./cardProfiler');
 
 const generalPool = CARD_POOL.filter(c => !c.isDraftExclusive);
 const draftExclusivePool = CARD_POOL.filter(c => c.isDraftExclusive);
@@ -130,79 +131,64 @@ function generatePackCards(packType) {
       pool = generalPool;
       break;
     case PACK_TYPES.BURN_PACK:
-      pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.burn || o.applyStatus.self?.burn));
-      });
+      pool = generalPool.filter(c => getCardProfile(c).oppBurnStacks >= 1);
       break;
     case PACK_TYPES.POISON_PACK:
       pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.poison || o.applyStatus.self?.poison));
+        const p = getCardProfile(c);
+        return p.oppPoisonStacks >= 1 || p.hasOutbreak;
       });
       break;
     case PACK_TYPES.SHIELD_PACK:
       pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.shield > 0);
+        const p = getCardProfile(c);
+        return p.shieldSum >= 8 || (c.outcomes?.SUPERIOR?.shield >= 8);
       });
       break;
     case PACK_TYPES.SUSTAIN_PACK:
       pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.heal > 0 || (o.applyStatus && o.applyStatus.self?.cleanse));
+        const p = getCardProfile(c);
+        return p.healSum >= 6 || p.hasSelfCleanse || p.hasLeech;
       });
       break;
     case PACK_TYPES.AGGRO_PACK:
-      pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.damage >= 14);
-      });
+      pool = generalPool.filter(c => getCardProfile(c).maxDamageMain >= 14);
       break;
     case PACK_TYPES.CONTROL_PACK:
       pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => (o.applyStatus && o.applyStatus.opponent?.weakness) || o.shield > 0);
+        const p = getCardProfile(c);
+        return p.oppWeakStacks >= 1 || p.shieldSum >= 8 || p.hasOppDispel;
       });
       break;
     case PACK_TYPES.STATUS_PACK:
       pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.applyStatus && Object.keys(o.applyStatus).length > 0);
+        const p = getCardProfile(c);
+        return p.oppBurnStacks >= 1 || p.oppPoisonStacks >= 1 || p.oppWeakStacks >= 1 || p.hasOppDispel || p.hasOutbreak;
       });
       break;
     case PACK_TYPES.COUNTER_PACK:
       pool = generalPool.filter(c => {
-        const inf = c.outcomes.INFERIOR;
-        return inf && (inf.damage > 0 || inf.shield > 0 || inf.heal > 0 || (inf.applyStatus && Object.keys(inf.applyStatus).length > 0));
-      });
-      break;
-    case PACK_TYPES.RISK_PACK:
-      pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.selfDamage > 0 || (o.applyStatus && o.applyStatus.self && Object.keys(o.applyStatus.self).length > 0));
-      });
-      break;
-    case PACK_TYPES.GAMBLER_PACK:
-      pool = generalPool.filter(c => {
-        const outcomes = Object.values(c.outcomes);
-        return outcomes.some(o => o.selfDamage > 0) || c.element === ELEMENTS.CHAOS;
+        const p = getCardProfile(c);
+        return p.inferior >= 6 || p.hasThorn;
       });
       break;
     case PACK_TYPES.REVENGE_PACK:
       pool = generalPool.filter(c => {
-        const inf = c.outcomes.INFERIOR;
-        const hasInfBenefit = inf && (inf.damage > 0 || inf.shield > 0 || inf.heal > 0 || (inf.applyStatus && Object.keys(inf.applyStatus).length > 0));
-        const outcomes = Object.values(c.outcomes);
-        const hasSustain = outcomes.some(o => o.heal > 0 || (o.applyStatus && o.applyStatus.self?.cleanse));
-        return hasInfBenefit || hasSustain;
+        const p = getCardProfile(c);
+        return (p.inferior > p.superior && p.inferior >= 6) || (p.hasThorn && (c.outcomes?.INFERIOR?.applyStatus?.self?.thorn || c.outcomes?.INFERIOR?.applyStatus?.self?.thorns));
       });
+      break;
+    case PACK_TYPES.RISK_PACK:
+      pool = generalPool.filter(c => getCardProfile(c).selfCost > 0);
+      break;
+    case PACK_TYPES.GAMBLER_PACK:
+      pool = generalPool.filter(c => getCardProfile(c).selfCost > 0 || c.element === ELEMENTS.CHAOS);
       break;
     case PACK_TYPES.TRAP_PACK:
       pool = generalPool.filter(c => {
-        const inf = c.outcomes.INFERIOR;
-        const neu = c.outcomes.NEUTRAL;
-        return (inf && (inf.damage >= 10 || (inf.applyStatus && inf.applyStatus.opponent?.poison))) ||
+        const inf = c.outcomes?.INFERIOR;
+        const neu = c.outcomes?.NEUTRAL;
+        return (inf && (inf.damage >= 10 || (inf.applyStatus?.opponent?.poison >= 1))) ||
                (neu && (neu.damage >= 4 || neu.shield >= 8));
       });
       break;

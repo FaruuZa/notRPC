@@ -388,7 +388,7 @@ try {
         }
 
         // Process any queued Purifying Amulet or Briar Armor toasts
-        const onDamageRelics = drainRelicTriggers(t => ['Purifying Amulet', 'Briar Armor', 'Leech'].includes(t.relicName));
+        const onDamageRelics = drainRelicTriggers(t => ['Purifying Amulet', 'Briar Armor', 'Leech', 'Thorn', 'Venomheart Briar'].includes(t.relicName));
         for (const trig of onDamageRelics) {
           const isMe = (trig.playerId && trig.playerId === gm.myId);
           if (UI.showRelicCombatToast) {
@@ -631,6 +631,11 @@ try {
           Animations.animateCardActionOverlay(playerCard, 'weak', `WEAK SELF [${selfStat.weakness}]`, resolve);
         }));
       }
+      if (selfStat.outbreak) {
+        phase3Promises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(playerCard, 'outbreak', 'POISON SELF x2!', resolve);
+        }));
+      }
     }
 
     // Player 2 Self Buffs
@@ -660,6 +665,11 @@ try {
       if (selfStat2.weakness > 0) {
         phase3Promises.push(new Promise(resolve => {
           Animations.animateCardActionOverlay(opponentCard, 'weak', `WEAK SELF [${selfStat2.weakness}]`, resolve);
+        }));
+      }
+      if (selfStat2.outbreak) {
+        phase3Promises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(opponentCard, 'outbreak', 'POISON SELF x2!', resolve);
         }));
       }
     }
@@ -711,6 +721,32 @@ try {
       if (opp2.weakness > 0) {
         phase3Promises.push(new Promise(resolve => {
           Animations.animateCardActionOverlay(playerCard, 'weak', `WEAK [${opp2.weakness}]`, resolve);
+        }));
+      }
+    }
+
+    // 3.4 Statuses Inflicted on Both
+    if (p1Effect?.applyStatus?.both?.outbreak) {
+      if (playerCard) {
+        phase3Promises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(playerCard, 'outbreak', 'POISON x2!', resolve);
+        }));
+      }
+      if (opponentCard) {
+        phase3Promises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(opponentCard, 'outbreak', 'POISON x2!', resolve);
+        }));
+      }
+    }
+    if (p2Effect?.applyStatus?.both?.outbreak) {
+      if (playerCard) {
+        phase3Promises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(playerCard, 'outbreak', 'POISON x2!', resolve);
+        }));
+      }
+      if (opponentCard) {
+        phase3Promises.push(new Promise(resolve => {
+          Animations.animateCardActionOverlay(opponentCard, 'outbreak', 'POISON x2!', resolve);
         }));
       }
     }

@@ -1,6 +1,6 @@
 const { MAX_HP } = require('./constants');
 const { generateStarterDeck } = require('./gameLogic');
-const { generateMatchRaritySchedule, generatePlayerQuests } = require('./quests');
+const { generatePlayerQuests } = require('./quests');
 const { RELIC_POOL } = require('./relics');
 const auth = require('./auth');
 const { rooms, playerToRoom, userToRoom, cleanupRoom, recordMatchToDb } = require('./roomState');
@@ -147,7 +147,7 @@ function handleReconnectMatch(socket, token, io) {
 
   // Ensure offeredQuests is populated if reconnecting during QUEST_PHASE
   if (room.state === 'QUEST_PHASE' && (!playerObj.offeredQuests || playerObj.offeredQuests.length === 0)) {
-    playerObj.offeredQuests = generatePlayerQuests(playerObj.deck);
+    playerObj.offeredQuests = generatePlayerQuests(playerObj.deck, playerObj.relics);
   }
 
   const payload = {
@@ -249,7 +249,7 @@ function handleRequestRematch(socket, io) {
     p1.maxHp = MAX_HP;
     p1.hp = MAX_HP;
     p1.shield = 0;
-    p1.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 };
+    p1.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0, thorn: 0 };
     p1.points = 0;
     p1.deck = deck1;
     p1.hand = drawHandFromDeck(deck1, 4);
@@ -265,12 +265,13 @@ function handleRequestRematch(socket, io) {
     p1.offeredQuests = [];
     p1.removalTokens = 0;
     p1.pendingBonusDraft = false;
+    p1.pendingBonusPack = false;
     p1.pendingRewardNotification = null;
 
     p2.maxHp = MAX_HP;
     p2.hp = MAX_HP;
     p2.shield = 0;
-    p2.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0 };
+    p2.statuses = { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0, thorn: 0 };
     p2.points = 0;
     p2.deck = deck2;
     p2.hand = drawHandFromDeck(deck2, 4);
@@ -286,10 +287,10 @@ function handleRequestRematch(socket, io) {
     p2.offeredQuests = [];
     p2.removalTokens = 0;
     p2.pendingBonusDraft = false;
+    p2.pendingBonusPack = false;
     p2.pendingRewardNotification = null;
 
     room.round = 1;
-    room.raritySchedule = generateMatchRaritySchedule(10);
     room.state = 'QUEST_PHASE';
     room.draft = null;
     room.rematchRequests = {};

@@ -1,4 +1,5 @@
 const { RELIC_POOL } = require('./relics');
+const { getCardProfile } = require('./cardProfiler');
 
 const QUEST_TEMPLATES = [
   // Outcome Quests
@@ -42,82 +43,126 @@ const QUEST_TEMPLATES = [
 
   // Weak Quests
   { id: 'apply_weak_3', text: 'Apply Weakness 3 times', tags: ['weak'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'apply_weak_5', text: 'Apply Weakness 6 times', tags: ['weak'], difficulty: 'HARD', target: 6 }
+  { id: 'apply_weak_6', text: 'Apply Weakness 6 times', tags: ['weak'], difficulty: 'HARD', target: 6 }
 ];
 
 /**
- * Checks if a quest is supported by the player's current deck
+ * Estimasi progres maksimum realistis quest dalam satu ronde berdasarkan deck dan relic.
+ * Asumsi: tiap kartu sumber dimainkan ±2× per ronde.
+ * Diskon outcome: stack status yang hanya muncul di SUPERIOR dihitung ×0.75 (disediakan profiler).
  */
-function isQuestSupported(quest, deck) {
-  for (const tag of quest.tags) {
-    if (['outcome', 'damage', 'row', 'superior', 'neutral', 'inferior'].includes(tag)) {
-      continue;
-    }
+function questCapacity(quest, deck, relics = {}) {
+  // Outcome, damage, dan row quest tidak dinilai kapasitasnya
+  if (quest.tags.some(t => ['outcome', 'damage', 'row', 'superior', 'neutral', 'inferior'].includes(t))) {
+    return null;
+  }
 
-    // Element checks
-    if (['fire', 'water', 'nature', 'chaos', 'neutral'].includes(tag)) {
-      const hasElement = deck.some(card => card.element === tag.toUpperCase());
-      if (!hasElement) return false;
-      continue;
-    }
+  const profiles = (deck || []).map(c => getCardProfile(c)).filter(Boolean);
 
-    // Keyword checks (e.g. burn, poison, shield, heal, buff, weak)
-    if (tag === 'burn') {
-      const hasBurn = deck.some(card => {
-        const outcomes = Object.values(card.outcomes);
-        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.burn || o.applyStatus.self?.burn));
-      });
-      if (!hasBurn) return false;
-      continue;
-    }
+  if (quest.tags.includes('burn')) {
+    const hasEmberSpark = (relics?.ember_spark || 0) > 0;
+    const emberMultiplier = relics?.ember_spark || 1;
+    const fireCardsCount = (deck || []).filter(c => c.element === 'FIRE').length;
+    // Ember Spark: Fire card on superior applies +1 burn (superior discount x0.75)
+    const emberBonus = hasEmberSpark ? fireCardsCount * emberMultiplier * 0.75 : 0;
+    const oppBurnStacks = profiles.reduce((sum, p) => sum + (p.effectiveOppBurnStacks || 0), 0) + emberBonus;
 
-    if (tag === 'poison') {
-      const hasPoison = deck.some(card => {
-        const outcomes = Object.values(card.outcomes);
-        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.poison || o.applyStatus.self?.poison));
-      });
-      if (!hasPoison) return false;
-      continue;
+    if (quest.id === 'deal_15_burn') {
+      const burningCoreStacks = relics?.burning_core || 0;
+      const dmgPerBurn = 3 * (1 + burningCoreStacks);
+      return dmgPerBurn * 2 * oppBurnStacks;
     }
+    return 2 * oppBurnStacks;
+  }
 
-    if (tag === 'shield') {
-      const hasShield = deck.some(card => {
-        const outcomes = Object.values(card.outcomes);
-        return outcomes.some(o => o.shield > 0);
-      });
-      if (!hasShield) return false;
-      continue;
+  if (quest.tags.includes('poison')) {
+    const hasVenomousBrambles = (relics?.venomous_brambles || 0) > 0;
+    const brambleMultiplier = relics?.venomous_brambles || 1;
+    const natureCardsCount = (deck || []).filter(c => c.element === 'NATURE').length;
+    // Venomous Brambles: Nature card on superior applies +1 poison (superior discount x0.75)
+    const brambleBonus = hasVenomousBrambles ? natureCardsCount * brambleMultiplier * 0.75 : 0;
+    const oppPoisonStacks = profiles.reduce((sum, p) => sum + (p.effectiveOppPoisonStacks || 0), 0) + brambleBonus;
+    return 2 * oppPoisonStacks;
+  }
+
+  if (quest.tags.includes('weak')) {
+    const oppWeakStacks = profiles.reduce((sum, p) => sum + (p.effectiveOppWeakStacks || 0), 0);
+    return 2 * oppWeakStacks;
+  }
+
+  if (quest.tags.includes('buff')) {
+    const selfBuffStacks = profiles.reduce((sum, p) => sum + (p.effectiveSelfBuffStacks || 0), 0);
+    if (quest.id === 'reach_buff_5') {
+      return selfBuffStacks;
     }
+    return 2 * selfBuffStacks;
+  }
 
-    if (tag === 'heal') {
-      const hasHeal = deck.some(card => {
-        const outcomes = Object.values(card.outcomes);
-        return outcomes.some(o => o.heal > 0);
-      });
-      if (!hasHeal) return false;
-      continue;
-    }
+  if (quest.tags.includes('shield')) {
+    const shieldSum = profiles.reduce((sum, p) => sum + (p.shieldSum || 0), 0);
+    return 2 * shieldSum;
+  }
 
-    if (tag === 'buff') {
-      const hasBuff = deck.some(card => {
-        const outcomes = Object.values(card.outcomes);
-        return outcomes.some(o => o.applyStatus && (o.applyStatus.self?.attackBuff || o.applyStatus.opponent?.attackBuff));
-      });
-      if (!hasBuff) return false;
-      continue;
-    }
+  if (quest.tags.includes('heal')) {
+    const healSum = profiles.reduce((sum, p) => sum + (p.healSum || 0), 0);
+    return 2 * healSum;
+  }
 
-    if (tag === 'weak') {
-      const hasWeak = deck.some(card => {
-        const outcomes = Object.values(card.outcomes);
-        return outcomes.some(o => o.applyStatus && (o.applyStatus.opponent?.weakness || o.applyStatus.self?.weakness));
-      });
-      if (!hasWeak) return false;
-      continue;
+  // Element Quests
+  for (const elem of ['fire', 'water', 'nature', 'chaos', 'neutral']) {
+    if (quest.tags.includes(elem)) {
+      const count = (deck || []).filter(c => c.element === elem.toUpperCase()).length;
+      return count * 2;
     }
   }
 
-  return true;
+  return 0;
+}
+
+const DIFFICULTY_RANK = { EASY: 1, MEDIUM: 2, HARD: 3 };
+
+/**
+ * Menghitung kelayakan (feasibility) dan difficulty efektif quest.
+ * Pagar promotion-only: hanya boleh naik, tidak pernah turun dari label template.
+ */
+function getEffectiveDifficulty(quest, deck, relics = {}) {
+  // Outcome, damage, in-a-row tetap memakai label template
+  if (quest.tags.some(t => ['outcome', 'damage', 'row', 'superior', 'neutral', 'inferior'].includes(t))) {
+    return { feasible: true, effectiveDifficulty: quest.difficulty, ratio: null };
+  }
+
+  const capacity = questCapacity(quest, deck, relics);
+  if (quest.target <= 0) {
+    return { feasible: true, effectiveDifficulty: quest.difficulty, ratio: 999 };
+  }
+
+  const ratio = capacity / quest.target;
+  if (ratio < 1.15) {
+    return { feasible: false, effectiveDifficulty: null, ratio };
+  }
+
+  let rawDifficulty;
+  if (ratio < 1.6) {
+    rawDifficulty = 'HARD';
+  } else if (ratio < 2.5) {
+    rawDifficulty = 'MEDIUM';
+  } else {
+    rawDifficulty = 'EASY';
+  }
+
+  const templateRank = DIFFICULTY_RANK[quest.difficulty] || 1;
+  const rawRank = DIFFICULTY_RANK[rawDifficulty] || 1;
+  const effectiveRank = Math.max(templateRank, rawRank);
+  const effectiveDifficulty = Object.keys(DIFFICULTY_RANK).find(k => DIFFICULTY_RANK[k] === effectiveRank) || quest.difficulty;
+
+  return { feasible: true, effectiveDifficulty, ratio };
+}
+
+/**
+ * Kompatibilitas mundur: memeriksa apakah quest feasible untuk deck pemain.
+ */
+function isQuestSupported(quest, deck, relics = {}) {
+  return getEffectiveDifficulty(quest, deck, relics).feasible;
 }
 
 /**
@@ -131,41 +176,12 @@ function getRemovalTokenReward(difficulty) {
 }
 
 /**
- * Predefined TFT-style augment rarity curves for rounds 1, 2, 3
- * e.g. [Rare, Rare, Epic], [Common, Rare, Epic], [Rare, Epic, Epic], etc.
- */
-const MATCH_RARITY_PATTERNS = [
-  ['MEDIUM', 'MEDIUM', 'HARD'],
-  ['EASY', 'MEDIUM', 'HARD'],
-  ['MEDIUM', 'HARD', 'HARD'],
-  ['EASY', 'MEDIUM', 'MEDIUM'],
-  ['HARD', 'MEDIUM', 'HARD'],
-  ['MEDIUM', 'HARD', 'MEDIUM']
-];
-
-/**
- * Generates a synchronized match rarity schedule across rounds for both players
- */
-function generateMatchRaritySchedule(maxRounds = 10) {
-  const pattern = MATCH_RARITY_PATTERNS[Math.floor(Math.random() * MATCH_RARITY_PATTERNS.length)];
-  const schedule = {};
-  for (let r = 1; r <= maxRounds; r++) {
-    if (r <= pattern.length) {
-      schedule[r] = pattern[r - 1];
-    } else {
-      schedule[r] = 'HARD'; // Late-game rounds default to HARD/Epic
-    }
-  }
-  return schedule;
-}
-
-/**
- * Generates a main reward matched to a quest's difficulty (Relic or Bonus Draft)
- * Card removal is now a guaranteed token bonus rather than a main reward.
+ * Generates a main reward matched to a quest's difficulty.
+ * HARD non-relic reward adalah bonus pack (alur draft pack dipakai ulang).
  */
 function generateReward(difficulty) {
   const roll = Math.random();
-  
+
   if (difficulty === 'EASY') {
     // 80% COMMON Relic, 20% Bonus Draft Pick
     if (roll < 0.80) {
@@ -182,75 +198,68 @@ function generateReward(difficulty) {
       return { type: 'bonus_draft', text: 'Bonus Draft Pick' };
     }
   } else { // HARD
-    // 70% EPIC/LEGENDARY Relic, 30% Bonus Draft Pick
+    // 70% EPIC/LEGENDARY Relic, 30% Bonus Pack
     if (roll < 0.70) {
       const q = Math.random() < 0.80 ? 'EPIC' : 'LEGENDARY';
       return { type: 'relic', quality: q, text: `${q} Relic` };
     } else {
-      return { type: 'bonus_draft', text: 'Bonus Draft Pick' };
+      return { type: 'bonus_pack', text: 'Bonus Pack (Choose 1 of 3)' };
     }
   }
 }
 
 /**
- * Generates 3 unique deck-aware quests for a player according to target rarities.
- * @param {Array} deck Player's deck list of card templates
- * @param {Array<string>} [targetRarities] Optional target difficulties for each of the 3 slots, e.g. ['MEDIUM', 'MEDIUM', 'HARD']
- * @returns {Array} List of 3 quest objects
+ * Generates 3 deck-aware quests for a player.
+ * Slot tetap: selalu tepat 1 EASY, 1 MEDIUM, 1 HARD (difficulty efektif).
  */
-function generatePlayerQuests(deck, targetRarities = null) {
-  const supported = QUEST_TEMPLATES.filter(q => isQuestSupported(q, deck));
-  const selectedTemplates = [];
-
-  if (targetRarities && Array.isArray(targetRarities) && targetRarities.length === 3) {
-    targetRarities.forEach(targetDiff => {
-      // Find a supported template matching target difficulty not already chosen
-      const candidates = supported.filter(q => q.difficulty === targetDiff && !selectedTemplates.some(s => s.id === q.id));
-      if (candidates.length > 0) {
-        const picked = candidates[Math.floor(Math.random() * candidates.length)];
-        selectedTemplates.push(picked);
-      } else {
-        // Fallback to any supported template not yet chosen
-        const anySupported = supported.filter(q => !selectedTemplates.some(s => s.id === q.id));
-        if (anySupported.length > 0) {
-          const picked = anySupported[Math.floor(Math.random() * anySupported.length)];
-          selectedTemplates.push(picked);
-        }
-      }
-    });
+function generatePlayerQuests(deck, relics = {}) {
+  const evaluated = [];
+  for (const q of QUEST_TEMPLATES) {
+    const res = getEffectiveDifficulty(q, deck, relics);
+    if (res.feasible) {
+      evaluated.push({
+        template: q,
+        effectiveDifficulty: res.effectiveDifficulty
+      });
+    }
   }
 
-  // If fewer than 3 chosen, fill with any supported template
-  if (selectedTemplates.length < 3) {
-    const shuffled = [...supported].sort(() => Math.random() - 0.5);
-    for (const q of shuffled) {
-      if (!selectedTemplates.some(s => s.id === q.id)) {
-        selectedTemplates.push(q);
-        if (selectedTemplates.length === 3) break;
+  const slotTargets = ['EASY', 'MEDIUM', 'HARD'];
+  const selected = [];
+
+  for (const targetDiff of slotTargets) {
+    // Candidates matching exact target difficulty not yet picked
+    const candidates = evaluated.filter(e => e.effectiveDifficulty === targetDiff && !selected.some(s => s.template.id === e.template.id));
+    if (candidates.length > 0) {
+      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      selected.push(picked);
+    } else {
+      // Fallback: ambil template feasible terdekat difficulty-nya, JANGAN pernah yang infeasible
+      const targetRank = DIFFICULTY_RANK[targetDiff];
+      const remaining = evaluated.filter(e => !selected.some(s => s.template.id === e.template.id));
+      if (remaining.length > 0) {
+        remaining.sort((a, b) => {
+          const distA = Math.abs(DIFFICULTY_RANK[a.effectiveDifficulty] - targetRank);
+          const distB = Math.abs(DIFFICULTY_RANK[b.effectiveDifficulty] - targetRank);
+          return distA - distB;
+        });
+        const minDistance = Math.abs(DIFFICULTY_RANK[remaining[0].effectiveDifficulty] - targetRank);
+        const closest = remaining.filter(e => Math.abs(DIFFICULTY_RANK[e.effectiveDifficulty] - targetRank) === minDistance);
+        const picked = closest[Math.floor(Math.random() * closest.length)];
+        selected.push(picked);
       }
     }
   }
 
-  // Backup fill if deck is very small
-  while (selectedTemplates.length < 3) {
-    const backup = QUEST_TEMPLATES.find(q => 
-      !selectedTemplates.some(s => s.id === q.id) && 
-      isQuestSupported(q, deck)
-    );
-    if (!backup) break;
-    selectedTemplates.push(backup);
-  }
-
-  // Map to quest instances with rewards and guaranteed removal tokens
-  return selectedTemplates.map(t => {
-    const reward = generateReward(t.difficulty);
-    const tokens = getRemovalTokenReward(t.difficulty);
+  return selected.map(({ template, effectiveDifficulty }) => {
+    const reward = generateReward(effectiveDifficulty);
+    const tokens = getRemovalTokenReward(effectiveDifficulty);
     return {
-      id: t.id,
-      text: t.text,
-      tags: t.tags,
-      difficulty: t.difficulty,
-      target: t.target,
+      id: template.id,
+      text: template.text,
+      tags: template.tags,
+      difficulty: effectiveDifficulty,
+      target: template.target,
       reward: reward,
       removalTokens: tokens
     };
@@ -258,7 +267,8 @@ function generatePlayerQuests(deck, targetRarities = null) {
 }
 
 /**
- * Updates a player's quest progress after a round clash
+ * Updates a player's quest progress after a round clash.
+ * (Definisi tunggal yang bersih tanpa duplikasi).
  */
 function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg) {
   if (!player.activeQuest) return;
@@ -339,95 +349,7 @@ function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain,
       return;
     case 'apply_weak_3':
     case 'apply_weak_5':
-      progressDelta = appliedWeakToOpponent;
-      break;
-  }
-
-  player.questProgress = Math.min(q.target, player.questProgress + progressDelta);
-}
-
-/**
- * Tracks and updates quest progress for a player based on clash parameters and status updates
- */
-function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg) {
-  if (!player.activeQuest) return;
-
-  const q = player.activeQuest;
-  if (player.questProgress >= q.target) return;
-
-  let progressDelta = 0;
-
-  switch (q.id) {
-    case 'superior_3':
-    case 'superior_4':
-      if (outcome === 'SUPERIOR') progressDelta = 1;
-      break;
-    case 'neutral_4':
-      if (outcome === 'NEUTRAL') progressDelta = 1;
-      break;
-    case 'inferior_3':
-      if (outcome === 'INFERIOR') progressDelta = 1;
-      break;
-    case 'superior_2_row':
-      if (outcome === 'SUPERIOR') {
-        progressDelta = 1;
-      } else {
-        player.questProgress = 0;
-      }
-      break;
-    case 'neutral_3_row':
-      if (outcome === 'NEUTRAL') {
-        progressDelta = 1;
-      } else {
-        player.questProgress = 0;
-      }
-      break;
-    case 'deal_30':
-    case 'deal_50':
-      progressDelta = damageDealt;
-      break;
-    case 'apply_burn_3':
-    case 'apply_burn_5':
-      progressDelta = appliedBurnToOpponent;
-      break;
-    case 'deal_15_burn':
-      progressDelta = opponentBurnTickDmg;
-      break;
-    case 'apply_poison_3':
-    case 'apply_poison_5':
-      progressDelta = appliedPoisonToOpponent;
-      break;
-    case 'gain_20_shield':
-    case 'gain_40_shield':
-      progressDelta = shieldGain;
-      break;
-    case 'heal_10':
-    case 'heal_20':
-      progressDelta = healGain;
-      break;
-    case 'play_3_fire':
-      if (cardPlayed.element === 'FIRE') progressDelta = 1;
-      break;
-    case 'play_3_water':
-      if (cardPlayed.element === 'WATER') progressDelta = 1;
-      break;
-    case 'play_3_nature':
-      if (cardPlayed.element === 'NATURE') progressDelta = 1;
-      break;
-    case 'play_2_chaos':
-      if (cardPlayed.element === 'CHAOS') progressDelta = 1;
-      break;
-    case 'play_2_neutral':
-      if (cardPlayed.element === 'NEUTRAL') progressDelta = 1;
-      break;
-    case 'gain_buff_5':
-      progressDelta = appliedBuffToSelf;
-      break;
-    case 'reach_buff_5':
-      player.questProgress = player.statuses.attackBuff || 0;
-      return;
-    case 'apply_weak_3':
-    case 'apply_weak_5':
+    case 'apply_weak_6':
       progressDelta = appliedWeakToOpponent;
       break;
   }
@@ -437,8 +359,11 @@ function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain,
 
 module.exports = {
   QUEST_TEMPLATES,
+  questCapacity,
+  getEffectiveDifficulty,
+  isQuestSupported,
   generatePlayerQuests,
-  generateMatchRaritySchedule,
   getRemovalTokenReward,
+  generateReward,
   updateQuestProgress
 };

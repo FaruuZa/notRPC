@@ -278,30 +278,65 @@ function resolveRound(roomId, io) {
   p1.hp = Math.max(0, p1.hp - result.hpDamageA);
   p2.hp = Math.max(0, p2.hp - result.hpDamageB);
 
-  // Purifying Amulet & Briar Armor (Clash HP Damage)
+  // Purifying Amulet, Briar Armor & Thorn Keyword (Clash HP Damage)
   const p1Briar = (p1.relics.relic_spite_thorns_epic || p1.relics.relic_spite_thorns_rare || 0);
   const p2Briar = (p2.relics.relic_spite_thorns_epic || p2.relics.relic_spite_thorns_rare || 0);
+  const p1HasVenomheart = (p1.relics.relic_venomheart_briar_legendary || 0) > 0;
+  const p2HasVenomheart = (p2.relics.relic_venomheart_briar_legendary || 0) > 0;
 
   let p1ThornsDmg = 0;
   let p2ThornsDmg = 0;
+  let p1VenomheartPoison = 0;
+  let p2VenomheartPoison = 0;
 
   if (result.hpDamageA > 0) {
     if ((p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
       p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
       io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
     }
-    if (p1Briar > 0) {
-      const thorns = 3 * p1Briar;
-      p2.hp = Math.max(0, p2.hp - thorns);
-      p2ThornsDmg += thorns;
-      io.to(roomId).emit('relicTriggered', {
-        playerId: p1.id,
-        targetPlayerId: p2.id,
-        relicName: 'Briar Armor',
-        relicType: 'thorns',
-        damage: thorns,
-        message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!`
-      });
+    const briarDmg = p1Briar > 0 ? (3 * p1Briar) : 0;
+    let thornVal = 0;
+    if ((p1.statuses.thorn || 0) > 0) {
+      thornVal = p1.statuses.thorn;
+      p1.statuses.thorn = Math.max(0, p1.statuses.thorn - 1);
+    }
+    const totalThorns = briarDmg + thornVal;
+    if (totalThorns > 0) {
+      if (p1HasVenomheart) {
+        const poisonGain = Math.min(3, totalThorns);
+        p2VenomheartPoison += poisonGain;
+        io.to(roomId).emit('relicTriggered', {
+          playerId: p1.id,
+          targetPlayerId: p2.id,
+          relicName: 'Venomheart Briar',
+          relicType: 'poison',
+          poison: poisonGain,
+          message: `${p1.username}'s Venomheart Briar converted Thorns into ${poisonGain} Poison on ${p2.username}!`
+        });
+      } else {
+        p2.hp = Math.max(0, p2.hp - totalThorns);
+        p2ThornsDmg += totalThorns;
+        if (briarDmg > 0) {
+          io.to(roomId).emit('relicTriggered', {
+            playerId: p1.id,
+            targetPlayerId: p2.id,
+            relicName: 'Briar Armor',
+            relicType: 'thorns',
+            damage: briarDmg,
+            message: `${p1.username}'s Briar Armor dealt ${briarDmg} thorns damage to ${p2.username}!`
+          });
+        }
+        if (thornVal > 0) {
+          io.to(roomId).emit('relicTriggered', {
+            playerId: p1.id,
+            targetPlayerId: p2.id,
+            relicName: 'Thorn',
+            relicType: 'thorns',
+            damage: thornVal,
+            message: `${p1.username}'s Thorn reflected ${thornVal} damage to ${p2.username}!`
+          });
+        }
+      }
     }
   }
   if (result.hpDamageB > 0) {
@@ -309,26 +344,58 @@ function resolveRound(roomId, io) {
       p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
       io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
     }
-    if (p2Briar > 0) {
-      const thorns = 3 * p2Briar;
-      p1.hp = Math.max(0, p1.hp - thorns);
-      p1ThornsDmg += thorns;
-      io.to(roomId).emit('relicTriggered', {
-        playerId: p2.id,
-        targetPlayerId: p1.id,
-        relicName: 'Briar Armor',
-        relicType: 'thorns',
-        damage: thorns,
-        message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!`
-      });
+    const briarDmg = p2Briar > 0 ? (3 * p2Briar) : 0;
+    let thornVal = 0;
+    if ((p2.statuses.thorn || 0) > 0) {
+      thornVal = p2.statuses.thorn;
+      p2.statuses.thorn = Math.max(0, p2.statuses.thorn - 1);
+    }
+    const totalThorns = briarDmg + thornVal;
+    if (totalThorns > 0) {
+      if (p2HasVenomheart) {
+        const poisonGain = Math.min(3, totalThorns);
+        p1VenomheartPoison += poisonGain;
+        io.to(roomId).emit('relicTriggered', {
+          playerId: p2.id,
+          targetPlayerId: p1.id,
+          relicName: 'Venomheart Briar',
+          relicType: 'poison',
+          poison: poisonGain,
+          message: `${p2.username}'s Venomheart Briar converted Thorns into ${poisonGain} Poison on ${p1.username}!`
+        });
+      } else {
+        p1.hp = Math.max(0, p1.hp - totalThorns);
+        p1ThornsDmg += totalThorns;
+        if (briarDmg > 0) {
+          io.to(roomId).emit('relicTriggered', {
+            playerId: p2.id,
+            targetPlayerId: p1.id,
+            relicName: 'Briar Armor',
+            relicType: 'thorns',
+            damage: briarDmg,
+            message: `${p2.username}'s Briar Armor dealt ${briarDmg} thorns damage to ${p1.username}!`
+          });
+        }
+        if (thornVal > 0) {
+          io.to(roomId).emit('relicTriggered', {
+            playerId: p2.id,
+            targetPlayerId: p1.id,
+            relicName: 'Thorn',
+            relicType: 'thorns',
+            damage: thornVal,
+            message: `${p2.username}'s Thorn reflected ${thornVal} damage to ${p1.username}!`
+          });
+        }
+      }
     }
   }
 
-  // Leech keyword: Heals 3 HP per stack on direct unblocked HP damage, consumes 1 stack
+  // Leech keyword: Heals 20% x stack of direct unblocked HP damage, capped at 10 HP per trigger, consumes 1 stack
   let p1LeechHeal = 0;
   let p2LeechHeal = 0;
   if (result.hpDamageB > 0 && (p1.statuses.leech || 0) > 0) {
-    const leechHeal = (p1.statuses.leech || 0) * 3;
+    const leechRatio = (p1.statuses.leech || 0) * 0.20;
+    const leechHeal = Math.min(10, Math.round(result.hpDamageB * leechRatio));
     const actualHeal = Math.min(leechHeal, p1.maxHp - p1.hp);
     p1.hp = Math.min(p1.maxHp, p1.hp + actualHeal);
     p1.statuses.leech = Math.max(0, p1.statuses.leech - 1);
@@ -342,7 +409,8 @@ function resolveRound(roomId, io) {
     });
   }
   if (result.hpDamageA > 0 && (p2.statuses.leech || 0) > 0) {
-    const leechHeal = (p2.statuses.leech || 0) * 3;
+    const leechRatio = (p2.statuses.leech || 0) * 0.20;
+    const leechHeal = Math.min(10, Math.round(result.hpDamageA * leechRatio));
     const actualHeal = Math.min(leechHeal, p2.maxHp - p2.hp);
     p2.hp = Math.min(p2.maxHp, p2.hp + actualHeal);
     p2.statuses.leech = Math.max(0, p2.statuses.leech - 1);
@@ -372,19 +440,24 @@ function resolveRound(roomId, io) {
     if (statusObj.dispel && statusObj.dispel > 0) {
       player.statuses.attackBuff = 0;
       player.statuses.leech = 0;
+      player.statuses.thorn = 0;
       console.log(`[RoomManager] Player ${player.username} was dispelled.`);
     }
 
-    // Outbreak: doubles current poison stacks
-    if (statusObj.outbreak && statusObj.outbreak > 0) {
-      player.statuses.poison = (player.statuses.poison > 0) ? player.statuses.poison * 2 : 1;
+    // Outbreak: doubles current poison stacks (amplifier only: 0 remains 0)
+    if (statusObj.outbreak) {
+      player.statuses.poison = (player.statuses.poison || 0) * 2;
       console.log(`[RoomManager] Player ${player.username} Outbreak! Poison doubled to ${player.statuses.poison}`);
     }
 
     // Now process other statuses (capping removed)
     Object.keys(statusObj).forEach(stat => {
       if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
-      player.statuses[stat] = (player.statuses[stat] || 0) + statusObj[stat];
+      if (stat === 'thorns') {
+        player.statuses.thorn = (player.statuses.thorn || 0) + statusObj[stat];
+      } else {
+        player.statuses[stat] = (player.statuses[stat] || 0) + statusObj[stat];
+      }
     });
   };
 
@@ -408,11 +481,21 @@ function resolveRound(roomId, io) {
     if (effect1.applyStatus.opponent && effect1.applyStatus.opponent.dispel > 0) {
       p2.statuses.attackBuff = 0;
       p2.statuses.leech = 0;
+      p2.statuses.thorn = 0;
       console.log(`[RoomManager] Player ${p2.username} was dispelled (pre-tick).`);
     }
     if (effect1.applyStatus.self && effect1.applyStatus.self.dispel > 0) {
       p1.statuses.attackBuff = 0;
       p1.statuses.leech = 0;
+      p1.statuses.thorn = 0;
+    }
+    if (effect1.applyStatus.both && effect1.applyStatus.both.cleanse > 0) {
+      p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
+      p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
+    }
+    if (effect1.applyStatus.both && effect1.applyStatus.both.dispel > 0) {
+      p1.statuses.attackBuff = 0; p1.statuses.leech = 0; p1.statuses.thorn = 0;
+      p2.statuses.attackBuff = 0; p2.statuses.leech = 0; p2.statuses.thorn = 0;
     }
   }
 
@@ -431,11 +514,21 @@ function resolveRound(roomId, io) {
     if (effect2.applyStatus.opponent && effect2.applyStatus.opponent.dispel > 0) {
       p1.statuses.attackBuff = 0;
       p1.statuses.leech = 0;
+      p1.statuses.thorn = 0;
       console.log(`[RoomManager] Player ${p1.username} was dispelled (pre-tick).`);
     }
     if (effect2.applyStatus.self && effect2.applyStatus.self.dispel > 0) {
       p2.statuses.attackBuff = 0;
       p2.statuses.leech = 0;
+      p2.statuses.thorn = 0;
+    }
+    if (effect2.applyStatus.both && effect2.applyStatus.both.cleanse > 0) {
+      p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
+      p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
+    }
+    if (effect2.applyStatus.both && effect2.applyStatus.both.dispel > 0) {
+      p1.statuses.attackBuff = 0; p1.statuses.leech = 0; p1.statuses.thorn = 0;
+      p2.statuses.attackBuff = 0; p2.statuses.leech = 0; p2.statuses.thorn = 0;
     }
   }
 
@@ -500,31 +593,65 @@ function resolveRound(roomId, io) {
   const p1StatusHpDmg = p1BurnHpDmg + p1PoisonTick;
   if (p1StatusHpDmg > 0 && p1Briar > 0) {
     const thorns = 3 * p1Briar;
-    p2.hp = Math.max(0, p2.hp - thorns);
-    p2ThornsDmg += thorns;
-    io.to(roomId).emit('relicTriggered', {
-      playerId: p1.id,
-      targetPlayerId: p2.id,
-      relicName: 'Briar Armor',
-      relicType: 'thorns',
-      damage: thorns,
-      message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!`
-    });
+    if (p1HasVenomheart) {
+      const poisonGain = Math.min(3, thorns);
+      p2.statuses.poison = (p2.statuses.poison || 0) + poisonGain;
+      io.to(roomId).emit('relicTriggered', {
+        playerId: p1.id,
+        targetPlayerId: p2.id,
+        relicName: 'Venomheart Briar',
+        relicType: 'poison',
+        poison: poisonGain,
+        message: `${p1.username}'s Venomheart Briar converted Briar Armor into ${poisonGain} Poison on ${p2.username}!`
+      });
+    } else {
+      p2.hp = Math.max(0, p2.hp - thorns);
+      p2ThornsDmg += thorns;
+      io.to(roomId).emit('relicTriggered', {
+        playerId: p1.id,
+        targetPlayerId: p2.id,
+        relicName: 'Briar Armor',
+        relicType: 'thorns',
+        damage: thorns,
+        message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!`
+      });
+    }
   }
 
   const p2StatusHpDmg = p2BurnHpDmg + p2PoisonTick;
   if (p2StatusHpDmg > 0 && p2Briar > 0) {
     const thorns = 3 * p2Briar;
-    p1.hp = Math.max(0, p1.hp - thorns);
-    p1ThornsDmg += thorns;
-    io.to(roomId).emit('relicTriggered', {
-      playerId: p2.id,
-      targetPlayerId: p1.id,
-      relicName: 'Briar Armor',
-      relicType: 'thorns',
-      damage: thorns,
-      message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!`
-    });
+    if (p2HasVenomheart) {
+      const poisonGain = Math.min(3, thorns);
+      p1.statuses.poison = (p1.statuses.poison || 0) + poisonGain;
+      io.to(roomId).emit('relicTriggered', {
+        playerId: p2.id,
+        targetPlayerId: p1.id,
+        relicName: 'Venomheart Briar',
+        relicType: 'poison',
+        poison: poisonGain,
+        message: `${p2.username}'s Venomheart Briar converted Briar Armor into ${poisonGain} Poison on ${p1.username}!`
+      });
+    } else {
+      p1.hp = Math.max(0, p1.hp - thorns);
+      p1ThornsDmg += thorns;
+      io.to(roomId).emit('relicTriggered', {
+        playerId: p2.id,
+        targetPlayerId: p1.id,
+        relicName: 'Briar Armor',
+        relicType: 'thorns',
+        damage: thorns,
+        message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!`
+      });
+    }
+  }
+
+  // Apply Venomheart Briar poison converted from clash thorns (ticks starting next clash)
+  if (p1VenomheartPoison > 0) {
+    p1.statuses.poison = (p1.statuses.poison || 0) + p1VenomheartPoison;
+  }
+  if (p2VenomheartPoison > 0) {
+    p2.statuses.poison = (p2.statuses.poison || 0) + p2VenomheartPoison;
   }
 
   // Phoenix Heart check: if HP drops to 0 or below, resurrect once per round and inflict Burn [2] on opponent
@@ -607,6 +734,20 @@ function resolveRound(roomId, io) {
     if (effect1.applyStatus.self) {
       applyStatusToPlayer(p1, effect1.applyStatus.self);
     }
+    if (effect1.applyStatus.both) {
+      const snapP1 = p1.statuses.poison || 0;
+      const snapP2 = p2.statuses.poison || 0;
+      if (effect1.applyStatus.both.outbreak) {
+        p1.statuses.poison = snapP1 * 2;
+        p2.statuses.poison = snapP2 * 2;
+        console.log(`[RoomManager] Outbreak Both (from ${p1.username})! P1 poison: ${p1.statuses.poison}, P2 poison: ${p2.statuses.poison}`);
+      }
+      Object.keys(effect1.applyStatus.both).forEach(stat => {
+        if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
+        applyStatusToPlayer(p1, { [stat]: effect1.applyStatus.both[stat] });
+        applyStatusToPlayer(p2, { [stat]: effect1.applyStatus.both[stat] });
+      });
+    }
   }
 
   if (effect2.applyStatus) {
@@ -615,6 +756,20 @@ function resolveRound(roomId, io) {
     }
     if (effect2.applyStatus.self) {
       applyStatusToPlayer(p2, effect2.applyStatus.self);
+    }
+    if (effect2.applyStatus.both) {
+      const snapP1 = p1.statuses.poison || 0;
+      const snapP2 = p2.statuses.poison || 0;
+      if (effect2.applyStatus.both.outbreak) {
+        p1.statuses.poison = snapP1 * 2;
+        p2.statuses.poison = snapP2 * 2;
+        console.log(`[RoomManager] Outbreak Both (from ${p2.username})! P1 poison: ${p1.statuses.poison}, P2 poison: ${p2.statuses.poison}`);
+      }
+      Object.keys(effect2.applyStatus.both).forEach(stat => {
+        if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
+        applyStatusToPlayer(p1, { [stat]: effect2.applyStatus.both[stat] });
+        applyStatusToPlayer(p2, { [stat]: effect2.applyStatus.both[stat] });
+      });
     }
   }
 
@@ -947,6 +1102,11 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
             p.pendingRewardNotification = tokensEarned > 0
               ? `${reward.text} & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}`
               : reward.text;
+          } else if (reward.type === 'bonus_pack') {
+            p.pendingBonusPack = true;
+            p.pendingRewardNotification = tokensEarned > 0
+              ? `${reward.text} & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}`
+              : reward.text;
           }
         }
         
@@ -1030,16 +1190,21 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
             p.pendingRelicChoice = null;
           }
 
-          // 2. Card Removal (available if player has removal tokens and deck > 4)
-          if ((p.removalTokens || 0) > 0 && p.deck.length > 4) {
+          // 2. Pack Selection (Bonus Pack from HARD Quest if earned + Regular Pack)
+          if (p.pendingBonusPack) {
             p.prepQueue.push({
-              type: 'CARD_REMOVAL',
-              tokensAvailable: p.removalTokens,
-              minDeckSize: 4
+              type: 'PACK_SELECTION',
+              isQuestBonus: true,
+              options: generatePacks(3)
             });
+            p.pendingBonusPack = false;
           }
+          p.prepQueue.push({
+            type: 'PACK_SELECTION',
+            options: generatePacks(3)
+          });
 
-          // 3. Bonus Pick (Loser Comeback / Quest Reward)
+          // 3. Bonus Pick (Loser Comeback / Quest Reward Bonus Draft)
           const isLoser = (room.draftLoserId === p.id);
           if (isLoser) {
             p.prepQueue.push({
@@ -1057,11 +1222,14 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
             p.pendingBonusDraft = false;
           }
 
-          // 4. Pack Selection (always present at end of round)
-          p.prepQueue.push({
-            type: 'PACK_SELECTION',
-            options: generatePacks(3)
-          });
+          // 4. Card Removal (terakhir: keputusan memangkas setelah melihat seluruh kartu baru)
+          if ((p.removalTokens || 0) > 0 && p.deck.length > 4) {
+            p.prepQueue.push({
+              type: 'CARD_REMOVAL',
+              tokensAvailable: p.removalTokens,
+              minDeckSize: 4
+            });
+          }
         });
 
         delete room.draftLoserId;

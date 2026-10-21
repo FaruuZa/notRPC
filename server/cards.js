@@ -199,10 +199,10 @@ const CARD_POOL = [
     id: 'nature_shield',
     name: 'Nature Shield',
     element: ELEMENTS.NATURE,
-    description: 'Superior: 8 <span class="kw-shield">SHIELD</span> & 5 <span class="kw-heal">HEAL</span>. Neutral: 4 <span class="kw-shield">SHIELD</span>.',
+    description: 'Superior: 8 <span class="kw-shield">SHIELD</span> & <span class="kw-thorns">THORN [2]</span>. Neutral: 4 <span class="kw-shield">SHIELD</span> & <span class="kw-thorns">THORN [1]</span>.',
     outcomes: {
-      SUPERIOR: { damage: 0, shield: 8, heal: 5, selfDamage: 0 },
-      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0 },
+      SUPERIOR: { damage: 0, shield: 8, selfDamage: 0, applyStatus: { self: { thorn: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0, applyStatus: { self: { thorn: 1 } } },
       INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
     }
   },
@@ -245,13 +245,22 @@ const CARD_POOL = [
     id: 'spite_thorns',
     name: 'Spite Thorns',
     element: ELEMENTS.NATURE,
-    // NEW: INTENTIONAL INFERIOR BENEFIT — punishes Fire/Chaos players who beat you
-    // Superior outcome is deliberately weak; the power is in the counter
-    description: 'Superior: 3 dmg & 6 <span class="kw-shield">SHIELD</span>. Neutral: 2 <span class="kw-shield">SHIELD</span>. Inferior: 10 dmg & <span class="kw-poison">POISON [3]</span>.',
+    description: 'Superior: 4 dmg & 6 <span class="kw-shield">SHIELD</span>. Neutral: 2 <span class="kw-shield">SHIELD</span>. Inferior: 8 dmg & <span class="kw-thorns">THORN [3]</span>.',
     outcomes: {
-      SUPERIOR: { damage: 3, shield: 6, selfDamage: 0 },
+      SUPERIOR: { damage: 4, shield: 6, selfDamage: 0 },
       NEUTRAL:  { damage: 0, shield: 2, selfDamage: 0 },
-      INFERIOR: { damage: 10, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 3 } } }
+      INFERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { self: { thorn: 3 } } }
+    }
+  },
+  {
+    id: 'bramble_trap',
+    name: 'Bramble Trap',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 6 dmg & 6 <span class="kw-shield">SHIELD</span>. Neutral: 3 <span class="kw-shield">SHIELD</span>. Inferior: 4 <span class="kw-shield">SHIELD</span> & <span class="kw-thorns">THORN [2]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 6, shield: 6, selfDamage: 0 },
+      NEUTRAL:  { damage: 0, shield: 3, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 4, selfDamage: 0, applyStatus: { self: { thorn: 2 } } }
     }
   },
   {
@@ -269,10 +278,10 @@ const CARD_POOL = [
     id: 'leech_seed',
     name: 'Leech Seed',
     element: ELEMENTS.NATURE,
-    description: 'Superior: 6 dmg & 6 <span class="kw-heal">HEAL</span>. Neutral: 3 <span class="kw-heal">HEAL</span>.',
+    description: 'Superior: 8 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 3 dmg & <span class="kw-leech">LEECH [1]</span>.',
     outcomes: {
-      SUPERIOR: { damage: 6, shield: 0, heal: 6, selfDamage: 0 },
-      NEUTRAL:  { damage: 0, shield: 0, heal: 3, selfDamage: 0 },
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
+      NEUTRAL:  { damage: 3, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 1 } } },
       INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
     }
   },
@@ -649,6 +658,94 @@ const CARD_POOL = [
       SUPERIOR: { damage: 11, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
       NEUTRAL:  { damage: 3, shield: 0, selfDamage: 0 },
       INFERIOR: { damage: 0, shield: 0, selfDamage: 4 }
+    }
+  },
+  {
+    id: 'bloodvine_lash',
+    name: 'Bloodvine Lash',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 8 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 3 dmg & <span class="kw-leech">LEECH [1]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
+      NEUTRAL:  { damage: 3, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'tidal_siphon',
+    name: 'Tidal Siphon',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 7 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 5 <span class="kw-shield">SHIELD</span>. Inferior: 3 <span class="kw-heal">HEAL</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 7, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 5, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, heal: 3, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'spore_cloud',
+    name: 'Spore Cloud',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 12 dmg. Neutral: 2 dmg & <span class="kw-outbreak">OUTBREAK</span>. Inferior: 2 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 2, shield: 0, selfDamage: 0, applyStatus: { opponent: { outbreak: true } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 2 }
+    }
+  },
+  {
+    id: 'pandemic_whisper',
+    name: 'Pandemic Whisper',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 12 dmg & <span class="kw-outbreak">OUTBREAK</span>. Neutral: <span class="kw-outbreak">OUTBREAK</span> & 3 self dmg. Inferior: <span class="kw-outbreak">OUTBREAK</span> & 6 self dmg.',
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0, applyStatus: { opponent: { outbreak: true } } },
+      NEUTRAL:  { damage: 0, shield: 0, selfDamage: 3, applyStatus: { opponent: { outbreak: true } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 6, applyStatus: { opponent: { outbreak: true } } }
+    }
+  },
+  {
+    id: 'briar_patch',
+    name: 'Briar Patch',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 5 dmg & <span class="kw-thorn">THORN [3]</span>. Neutral: 8 <span class="kw-shield">SHIELD</span> & <span class="kw-thorn">THORN [2]</span>. Inferior: <span class="kw-thorn">THORN [2]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 5, shield: 0, selfDamage: 0, applyStatus: { self: { thorn: 3 } } },
+      NEUTRAL:  { damage: 0, shield: 8, selfDamage: 0, applyStatus: { self: { thorn: 2 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { thorn: 2 } } }
+    }
+  },
+  {
+    id: 'vengeful_roots',
+    name: 'Vengeful Roots',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 10 dmg. Neutral: 4 <span class="kw-shield">SHIELD</span>. Inferior: 6 dmg & <span class="kw-thorn">THORN [3]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 10, shield: 0, selfDamage: 0 },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0 },
+      INFERIOR: { damage: 6, shield: 0, selfDamage: 0, applyStatus: { self: { thorn: 3 } } }
+    }
+  },
+  {
+    id: 'iron_maiden',
+    name: 'Iron Maiden',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 6 dmg & <span class="kw-thorn">THORN [3]</span>. Neutral: 10 <span class="kw-shield">SHIELD</span> & <span class="kw-thorn">THORN [2]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 6, shield: 0, selfDamage: 0, applyStatus: { self: { thorn: 3 } } },
+      NEUTRAL:  { damage: 0, shield: 10, selfDamage: 0, applyStatus: { self: { thorn: 2 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'plague_unbound',
+    name: 'Plague Unbound',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 11 dmg & <span class="kw-outbreak">OUTBREAK</span>. Neutral: 5 dmg. Inferior: <span class="kw-outbreak">OUTBREAK</span> to Both.',
+    outcomes: {
+      SUPERIOR: { damage: 11, shield: 0, selfDamage: 0, applyStatus: { opponent: { outbreak: true } } },
+      NEUTRAL:  { damage: 5, shield: 0, selfDamage: 0 },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { both: { outbreak: true } } }
     }
   }
 ];

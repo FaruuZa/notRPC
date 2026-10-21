@@ -23,15 +23,10 @@ function startQuestSelectionPhase(roomId, io) {
   room.state = 'QUEST_PHASE';
   console.log(`[RoomManager] Room ${roomId}: starting Quest Phase for round ${room.round}`);
 
-  const roundNum = room.round || 1;
-  const baseDifficulty = (room.raritySchedule && room.raritySchedule[roundNum]) || 'MEDIUM';
-  const elevatedDifficulty = baseDifficulty === 'EASY' ? 'MEDIUM' : 'HARD';
-  const targetRarities = [baseDifficulty, baseDifficulty, elevatedDifficulty];
-
   const playerIds = Object.keys(room.players);
   playerIds.forEach(id => {
     const p = room.players[id];
-    p.offeredQuests = generatePlayerQuests(p.deck, targetRarities);
+    p.offeredQuests = generatePlayerQuests(p.deck, p.relics);
     p.questRerollCount = 0;
     p.questLocked = false;
     p.activeQuest = null;
@@ -39,7 +34,9 @@ function startQuestSelectionPhase(roomId, io) {
 
     p.socket.emit('questSelectionStart', {
       quests: p.offeredQuests,
-      rerollsLeft: 1
+      rerollsLeft: 1,
+      deck: p.deck,
+      relics: p.relics
     });
   });
 }
@@ -90,18 +87,15 @@ function handleRerollQuests(socket, io) {
   const player = room.players[socket.id];
   if (player.questLocked || player.questRerollCount >= 1) return;
 
-  const roundNum = room.round || 1;
-  const baseDifficulty = (room.raritySchedule && room.raritySchedule[roundNum]) || 'MEDIUM';
-  const elevatedDifficulty = baseDifficulty === 'EASY' ? 'MEDIUM' : 'HARD';
-  const targetRarities = [baseDifficulty, baseDifficulty, elevatedDifficulty];
-
   player.questRerollCount += 1;
-  player.offeredQuests = generatePlayerQuests(player.deck, targetRarities);
+  player.offeredQuests = generatePlayerQuests(player.deck, player.relics);
 
   console.log(`[RoomManager] Player ${player.username} rerolled quests.`);
   socket.emit('questSelectionStart', {
     quests: player.offeredQuests,
-    rerollsLeft: 0
+    rerollsLeft: 0,
+    deck: player.deck,
+    relics: player.relics
   });
 }
 
@@ -450,7 +444,8 @@ function advancePlayerPrepQueue(player, room, io) {
   } else if (nextStep.type === 'PACK_SELECTION') {
     player.socket.emit('packSelectionStart', {
       packs: nextStep.options.map(p => ({ id: p, ...PACK_POOL[p] })),
-      prepRerollsLeft: player.prepRerollsLeft
+      prepRerollsLeft: player.prepRerollsLeft,
+      isQuestBonus: nextStep.isQuestBonus || false
     });
   } else if (nextStep.type === 'PACK_REVEAL') {
     player.socket.emit('packRevealStart', {
@@ -568,8 +563,8 @@ function proceedToQuestPhase(room, io) {
   p1.phoenixUsedThisRound = false;
   p2.phoenixUsedThisRound = false;
 
-  p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 5, weakness: 0 };
-  p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 5, weakness: 0 };
+  p1.statuses = { poison: 0, burn: 0, attackBuff: (p1.relics.relic_focused_soul || 0) * 5, weakness: 0, leech: 0, thorn: 0 };
+  p2.statuses = { poison: 0, burn: 0, attackBuff: (p2.relics.relic_focused_soul || 0) * 5, weakness: 0, leech: 0, thorn: 0 };
 
   p1.hand = drawHandFromDeck(p1.deck, 4);
   p2.hand = drawHandFromDeck(p2.deck, 4);
