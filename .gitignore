@@ -13,4 +13,6 @@ Thumbs.db
 # Folder Konfigurasi Tooling Lokal
 .claude/
 .impeccable/
-.agents
+.agents/
+.codegraph/
+graphify-out/
