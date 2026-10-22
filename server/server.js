@@ -157,6 +157,10 @@ io.on('connection', (socket) => {
     roomManager.handleReconnectMatch(socket, token, io);
   });
 
+  socket.on('requestStateSync', () => {
+    roomManager.handleRequestStateSync(socket, io);
+  });
+
   socket.on('joinQueue', (data) => {
     const customUsername = typeof data === 'object' && data !== null ? data.username : data;
     const roomCode = typeof data === 'object' && data !== null ? data.roomCode : '';

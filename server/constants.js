@@ -2,6 +2,14 @@ const PORT = process.env.PORT || 8000;
 const MAX_HP = 100;
 const HAND_SIZE = 4;
 
+// Progression & Timeout Constants
+const TURN_DURATION_SEC = 30;        // battle, normal player
+const AFK_TURN_DURATION_SEC = 10;    // battle, after >= 2 consecutive timeouts
+const AFK_STREAK_THRESHOLD = 2;
+const PREP_PHASE_DURATION_SEC = 60;  // 1 single timer for entire prep phase (60 detik, no subphase timers)
+const PREP_STEP_TIMEOUT_SEC = 60;    // fallback/backwards compatibility
+const CLASH_WINDOW_MS = 8000;        // fixed server-side clash window
+
 const ELEMENTS = {
   FIRE: 'FIRE',
   WATER: 'WATER',
@@ -66,6 +74,12 @@ module.exports = {
   PORT,
   MAX_HP,
   HAND_SIZE,
+  TURN_DURATION_SEC,
+  AFK_TURN_DURATION_SEC,
+  AFK_STREAK_THRESHOLD,
+  PREP_PHASE_DURATION_SEC,
+  PREP_STEP_TIMEOUT_SEC,
+  CLASH_WINDOW_MS,
   ELEMENTS,
   CLASH_RULES
 };

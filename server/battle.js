@@ -1,5 +1,5 @@
 const { nanoid } = require('nanoid');
-const { MAX_HP } = require('./constants');
+const { MAX_HP, TURN_DURATION_SEC, AFK_TURN_DURATION_SEC, AFK_STREAK_THRESHOLD, PREP_PHASE_DURATION_SEC, CLASH_WINDOW_MS } = require('./constants');
 const { evaluateClash, generateBonusPickCards, generatePacks } = require('./gameLogic');
 const { RELIC_POOL } = require('./relics');
 const { updateQuestProgress } = require('./quests');
@@ -11,6 +11,12 @@ function clearPrepTimer(...args) {
 }
 function advancePlayerPrepQueue(...args) {
   return require('./prepPhase').advancePlayerPrepQueue(...args);
+}
+function startPrepPhaseTimer(...args) {
+  return require('./prepPhase').startPrepPhaseTimer(...args);
+}
+function clearPrepPhaseTimer(...args) {
+  return require('./prepPhase').clearPrepPhaseTimer(...args);
 }
 
 /**
@@ -123,20 +129,30 @@ function startRound(roomId, io) {
 
   room.state = 'BATTLE';
 
-  // Authoritative 20-second turn timer
+  // Authoritative turn timer per player with AFK streak shrinking
   if (room.turnTimer) {
     clearTimeout(room.turnTimer);
     room.turnTimer = null;
   }
-  io.to(roomId).emit('turnTimerStarted', { duration: 20 });
+
+  const now = Date.now();
+  [p1, p2].forEach(p => {
+    const isAfk = (p.consecutiveTimeouts || 0) >= AFK_STREAK_THRESHOLD;
+    const duration = isAfk ? AFK_TURN_DURATION_SEC : TURN_DURATION_SEC;
+    p.turnDeadline = now + (duration * 1000);
+    p.socket.emit('turnTimerStarted', { duration, endsAt: p.turnDeadline });
+  });
+
+  const nextDeadline = Math.min(p1.turnDeadline, p2.turnDeadline);
+  room.turnTimerEndsAt = nextDeadline;
   room.turnTimer = setTimeout(() => {
     handleTurnTimeout(roomId, io);
-  }, 20000);
+  }, Math.max(0, nextDeadline - Date.now()));
 }
 
 /**
- * Handles turn timeout (20s reached without both locking)
- * Selects hovered/selected card, or fallback to Neutral card/first card in hand, locks, and resolves round.
+ * Handles turn timeout with per-player expiration and AFK shrinking
+ * Auto-plays expired players and continues timer if other player still has time.
  */
 function handleTurnTimeout(roomId, io) {
   const room = rooms[roomId];
@@ -147,11 +163,13 @@ function handleTurnTimeout(roomId, io) {
     room.turnTimer = null;
   }
 
+  const now = Date.now();
   const playerIds = Object.keys(room.players);
 
   playerIds.forEach(id => {
     const player = room.players[id];
-    if (!player.locked) {
+    if (!player.locked && player.turnDeadline && player.turnDeadline <= (now + 100)) {
+      player.consecutiveTimeouts = (player.consecutiveTimeouts || 0) + 1;
       let cardInstanceId = player.selectedCardId;
       const inHand = player.hand.some(c => c.instanceId === cardInstanceId);
       if (!cardInstanceId || !inHand) {
@@ -178,8 +196,21 @@ function handleTurnTimeout(roomId, io) {
     }
   });
 
-  console.log(`[RoomManager] Room ${roomId} turn timed out. Auto-played and resolving round.`);
-  resolveRound(roomId, io);
+  const allLocked = playerIds.every(id => room.players[id].locked);
+  if (allLocked) {
+    console.log(`[RoomManager] Room ${roomId} turn timed out. Auto-played and resolving round.`);
+    resolveRound(roomId, io);
+  } else {
+    // Re-arm timer for remaining unlocked player
+    const unlockedPlayers = playerIds.map(id => room.players[id]).filter(p => !p.locked);
+    if (unlockedPlayers.length > 0) {
+      const nextDeadline = Math.min(...unlockedPlayers.map(p => p.turnDeadline));
+      room.turnTimerEndsAt = nextDeadline;
+      room.turnTimer = setTimeout(() => {
+        handleTurnTimeout(roomId, io);
+      }, Math.max(0, nextDeadline - Date.now()));
+    }
+  }
 }
 
 /**
@@ -218,6 +249,7 @@ function handleLockSelection(socket, io) {
   if (!player.selectedCardId || player.locked) return;
 
   player.locked = true;
+  player.consecutiveTimeouts = 0; // Manual lock resets AFK streak to 0!
 
   const opponentId = Object.keys(room.players).find(id => id !== socket.id);
   const opponent = room.players[opponentId];
@@ -232,6 +264,19 @@ function handleLockSelection(socket, io) {
       room.turnTimer = null;
     }
     resolveRound(roomId, io);
+  } else {
+    // Re-arm room.turnTimer for opponent's deadline if needed
+    if (room.turnTimer) {
+      clearTimeout(room.turnTimer);
+      room.turnTimer = null;
+    }
+    if (opponent.turnDeadline) {
+      const remaining = Math.max(0, opponent.turnDeadline - Date.now());
+      room.turnTimerEndsAt = opponent.turnDeadline;
+      room.turnTimer = setTimeout(() => {
+        handleTurnTimeout(roomId, io);
+      }, remaining);
+    }
   }
 }
 
@@ -861,8 +906,8 @@ function resolveRound(roomId, io) {
     opponentCard: card1
   });
 
-  // Emit roundResult with new statuses, status tick damages, and clash history
-  p1.socket.emit('roundResult', {
+  // Prepare roundResult payloads
+  const roundResultP1 = {
     outcome: result.outcomeA,
     shieldGain: result.shieldGainA,
     healGain: result.healGainA,
@@ -900,9 +945,9 @@ function resolveRound(roomId, io) {
     opponentStatusDamage: { burn: p2BurnTick, poison: p2PoisonTick, burnHpDmg: p2BurnHpDmg, burnShieldDmg: p2BurnShieldDmg },
     
     drewNewCards: drewNewCardsP1
-  });
+  };
 
-  p2.socket.emit('roundResult', {
+  const roundResultP2 = {
     outcome: result.outcomeB,
     shieldGain: result.shieldGainB,
     healGain: result.healGainB,
@@ -940,7 +985,11 @@ function resolveRound(roomId, io) {
     opponentStatusDamage: { burn: p1BurnTick, poison: p1PoisonTick, burnHpDmg: p1BurnHpDmg, burnShieldDmg: p1BurnShieldDmg },
     
     drewNewCards: drewNewCardsP2
-  });
+  };
+
+  // Emit roundResult with new statuses, status tick damages, and clash history
+  p1.socket.emit('roundResult', roundResultP1);
+  p2.socket.emit('roundResult', roundResultP2);
 
   // Emit hpUpdate
   io.to(roomId).emit('hpUpdate', {
@@ -987,6 +1036,19 @@ function resolveRound(roomId, io) {
     };
   }
 
+  // Store active clash snapshot for reconnect & state sync
+  room.clashWindowEndsAt = Date.now() + CLASH_WINDOW_MS;
+  room.pendingClash = {
+    reveals: {
+      [p1.id]: { yourCard: card1, opponentCard: card2 },
+      [p2.id]: { yourCard: card2, opponentCard: card1 }
+    },
+    results: {
+      [p1.id]: roundResultP1,
+      [p2.id]: roundResultP2
+    }
+  };
+
   // Clear any existing next round timeout
   if (room.nextRoundTimeout) {
     clearTimeout(room.nextRoundTimeout);
@@ -996,14 +1058,14 @@ function resolveRound(roomId, io) {
   // Initialize clash finished set
   room.clashFinishedPlayers = new Set();
 
-  // Set safety timeout in case a client fails to report clashFinished
+  // Set fixed clash window timeout (8000 ms)
   room.nextRoundTimeout = setTimeout(() => {
-    console.log(`[RoomManager] Safety timeout triggered for clash in room ${roomId}. Proceeding.`);
+    console.log(`[RoomManager] Clash window ended (${CLASH_WINDOW_MS}ms) for room ${roomId}. Proceeding.`);
     const pEnd = room.pendingClashEnd;
     if (pEnd) {
       proceedAfterClash(roomId, io, pEnd.roundOver, pEnd.roundWinnerId, pEnd.loserId, pEnd.matchOver);
     }
-  }, 12000); // 12 seconds safety margin (max animations is ~11s)
+  }, CLASH_WINDOW_MS);
 }
 
 /**
@@ -1032,15 +1094,21 @@ function handleClashFinished(socket, io) {
 }
 
 /**
- * Transition logic that triggers after both clients complete clash animations (or safety timeout)
+ * Transition logic that triggers after both clients complete clash animations (or fixed window ends)
  */
 function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchOver) {
   const room = rooms[roomId];
   if (!room) return;
 
   // Clean up pending clash state
+  delete room.pendingClash;
+  delete room.clashWindowEndsAt;
   delete room.pendingClashEnd;
   delete room.clashFinishedPlayers;
+  if (room.nextRoundTimeout) {
+    clearTimeout(room.nextRoundTimeout);
+    room.nextRoundTimeout = null;
+  }
 
   const playerIds = Object.keys(room.players);
   const p1 = room.players[playerIds[0]];
@@ -1233,6 +1301,10 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         });
 
         delete room.draftLoserId;
+
+        // Start 1 single prep phase timer for the room (90 seconds)
+        clearPrepPhaseTimer(room);
+        startPrepPhaseTimer(room, io, PREP_PHASE_DURATION_SEC);
 
         // Start processing prep queues for both players
         [p1, p2].forEach(p => {

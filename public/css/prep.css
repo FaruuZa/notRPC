@@ -67,10 +67,6 @@
   border: 1.5px solid var(--border-brass);
 }
 
-#draft-timer-box i {
-  color: var(--color-fire);
-}
-
 #draft-counter-box i {
   color: var(--color-water);
 }
@@ -999,27 +995,53 @@
   top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(231, 76, 60, 0.95);
-  color: #fff;
+  background: rgba(15, 18, 26, 0.9);
+  color: #f5cf70;
   padding: 0.6rem 1.5rem;
   border-radius: 30px;
   font-family: var(--font-title);
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: 1px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(231, 76, 60, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   z-index: 9999;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1.5px solid var(--border-brass, rgba(245, 207, 112, 0.4));
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.prep-timer-banner.urgent {
+  background: rgba(231, 76, 60, 0.95);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(231, 76, 60, 0.5);
   animation: pulseTimer 1s infinite alternate ease-in-out;
 }
 
 .prep-timer-banner i {
-  color: #fff;
+  color: inherit;
   font-size: 1.2rem;
+}
+
+.prep-timer-banner.urgent i {
+  color: #fff;
   animation: rotateClock 5s infinite linear;
+}
+
+/* Waiting Timer Container */
+.waiting-timer-container {
+  margin-top: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #f5cf70;
+  transition: color 0.3s ease;
+}
+
+.waiting-timer-container.urgent {
+  color: #e74c3c;
+  animation: pulseTimer 1s infinite alternate ease-in-out;
 }
 
 @keyframes pulseTimer {

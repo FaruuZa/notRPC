@@ -1,4 +1,4 @@
-const { MAX_HP } = require('./constants');
+const { MAX_HP, PREP_PHASE_DURATION_SEC, PREP_STEP_TIMEOUT_SEC } = require('./constants');
 const { PACK_POOL } = require('./packs');
 const { RELIC_POOL } = require('./relics');
 const { generatePlayerQuests } = require('./quests');
@@ -20,6 +20,8 @@ function startQuestSelectionPhase(roomId, io) {
   const room = rooms[roomId];
   if (!room || room.state === 'OVER') return;
 
+  clearPrepPhaseTimer(room);
+
   room.state = 'QUEST_PHASE';
   console.log(`[RoomManager] Room ${roomId}: starting Quest Phase for round ${room.round}`);
 
@@ -31,6 +33,8 @@ function startQuestSelectionPhase(roomId, io) {
     p.questLocked = false;
     p.activeQuest = null;
     p.questProgress = 0;
+
+    // Sub-phase timers removed: no timer in quest selection.
 
     p.socket.emit('questSelectionStart', {
       quests: p.offeredQuests,
@@ -54,6 +58,8 @@ function handleSelectQuest(socket, questId, io) {
 
   const chosenQuest = player.offeredQuests.find(q => q.id === questId);
   if (!chosenQuest) return;
+
+  clearPlayerPrepTimer(player);
 
   player.activeQuest = chosenQuest;
   player.questProgress = 0;
@@ -353,7 +359,7 @@ function handleSelectRelic(socket, relicId, io) {
   }
 
   // Notify client of success
-  socket.emit('relicChosen', { relicId, name: selectedRelic.name });
+  socket.emit('relicChosen', { relicId, name: selectedRelic ? selectedRelic.name : relicId });
 
   // Shift step and advance queue
   player.prepQueue.shift();
@@ -401,10 +407,117 @@ function handleRerollPrep(socket, io) {
 }
 
 /**
+ * Starts 1 single countdown timer for the entire preparation phase (encompassing all prep steps)
+ */
+function startPrepPhaseTimer(room, io, duration = PREP_PHASE_DURATION_SEC) {
+  clearPrepPhaseTimer(room);
+
+  room.prepPhaseEndsAt = Date.now() + (duration * 1000);
+
+  // Broadcast single prep timer to room
+  io.to(room.id).emit('prepTimerStarted', {
+    duration: duration,
+    secondsLeft: duration,
+    endsAt: room.prepPhaseEndsAt
+  });
+
+  room.prepPhaseTimer = setTimeout(() => {
+    handlePrepPhaseTimeout(room, io);
+  }, duration * 1000);
+}
+
+/**
+ * Clears the single preparation phase timer
+ */
+function clearPrepPhaseTimer(room) {
+  if (room && room.prepPhaseTimer) {
+    clearTimeout(room.prepPhaseTimer);
+    room.prepPhaseTimer = null;
+    room.prepPhaseEndsAt = null;
+  }
+}
+
+/**
+ * Handles timeout for the entire preparation phase
+ * Auto-resolves any player who hasn't completed all steps, then proceeds.
+ */
+function handlePrepPhaseTimeout(room, io) {
+  clearPrepPhaseTimer(room);
+
+  if (!room || room.state === 'OVER' || room.state !== 'PREPARATION_PHASE') return;
+
+  console.log(`[RoomManager] Prep Phase single timer expired for room ${room.id}. Auto-resolving pending player(s).`);
+
+  const playerIds = Object.keys(room.players);
+  playerIds.forEach(id => {
+    const p = room.players[id];
+    if (!p.prepFinished) {
+      autoResolvePlayerPrepQueue(p, room, io);
+    }
+  });
+
+  proceedToQuestPhase(room, io);
+}
+
+/**
+ * Deprecated: sub-phase timers removed per user requirements.
+ * Prep phase uses 1 single room-level timer (60s). Sub-phases do not have timers.
+ */
+function startPlayerPrepTimer(player, room, io, stepType, duration = 60) {
+  clearPlayerPrepTimer(player);
+}
+
+/**
+ * Clears an individual player's timer
+ */
+function clearPlayerPrepTimer(player) {
+  if (player && player.prepStepTimer) {
+    clearTimeout(player.prepStepTimer);
+    player.prepStepTimer = null;
+    player.prepStepEndsAt = null;
+  }
+}
+
+/**
+ * Handles timeout for quest selection
+ */
+function handlePlayerPrepTimeout(player, room, io) {
+  clearPlayerPrepTimer(player);
+
+  if (!room || room.state === 'OVER') return;
+
+  if (room.state === 'QUEST_PHASE') {
+    if (!player.questLocked) {
+      if (!player.offeredQuests || player.offeredQuests.length === 0) {
+        player.offeredQuests = generatePlayerQuests(player.deck, player.relics);
+      }
+      const chosenQuest = player.offeredQuests[Math.floor(Math.random() * player.offeredQuests.length)];
+      player.activeQuest = chosenQuest;
+      player.questProgress = 0;
+      player.questLocked = true;
+
+      console.log(`[RoomManager] Quest timeout for ${player.username}. Auto-selected: ${chosenQuest.text}`);
+      player.socket.emit('questLocked', chosenQuest);
+
+      const opponentId = Object.keys(room.players).find(id => id !== player.id);
+      const opponent = room.players[opponentId];
+
+      if (opponent && opponent.questLocked) {
+        room.state = 'BATTLE';
+        console.log(`[RoomManager] Both players locked quests in Room ${room.id}. Starting BATTLE.`);
+        startRound(room.id, io);
+      } else if (opponent) {
+        opponent.socket.emit('waitingForOpponentQuest');
+      }
+    }
+  }
+}
+
+/**
  * Helper to advance a player's preparation session queue
  */
 function advancePlayerPrepQueue(player, room, io) {
-  if (player.prepQueue.length === 0) {
+  if (!player.prepQueue || player.prepQueue.length === 0) {
     player.prepFinished = true;
     player.socket.emit('prepFinished');
     
@@ -414,15 +527,15 @@ function advancePlayerPrepQueue(player, room, io) {
     const p2 = room.players[playerIds[1]];
     
     if (p1.prepFinished && p2.prepFinished) {
+      clearPrepPhaseTimer(room);
       clearPrepTimer(room);
       proceedToQuestPhase(room, io);
-    } else {
-      startPrepTimer(room, io);
     }
     return;
   }
 
   const nextStep = player.prepQueue[0];
+
   if (nextStep.type === 'RELIC_CHOICE') {
     player.socket.emit('relicChoiceStart', {
       quality: nextStep.quality,
@@ -457,45 +570,16 @@ function advancePlayerPrepQueue(player, room, io) {
 }
 
 /**
- * Starts the 30-second countdown timer for preparation phase
+ * Backwards-compatible room timer stubs
  */
 function startPrepTimer(room, io) {
-  if (room.prepTimer) return; // Already running
-
-  room.prepTimerSeconds = 30;
-  
-  // Notify both players that timer has started
-  io.to(room.id).emit('prepTimerStarted', { secondsLeft: room.prepTimerSeconds });
-
-  room.prepTimer = setInterval(() => {
-    room.prepTimerSeconds -= 1;
-    io.to(room.id).emit('prepTimerTick', { secondsLeft: room.prepTimerSeconds });
-
-    if (room.prepTimerSeconds <= 0) {
-      clearInterval(room.prepTimer);
-      room.prepTimer = null;
-      console.log(`[RoomManager] Prep timer expired for room ${room.id}. Auto-resolving pending player(s).`);
-
-      const playerIds = Object.keys(room.players);
-      playerIds.forEach(id => {
-        const p = room.players[id];
-        if (!p.prepFinished) {
-          autoResolvePlayerPrepQueue(p, room, io);
-        }
-      });
-
-      proceedToQuestPhase(room, io);
-    }
-  }, 1000);
+  startPrepPhaseTimer(room, io);
 }
 
-/**
- * Clears the active preparation timer
- */
 function clearPrepTimer(room) {
-  if (room.prepTimer) {
-    clearInterval(room.prepTimer);
-    room.prepTimer = null;
+  clearPrepPhaseTimer(room);
+  if (room && room.players) {
+    Object.values(room.players).forEach(p => clearPlayerPrepTimer(p));
   }
 }
 
@@ -503,9 +587,10 @@ function clearPrepTimer(room) {
  * Automatically resolves all remaining choices in a player's preparation queue
  */
 function autoResolvePlayerPrepQueue(player, room, io) {
-  console.log(`[RoomManager] Auto-resolving prep queue for player ${player.username}. Steps remaining: ${player.prepQueue.length}`);
+  clearPlayerPrepTimer(player);
+  console.log(`[RoomManager] Auto-resolving prep queue for player ${player.username}. Steps remaining: ${player.prepQueue ? player.prepQueue.length : 0}`);
 
-  while (player.prepQueue.length > 0) {
+  while (player.prepQueue && player.prepQueue.length > 0) {
     const step = player.prepQueue.shift();
 
     if (step.type === 'RELIC_CHOICE') {
@@ -552,6 +637,11 @@ function proceedToQuestPhase(room, io) {
   const p1 = room.players[playerIds[0]];
   const p2 = room.players[playerIds[1]];
 
+  clearPlayerPrepTimer(p1);
+  clearPlayerPrepTimer(p2);
+  clearPrepPhaseTimer(room);
+  clearPrepTimer(room);
+
   p1.maxHp = MAX_HP + (p1.relics.relic_vitality_common || 0) * 15 + (p1.relics.relic_vitality_rare || 0) * 25 + (p1.relics.relic_vitality_epic || 0) * 40;
   p2.maxHp = MAX_HP + (p2.relics.relic_vitality_common || 0) * 15 + (p2.relics.relic_vitality_rare || 0) * 25 + (p2.relics.relic_vitality_epic || 0) * 40;
 
@@ -597,6 +687,12 @@ module.exports = {
   advancePlayerPrepQueue,
   startPrepTimer,
   clearPrepTimer,
+  startPrepPhaseTimer,
+  clearPrepPhaseTimer,
+  handlePrepPhaseTimeout,
+  startPlayerPrepTimer,
+  clearPlayerPrepTimer,
+  handlePlayerPrepTimeout,
   autoResolvePlayerPrepQueue,
   proceedToQuestPhase
 };

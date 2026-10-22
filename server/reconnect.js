@@ -2,6 +2,7 @@ const { MAX_HP } = require('./constants');
 const { generateStarterDeck } = require('./gameLogic');
 const { generatePlayerQuests } = require('./quests');
 const { RELIC_POOL } = require('./relics');
+const { PACK_POOL } = require('./packs');
 const auth = require('./auth');
 const { rooms, playerToRoom, userToRoom, cleanupRoom, recordMatchToDb } = require('./roomState');
 
@@ -11,6 +12,128 @@ function drawHandFromDeck(...args) {
 }
 function startQuestSelectionPhase(...args) {
   return require('./prepPhase').startQuestSelectionPhase(...args);
+}
+
+/**
+ * Builds an authoritative snapshot of the current match room state for a given player
+ */
+function buildStateSnapshot(room, player, opponent) {
+  // Ensure offeredQuests is populated if in QUEST_PHASE
+  if (room.state === 'QUEST_PHASE' && (!player.offeredQuests || player.offeredQuests.length === 0)) {
+    player.offeredQuests = generatePlayerQuests(player.deck, player.relics);
+  }
+
+  // Determine currentPrepStep if player is in prep queue
+  let currentPrepStep = null;
+  if (player.prepQueue && player.prepQueue.length > 0) {
+    const rawStep = player.prepQueue[0];
+    if (rawStep.type === 'RELIC_CHOICE') {
+      currentPrepStep = {
+        type: 'RELIC_CHOICE',
+        quality: rawStep.quality,
+        options: (rawStep.options || []).map(id => typeof id === 'string' ? RELIC_POOL[id] : id).filter(Boolean),
+        questText: rawStep.questText,
+        prepRerollsLeft: player.prepRerollsLeft !== undefined ? player.prepRerollsLeft : 1
+      };
+    } else if (rawStep.type === 'PACK_SELECTION') {
+      currentPrepStep = {
+        type: 'PACK_SELECTION',
+        packs: (rawStep.options || []).map(p => ({ id: p, ...PACK_POOL[p] })),
+        prepRerollsLeft: player.prepRerollsLeft !== undefined ? player.prepRerollsLeft : 1,
+        isQuestBonus: rawStep.isQuestBonus || false
+      };
+    } else if (rawStep.type === 'PACK_REVEAL') {
+      currentPrepStep = {
+        type: 'PACK_REVEAL',
+        packId: rawStep.packId,
+        packName: PACK_POOL[rawStep.packId]?.name || '',
+        packColor: PACK_POOL[rawStep.packId]?.color || '',
+        cards: rawStep.cards || []
+      };
+    } else if (rawStep.type === 'CARD_REMOVAL') {
+      currentPrepStep = {
+        type: 'CARD_REMOVAL',
+        deck: player.deck,
+        removalTokens: player.removalTokens || 0,
+        minDeckSize: 4
+      };
+    } else if (rawStep.type === 'BONUS_PICK') {
+      currentPrepStep = {
+        type: 'BONUS_PICK',
+        cards: rawStep.options || [],
+        isQuestBonus: rawStep.isQuestBonus || false
+      };
+    } else {
+      currentPrepStep = { ...rawStep };
+    }
+  }
+
+  // Determine phaseEndsAt
+  let phaseEndsAt = null;
+  if (room.state === 'BATTLE') {
+    if (room.clashWindowEndsAt && room.pendingClash) {
+      phaseEndsAt = room.clashWindowEndsAt;
+    } else if (player.turnDeadline) {
+      phaseEndsAt = player.turnDeadline;
+    }
+  } else if (room.state === 'QUEST_PHASE') {
+    phaseEndsAt = null; // No timer in quest selection sub-phase
+  } else if (room.state === 'PREPARATION_PHASE') {
+    if (room.prepPhaseEndsAt) {
+      phaseEndsAt = room.prepPhaseEndsAt;
+    }
+  }
+
+  // Determine pendingClash for this player if clash window is actively running
+  let pendingClash = null;
+  if (room.pendingClash && room.pendingClash.reveals && room.pendingClash.reveals[player.id]) {
+    pendingClash = {
+      reveal: room.pendingClash.reveals[player.id],
+      result: room.pendingClash.results ? room.pendingClash.results[player.id] : null,
+      roundOver: room.pendingClashEnd?.roundOver || false,
+      roundWinnerId: room.pendingClashEnd?.roundWinnerId || null,
+      matchOver: room.pendingClashEnd?.matchOver || false
+    };
+  }
+
+  return {
+    roomId: room.id,
+    state: room.state,
+    round: room.round,
+    yourId: player.id,
+    yourName: player.username,
+    opponentId: opponent ? opponent.id : null,
+    opponentName: opponent ? opponent.username : 'Opponent',
+    yourHp: player.hp,
+    yourMaxHp: player.maxHp || MAX_HP,
+    yourShield: player.shield || 0,
+    yourPoints: player.points || 0,
+    yourDeck: player.deck || [],
+    yourHand: player.hand || [],
+    yourStatuses: player.statuses || {},
+    yourRelics: player.relics || {},
+    yourActiveQuest: player.activeQuest ? { ...player.activeQuest, progress: player.questProgress || 0 } : null,
+    questProgress: player.questProgress || 0,
+    offeredQuests: player.offeredQuests || [],
+    questLocked: player.questLocked || false,
+    questRerollCount: player.questRerollCount || 0,
+    yourRemovalTokens: player.removalTokens || 0,
+    yourLocked: player.locked || false,
+    yourSelectedCardId: player.selectedCardId || null,
+    opponentLocked: opponent ? (opponent.locked || false) : false,
+    opponentHp: opponent ? opponent.hp : 100,
+    opponentMaxHp: opponent ? opponent.maxHp : 100,
+    opponentShield: opponent ? opponent.shield : 0,
+    opponentPoints: opponent ? opponent.points : 0,
+    opponentHandCount: opponent ? (opponent.hand ? opponent.hand.length : 0) : 0,
+    opponentStatuses: opponent ? opponent.statuses : {},
+    opponentRelics: opponent ? opponent.relics : {},
+    clashHistory: room.clashHistory || [],
+    currentPrepStep: currentPrepStep,
+    pendingRelicChoices: (player.prepQueue?.find(s => s.type === 'RELIC_CHOICE')?.options || player.pendingRelicChoices || []).map(item => typeof item === 'string' ? RELIC_POOL[item] : item).filter(Boolean),
+    pendingClash: pendingClash,
+    phaseEndsAt: phaseEndsAt
+  };
 }
 
 /**
@@ -145,44 +268,33 @@ function handleReconnectMatch(socket, token, io) {
     });
   }
 
-  // Ensure offeredQuests is populated if reconnecting during QUEST_PHASE
-  if (room.state === 'QUEST_PHASE' && (!playerObj.offeredQuests || playerObj.offeredQuests.length === 0)) {
-    playerObj.offeredQuests = generatePlayerQuests(playerObj.deck, playerObj.relics);
-  }
-
-  const payload = {
-    roomId,
-    state: room.state,
-    round: room.round,
-    yourId: socket.id,
-    yourName: playerObj.username,
-    opponentId: opponent ? opponent.id : null,
-    opponentName: opponent ? opponent.username : 'Opponent',
-    yourHp: playerObj.hp,
-    yourMaxHp: playerObj.maxHp,
-    yourShield: playerObj.shield,
-    yourPoints: playerObj.points,
-    yourHand: playerObj.hand || [],
-    yourStatuses: playerObj.statuses || {},
-    yourRelics: playerObj.relics || {},
-    yourActiveQuest: playerObj.activeQuest || null,
-    offeredQuests: playerObj.offeredQuests || [],
-    questLocked: playerObj.questLocked || false,
-    questRerollCount: playerObj.questRerollCount || 0,
-    pendingRelicChoices: (playerObj.prepQueue?.find(s => s.type === 'RELIC_CHOICE')?.options || playerObj.pendingRelicChoices || []).map(item => typeof item === 'string' ? RELIC_POOL[item] : item).filter(Boolean),
-    yourRemovalTokens: playerObj.removalTokens || 0,
-    opponentHp: opponent ? opponent.hp : 100,
-    opponentMaxHp: opponent ? opponent.maxHp : 100,
-    opponentShield: opponent ? opponent.shield : 0,
-    opponentPoints: opponent ? opponent.points : 0,
-    opponentHandCount: opponent ? (opponent.hand ? opponent.hand.length : 0) : 0,
-    opponentStatuses: opponent ? opponent.statuses : {},
-    opponentRelics: opponent ? opponent.relics : {},
-    clashHistory: room.clashHistory || []
-  };
-
+  const payload = buildStateSnapshot(room, playerObj, opponent);
   socket.emit('reconnectSuccess', payload);
   console.log(`[RoomManager] Player ${playerObj.username} reconnected to Room ${roomId}`);
+}
+
+/**
+ * Handles live state sync request (e.g. tab becoming visible after being backgrounded)
+ */
+function handleRequestStateSync(socket, io) {
+  let roomId = playerToRoom[socket.id];
+  if (!roomId && socket.user?.userId) {
+    roomId = userToRoom[socket.user.userId];
+  }
+  if (!roomId) return;
+
+  const room = rooms[roomId];
+  if (!room || room.state === 'OVER') return;
+
+  const player = room.players[socket.id];
+  if (!player) return;
+
+  const opponentId = Object.keys(room.players).find(id => id !== socket.id);
+  const opponent = room.players[opponentId];
+
+  const payload = buildStateSnapshot(room, player, opponent);
+  socket.emit('stateSync', payload);
+  console.log(`[RoomManager] State sync sent to player ${player.username} for Room ${roomId}`);
 }
 
 /**
@@ -255,6 +367,7 @@ function handleRequestRematch(socket, io) {
     p1.hand = drawHandFromDeck(deck1, 4);
     p1.selectedCardId = null;
     p1.locked = false;
+    p1.consecutiveTimeouts = 0;
     p1.relics = {};
     p1.phoenixUsedThisRound = false;
     p1.prepRerollsLeft = 0;
@@ -277,6 +390,7 @@ function handleRequestRematch(socket, io) {
     p2.hand = drawHandFromDeck(deck2, 4);
     p2.selectedCardId = null;
     p2.locked = false;
+    p2.consecutiveTimeouts = 0;
     p2.relics = {};
     p2.phoenixUsedThisRound = false;
     p2.prepRerollsLeft = 0;
@@ -306,9 +420,11 @@ function handleRequestRematch(socket, io) {
 }
 
 module.exports = {
+  buildStateSnapshot,
   handleDisconnect,
   checkPendingReconnect,
   handleReconnectMatch,
+  handleRequestStateSync,
   handleSurrender,
   handleRequestRematch
 };

@@ -280,98 +280,234 @@ const GameManager = {
     }
   },
 
-  onReconnectSuccess(data) {
+  applyStateSnapshot(data) {
     const UI = window.UI;
-    if (UI) {
+    console.log('[GameManager] Applying state snapshot...', data);
+
+    // 1. Fast-forward any active clash pipeline immediately
+    if (this.isVisualPipelineRunning && window.ClashPipeline && window.ClashPipeline.fastForward) {
+      window.ClashPipeline.fastForward(this);
+    }
+
+    if (UI && UI.hideReconnectBanner) {
       UI.hideReconnectBanner();
     }
-    console.log('[GameManager] Reconnect successful! Restoring match state...', data);
 
-    try {
-      this.currentRoomId = data.roomId;
-      this.myId = data.yourId;
-      this.myName = data.yourName || 'Player';
-      this.opponentId = data.opponentId;
-      this.opponentName = data.opponentName || 'Opponent';
-      this.myHp = data.yourHp;
-      this.myMaxHp = data.yourMaxHp || 100;
-      this.myShield = data.yourShield || 0;
-      this.myPoints = data.yourPoints || 0;
-      this.hand = data.yourHand || [];
-      this.myStatuses = data.yourStatuses || {};
-      this.myRelics = data.yourRelics || {};
-      this.activeQuest = data.yourActiveQuest || null;
-      this.myRemovalTokens = data.yourRemovalTokens || 0;
+    // 2. Sync all player and match states
+    this.currentRoomId = data.roomId;
+    this.round = data.round || 1;
+    this.myId = data.yourId;
+    this.myName = data.yourName || 'Player';
+    this.opponentId = data.opponentId;
+    this.opponentName = data.opponentName || 'Opponent';
+    this.myHp = data.yourHp;
+    this.myMaxHp = data.yourMaxHp || 100;
+    this.myShield = data.yourShield || 0;
+    this.myPoints = data.yourPoints || 0;
+    this.deck = data.yourDeck || this.deck || [];
+    this.hand = data.yourHand || [];
+    this.myStatuses = data.yourStatuses || {};
+    this.myRelics = data.yourRelics || {};
+    this.activeQuest = data.yourActiveQuest || null;
+    this.myRemovalTokens = data.yourRemovalTokens || 0;
 
-      const hudTokensVal = document.getElementById('player-tokens-val');
-      if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+    this.opponentHp = data.opponentHp !== undefined ? data.opponentHp : 100;
+    this.opponentMaxHp = data.opponentMaxHp || 100;
+    this.opponentShield = data.opponentShield || 0;
+    this.opponentPoints = data.opponentPoints || 0;
+    this.opponentStatuses = data.opponentStatuses || {};
+    this.opponentRelics = data.opponentRelics || {};
 
-      this.opponentHp = data.opponentHp;
-      this.opponentMaxHp = data.opponentMaxHp || 100;
-      this.opponentShield = data.opponentShield || 0;
-      this.opponentPoints = data.opponentPoints || 0;
-      this.opponentStatuses = data.opponentStatuses || {};
-      this.opponentRelics = data.opponentRelics || {};
+    if (!UI) return;
 
-      if (UI) {
-        // 1. Set HUD player names
-        if (UI.playerName && this.myName) {
-          UI.setHudName(UI.playerName, this.myName);
-        }
-        if (UI.enemyName && this.opponentName) {
-          UI.setHudName(UI.enemyName, this.opponentName);
-        }
+    // 3. Render HUD and status bars
+    if (UI.playerName && this.myName) UI.setHudName(UI.playerName, this.myName);
+    if (UI.enemyName && this.opponentName) UI.setHudName(UI.enemyName, this.opponentName);
 
-        // 2. Set Max HP numbers
-        if (UI.playerMaxHpVal) UI.playerMaxHpVal.innerText = this.myMaxHp;
-        if (UI.enemyMaxHpVal) UI.enemyMaxHpVal.innerText = this.opponentMaxHp;
+    if (UI.playerMaxHpVal) UI.playerMaxHpVal.innerText = this.myMaxHp;
+    if (UI.enemyMaxHpVal) UI.enemyMaxHpVal.innerText = this.opponentMaxHp;
 
-        // 3. Update HP and Shield bars
-        UI.updateHp('player', this.myHp, this.myMaxHp);
-        UI.updateHp('opponent', this.opponentHp, this.opponentMaxHp);
-        if (UI.updateShield) {
-          UI.updateShield('player', this.myShield);
-          UI.updateShield('opponent', this.opponentShield);
-        }
+    if (UI.playerHpVal) UI.playerHpVal.innerText = this.myHp;
+    if (UI.enemyHpVal) UI.enemyHpVal.innerText = this.opponentHp;
 
-        // 4. Update Statuses
-        if (UI.renderStatuses) {
-          UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
-          UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
-        }
-
-        // 5. Update Points and Active Quest
-        if (UI.renderPoints) {
-          UI.renderPoints(UI.playerPoints, this.myPoints);
-          UI.renderPoints(UI.enemyPoints, this.opponentPoints);
-        }
-        if (UI.updateQuestTracker) {
-          UI.updateQuestTracker(this.activeQuest);
-        }
-
-        // 6. Always switch away from Lobby screen immediately to Battle screen
-        UI.showScreen('battle');
-        UI.renderHand(this.hand, true, true);
-
-        // If reconnecting during Quest Phase and quest is not yet locked, show Quest Selection
-        if (data.state === 'QUEST_PHASE' && !data.questLocked) {
-          this.onQuestSelectionStart({
-            quests: data.offeredQuests || [],
-            rerollsLeft: 1 - (data.questRerollCount || 0)
-          });
-        } else if (data.state === 'PREPARATION_PHASE' && data.pendingRelicChoices && data.pendingRelicChoices.length > 0) {
-          this.onRelicChoiceStart({ relics: data.pendingRelicChoices });
-        }
-
-        if (data.clashHistory && UI.updateClashLog) {
-          UI.updateClashLog(data.clashHistory);
-        }
-
-        UI.showToast('Reconnected to active match!');
-      }
-    } catch (err) {
-      console.error('[GameManager] Error during onReconnectSuccess:', err);
+    const playerPct = Math.max(0, Math.min(100, (this.myHp / this.myMaxHp) * 100));
+    if (UI.playerHpFill) {
+      UI.playerHpFill.style.width = `${playerPct}%`;
+      UI.playerHpFill.classList.remove('tier-high', 'tier-mid', 'tier-low');
+      if (playerPct > 50) UI.playerHpFill.classList.add('tier-high');
+      else if (playerPct > 25) UI.playerHpFill.classList.add('tier-mid');
+      else UI.playerHpFill.classList.add('tier-low');
     }
+    const playerGhost = document.getElementById('player-hp-ghost');
+    if (playerGhost) {
+      playerGhost.style.transition = 'none';
+      playerGhost.style.width = `${playerPct}%`;
+    }
+
+    const enemyPct = Math.max(0, Math.min(100, (this.opponentHp / this.opponentMaxHp) * 100));
+    if (UI.enemyHpFill) {
+      UI.enemyHpFill.style.width = `${enemyPct}%`;
+      UI.enemyHpFill.classList.remove('tier-high', 'tier-mid', 'tier-low');
+      if (enemyPct > 50) UI.enemyHpFill.classList.add('tier-high');
+      else if (enemyPct > 25) UI.enemyHpFill.classList.add('tier-mid');
+      else UI.enemyHpFill.classList.add('tier-low');
+    }
+    const enemyGhost = document.getElementById('enemy-hp-ghost');
+    if (enemyGhost) {
+      enemyGhost.style.transition = 'none';
+      enemyGhost.style.width = `${enemyPct}%`;
+    }
+
+    if (UI.updateShield) {
+      UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, this.myShield);
+      UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, this.opponentShield);
+    }
+
+    if (UI.renderStatuses) {
+      UI.renderStatuses(UI.playerStatusContainer, this.myStatuses);
+      UI.renderStatuses(UI.enemyStatusContainer, this.opponentStatuses);
+    }
+
+    if (UI.renderPoints) {
+      UI.renderPoints(UI.playerPoints, this.myPoints);
+      UI.renderPoints(UI.enemyPoints, this.opponentPoints);
+    }
+
+    if (UI.updateQuestTracker) {
+      UI.updateQuestTracker(this.activeQuest);
+    }
+
+    const hudTokensVal = document.getElementById('player-tokens-val');
+    if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+
+    const deckCountEl = document.getElementById('deck-count-val');
+    if (deckCountEl && this.deck) deckCountEl.innerText = this.deck.length;
+
+    if (data.clashHistory && UI.updateClashLog) {
+      UI.updateClashLog(data.clashHistory);
+    }
+
+    // 4. Render Active Screen Based on State
+    if (data.state === 'BATTLE') {
+      UI.showScreen('battle');
+      UI.renderHand(this.hand, true, false);
+      if (UI.updateOpponentHandSize) {
+        UI.updateOpponentHandSize(data.opponentHandCount || 0);
+      }
+
+      // Handle card selection & locked status
+      if (data.yourLocked) {
+        UI.selectedCardInstanceId = data.yourSelectedCardId;
+        UI.isLocked = true;
+        UI.lockBtn.classList.remove('disabled', 'ready-state');
+        UI.lockBtn.classList.add('locked-state');
+        UI.lockBtn.disabled = true;
+        UI.lockBtn.innerHTML = '<span class="lock-btn-text">DIKUNCI</span>';
+
+        if (data.yourSelectedCardId) {
+          const cardObj = this.hand.find(c => c.instanceId === data.yourSelectedCardId);
+          if (cardObj) {
+            const slotCard = UI.createCardElement(cardObj);
+            slotCard.removeAttribute('id');
+            slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
+            UI.playerPlaySlot.innerHTML = '';
+            UI.playerPlaySlot.appendChild(slotCard);
+            UI.playerPlaySlot.classList.add('filled');
+            const handCardEl = UI.playerHand.querySelector(`.card[data-instance-id="${data.yourSelectedCardId}"]`);
+            if (handCardEl) handCardEl.style.opacity = '0';
+          }
+        }
+      } else {
+        UI.isLocked = false;
+        UI.clearArenaSlots();
+        if (data.yourSelectedCardId) {
+          const cardEl = UI.playerHand.querySelector(`.card[data-instance-id="${data.yourSelectedCardId}"]`);
+          if (cardEl) {
+            UI.selectCard(cardEl, data.yourSelectedCardId);
+          }
+        } else {
+          UI.selectedCardInstanceId = null;
+          UI.lockBtn.classList.add('disabled');
+          UI.lockBtn.classList.remove('ready-state', 'locked-state');
+          UI.lockBtn.disabled = true;
+          UI.lockBtn.innerHTML = '<span class="lock-btn-text">PILIH KARTU</span>';
+        }
+      }
+
+      // Opponent lock status
+      if (data.opponentLocked) {
+        if (!UI.enemyPlaySlot.querySelector('.card')) {
+          const enemyCard = document.createElement('div');
+          enemyCard.className = 'card enemy-played-card';
+          enemyCard.innerHTML = '<div class="card-back"><i class="fa-solid fa-shield-halved"></i></div>';
+          UI.enemyPlaySlot.innerHTML = '';
+          UI.enemyPlaySlot.appendChild(enemyCard);
+          UI.enemyPlaySlot.classList.add('filled');
+        }
+      } else {
+        UI.enemyPlaySlot.innerHTML = '';
+        UI.enemyPlaySlot.classList.remove('filled');
+      }
+
+      // Turn countdown timer
+      if (data.phaseEndsAt && !data.yourLocked) {
+        const remainingSec = Math.max(0, Math.round((data.phaseEndsAt - Date.now()) / 1000));
+        if (remainingSec > 0) {
+          UI.startTurnTimer(remainingSec);
+        } else {
+          UI.stopTurnTimer();
+        }
+      } else {
+        UI.stopTurnTimer();
+      }
+
+    } else if (data.state === 'QUEST_PHASE') {
+      if (!data.questLocked) {
+        this.onQuestSelectionStart({
+          quests: data.offeredQuests || [],
+          rerollsLeft: 1 - (data.questRerollCount || 0),
+          deck: this.deck,
+          relics: this.myRelics
+        });
+      } else {
+        this.onWaitingForOpponentQuest();
+      }
+
+    } else if (data.state === 'PREPARATION_PHASE') {
+      if (data.currentPrepStep) {
+        const step = data.currentPrepStep;
+        if (step.type === 'RELIC_CHOICE') {
+          this.onRelicChoiceStart(step);
+        } else if (step.type === 'BONUS_PICK') {
+          this.onBonusPickStart(step);
+        } else if (step.type === 'PACK_SELECTION') {
+          this.onPackSelectionStart(step);
+        } else if (step.type === 'PACK_REVEAL') {
+          this.onPackRevealStart(step);
+        } else if (step.type === 'CARD_REMOVAL') {
+          this.onCardRemovalStart({ deck: this.deck, removalTokens: this.myRemovalTokens });
+        }
+      } else {
+        this.onWaitingForOpponentPreparation();
+      }
+
+      // Prep timer
+      if (data.phaseEndsAt) {
+        const remainingSec = Math.max(0, Math.round((data.phaseEndsAt - Date.now()) / 1000));
+        this.onPrepTimerStarted({ secondsLeft: remainingSec });
+      }
+    }
+  },
+
+  onReconnectSuccess(data) {
+    this.applyStateSnapshot(data);
+    if (window.UI) {
+      window.UI.showToast('Reconnected to active match!');
+    }
+  },
+
+  onStateSync(data) {
+    this.applyStateSnapshot(data);
   },
 
   onOpponentDisconnected(data) {
@@ -410,6 +546,16 @@ const GameManager = {
 
   bindEvents() {
     const UI = window.UI;
+    // Tab visibility sync listener
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && window.socket && window.socket.connected && this.currentRoomId) {
+        console.log('[GameManager] Tab became visible in active match. Requesting state sync...');
+        if (window.SocketService && window.SocketService.requestStateSync) {
+          window.SocketService.requestStateSync();
+        }
+      }
+    });
+
 
     // Play button triggers matchmaking
     const playBtnEl = document.getElementById('play-btn');
@@ -1078,6 +1224,13 @@ const GameManager = {
       if (data.clashHistory && window.UI.updateClashLog) window.UI.updateClashLog(data.clashHistory);
     }
     this.currentRoundResult = data;
+
+    // If visual pipeline is already running when new roundResult arrives (tab woke up), fast-forward immediately
+    if (this.isVisualPipelineRunning && window.ClashPipeline && window.ClashPipeline.fastForward) {
+      console.log('[GameManager] Fast-forwarding previous clash pipeline due to incoming roundResult');
+      window.ClashPipeline.fastForward(this);
+    }
+
     this.tryResolveVisualPipeline();
   },
 
@@ -1126,6 +1279,11 @@ const GameManager = {
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
     if (globalTimer) globalTimer.classList.add('hidden');
     if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+    if (this._prepTimerClientInterval) {
+      clearInterval(this._prepTimerClientInterval);
+      this._prepTimerClientInterval = null;
+      this._prepTimerEndsAt = null;
+    }
 
     UI.showScreen('questSelection');
     
@@ -1329,6 +1487,11 @@ const GameManager = {
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
     if (globalTimer) globalTimer.classList.add('hidden');
     if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+    if (this._prepTimerClientInterval) {
+      clearInterval(this._prepTimerClientInterval);
+      this._prepTimerClientInterval = null;
+      this._prepTimerEndsAt = null;
+    }
 
     this.roundFinishedShowing = false;
     this.pendingDraftPhase = null;
@@ -2051,6 +2214,11 @@ const GameManager = {
 
   onPrepFinished() {
     const UI = window.UI;
+    const globalTimer = document.getElementById('global-prep-timer');
+    if (globalTimer) globalTimer.classList.add('hidden');
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    if (waitingTimerContainer) waitingTimerContainer.classList.remove('hidden');
+
     const waitingText = document.querySelector('#waiting-screen p');
     if (waitingText) {
       waitingText.innerText = 'Waiting for opponent to complete their preparation...';
@@ -2065,8 +2233,13 @@ const GameManager = {
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
     const waitingTimerVal = document.getElementById('waiting-timer-val');
 
-    if (globalTimerVal) globalTimerVal.innerText = data.secondsLeft;
-    if (waitingTimerVal) waitingTimerVal.innerText = data.secondsLeft;
+    let secondsLeft = data.secondsLeft !== undefined ? data.secondsLeft : (data.duration || 90);
+    if (data.endsAt) {
+      secondsLeft = Math.max(0, Math.round((data.endsAt - Date.now()) / 1000));
+    }
+
+    if (globalTimerVal) globalTimerVal.innerText = secondsLeft;
+    if (waitingTimerVal) waitingTimerVal.innerText = secondsLeft;
 
     const isWaitingActive = UI.waitingScreen && UI.waitingScreen.classList.contains('active');
     
@@ -2076,6 +2249,7 @@ const GameManager = {
       } else {
         globalTimer.classList.remove('hidden');
       }
+      globalTimer.classList.toggle('urgent', secondsLeft <= 10);
     }
 
     if (waitingTimerContainer) {
@@ -2084,7 +2258,40 @@ const GameManager = {
       } else {
         waitingTimerContainer.classList.add('hidden');
       }
+      waitingTimerContainer.classList.toggle('urgent', secondsLeft <= 10);
     }
+
+    // Do not restart countdown if already running for the same deadline
+    if (this._prepTimerEndsAt && data.endsAt && Math.abs(this._prepTimerEndsAt - data.endsAt) < 2000 && this._prepTimerClientInterval) {
+      return;
+    }
+    this._prepTimerEndsAt = data.endsAt || (Date.now() + secondsLeft * 1000);
+
+    if (this._prepTimerClientInterval) {
+      clearInterval(this._prepTimerClientInterval);
+      this._prepTimerClientInterval = null;
+    }
+
+    this._prepTimerClientInterval = setInterval(() => {
+      const now = Date.now();
+      secondsLeft = Math.max(0, Math.round((this._prepTimerEndsAt - now) / 1000));
+
+      if (globalTimerVal) globalTimerVal.innerText = secondsLeft;
+      if (waitingTimerVal) waitingTimerVal.innerText = secondsLeft;
+
+      if (globalTimer) {
+        globalTimer.classList.toggle('urgent', secondsLeft <= 10);
+      }
+      if (waitingTimerContainer) {
+        waitingTimerContainer.classList.toggle('urgent', secondsLeft <= 10);
+      }
+
+      if (secondsLeft <= 0) {
+        clearInterval(this._prepTimerClientInterval);
+        this._prepTimerClientInterval = null;
+        this._prepTimerEndsAt = null;
+      }
+    }, 1000);
   },
 
   onPrepTimerTick(data) {
@@ -2094,8 +2301,9 @@ const GameManager = {
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
     const waitingTimerVal = document.getElementById('waiting-timer-val');
 
-    if (globalTimerVal) globalTimerVal.innerText = data.secondsLeft;
-    if (waitingTimerVal) waitingTimerVal.innerText = data.secondsLeft;
+    const secondsLeft = data.secondsLeft;
+    if (globalTimerVal) globalTimerVal.innerText = secondsLeft;
+    if (waitingTimerVal) waitingTimerVal.innerText = secondsLeft;
 
     const isWaitingActive = UI.waitingScreen && UI.waitingScreen.classList.contains('active');
 
@@ -2105,6 +2313,7 @@ const GameManager = {
       } else {
         globalTimer.classList.remove('hidden');
       }
+      globalTimer.classList.toggle('urgent', secondsLeft <= 10);
     }
 
     if (waitingTimerContainer) {
@@ -2113,6 +2322,7 @@ const GameManager = {
       } else {
         waitingTimerContainer.classList.add('hidden');
       }
+      waitingTimerContainer.classList.toggle('urgent', secondsLeft <= 10);
     }
   }
 };

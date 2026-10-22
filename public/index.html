@@ -246,10 +246,6 @@
         <p class="draft-subtitle">Select exactly <strong>5 cards</strong> to form your battle deck</p>
         
         <div class="draft-meta-row">
-          <div class="draft-meta-badge glass" id="draft-timer-box">
-            <i class="fa-solid fa-clock"></i>
-            <span>TIME LEFT: <strong id="draft-timer-val">20</strong>s</span>
-          </div>
           <div class="draft-meta-badge glass" id="draft-counter-box">
             <i class="fa-solid fa-clone"></i>
             <span>SELECTED: <strong id="draft-counter-val">0</strong> / 5</span>
@@ -534,7 +530,7 @@
       <div class="lobby-card glass" style="text-align: center; padding: 3rem 2rem;">
         <span class="loader" style="width: 36px; height: 36px; border-width: 3px; display: inline-block; margin-bottom: 1.5rem;"></span>
         <p style="color: var(--text-secondary); font-size: 1rem; font-weight: 600;">Your opponent is choosing their loser bonus card...</p>
-        <div id="waiting-timer-container" class="hidden" style="margin-top: 1.5rem; font-size: 1.25rem; font-weight: bold; color: #e74c3c;">
+        <div id="waiting-timer-container" class="waiting-timer-container hidden">
           Opponent has <span id="waiting-timer-val">30</span>s remaining!
         </div>
       </div>

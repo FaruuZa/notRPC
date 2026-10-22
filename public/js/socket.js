@@ -105,6 +105,12 @@ socket.on('reconnectSuccess', (data) => {
   }
 });
 
+socket.on('stateSync', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onStateSync(data);
+  }
+});
+
 socket.on('reconnectFailed', (msg) => {
   if (window.UI) {
     window.UI.hideReconnectBanner();
@@ -362,6 +368,9 @@ socket.on('opponentLeftRoom', () => {
 const SocketService = {
   reconnectMatch(token) {
     socket.emit('reconnectMatch', token);
+  },
+  requestStateSync() {
+    socket.emit('requestStateSync');
   },
   joinQueue(username, roomCode = '') {
     socket.emit('joinQueue', { username, roomCode });

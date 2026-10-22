@@ -41,6 +41,7 @@ function createRoom(roomId, player1, player2, io) {
         deck: deck1,
         selectedCardId: null,
         locked: false,
+        consecutiveTimeouts: 0,
         points: 0,
         statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0, thorn: 0 },
         relics: {},
@@ -68,6 +69,7 @@ function createRoom(roomId, player1, player2, io) {
         deck: deck2,
         selectedCardId: null,
         locked: false,
+        consecutiveTimeouts: 0,
         points: 0,
         statuses: { poison: 0, burn: 0, attackBuff: 0, weakness: 0, leech: 0, thorn: 0 },
         relics: {},
@@ -111,10 +113,16 @@ function cleanupRoom(roomId) {
 
   if (room.draftTimer) clearInterval(room.draftTimer);
   if (room.nextRoundTimeout) clearTimeout(room.nextRoundTimeout);
+  if (room.turnTimer) clearTimeout(room.turnTimer);
   if (room.prepTimer) clearInterval(room.prepTimer);
+  if (room.prepPhaseTimer) clearTimeout(room.prepPhaseTimer);
 
   Object.keys(room.players).forEach(socketId => {
     const p = room.players[socketId];
+    if (p && p.prepStepTimer) {
+      clearTimeout(p.prepStepTimer);
+      p.prepStepTimer = null;
+    }
     if (p && p.userId) delete userToRoom[p.userId];
     delete playerToRoom[socketId];
   });

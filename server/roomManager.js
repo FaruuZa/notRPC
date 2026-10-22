@@ -46,14 +46,21 @@ module.exports = {
   handleRerollPrep: prepPhase.handleRerollPrep,
   advancePlayerPrepQueue: prepPhase.advancePlayerPrepQueue,
   startPrepTimer: prepPhase.startPrepTimer,
+  startPrepPhaseTimer: prepPhase.startPrepPhaseTimer,
+  clearPrepPhaseTimer: prepPhase.clearPrepPhaseTimer,
   clearPrepTimer: prepPhase.clearPrepTimer,
+  startPlayerPrepTimer: prepPhase.startPlayerPrepTimer,
+  clearPlayerPrepTimer: prepPhase.clearPlayerPrepTimer,
+  handlePlayerPrepTimeout: prepPhase.handlePlayerPrepTimeout,
   autoResolvePlayerPrepQueue: prepPhase.autoResolvePlayerPrepQueue,
   proceedToQuestPhase: prepPhase.proceedToQuestPhase,
 
   // Reconnection & Rematch (reconnect.js)
+  buildStateSnapshot: reconnect.buildStateSnapshot,
   handleDisconnect: reconnect.handleDisconnect,
   checkPendingReconnect: reconnect.checkPendingReconnect,
   handleReconnectMatch: reconnect.handleReconnectMatch,
+  handleRequestStateSync: reconnect.handleRequestStateSync,
   handleSurrender: reconnect.handleSurrender,
   handleRequestRematch: reconnect.handleRequestRematch,
 

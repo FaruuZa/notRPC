@@ -4,6 +4,35 @@
  */
 
 const ClashPipeline = {
+  _aborted: false,
+
+  /**
+   * Instantly fast-forwards and cancels any running animations and delays
+   */
+  fastForward(gm) {
+    this._aborted = true;
+    if (window.anime) {
+      try {
+        anime.remove('*');
+      } catch (e) {}
+    }
+    document.querySelectorAll('.floating-combat-text, .damage-popup, .relic-combat-toast, body > .card').forEach(el => el.remove());
+
+    if (window.UI) {
+      window.UI.clearArenaSlots();
+      if (window.UI.arenaCombatText) window.UI.arenaCombatText.innerText = '';
+    }
+
+    const handWrapper = document.querySelector('.hand-container-wrapper');
+    if (handWrapper) handWrapper.classList.remove('clash-dimmed');
+
+    if (gm) {
+      gm.isVisualPipelineRunning = false;
+      gm.currentRoundReveal = null;
+      gm.currentRoundResult = null;
+    }
+  },
+
   /**
    * Runs the sequential clash visual pipeline
    * @param {Object} gm The GameManager instance
@@ -20,6 +49,7 @@ const ClashPipeline = {
     const Animations = window.Animations;
 
     // Set state running
+    this._aborted = false;
     gm.isVisualPipelineRunning = true;
 
     // Dim player hand during active clash sequence so cards remain legible but non-distracting
@@ -832,11 +862,13 @@ try {
       console.error("Error in visual pipeline:", err);
     } finally {
       // Mark visual pipeline as complete and check for pending overlays
+      const wasAborted = this._aborted;
+      this._aborted = false;
       gm.isVisualPipelineRunning = false;
       const handWrapper = document.querySelector('.hand-container-wrapper');
       if (handWrapper) handWrapper.classList.remove('clash-dimmed');
       gm.checkAndTriggerEndPhase();
-      if (window.SocketService && window.SocketService.clashFinished) {
+      if (!wasAborted && window.SocketService && window.SocketService.clashFinished) {
         window.SocketService.clashFinished();
       }
     }
