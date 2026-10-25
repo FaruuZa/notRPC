@@ -11,6 +11,7 @@ const matchmaking = require('./matchmaking');
 const roomManager = require('./roomManager');
 
 const app = express();
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Parse JSON bodies
 app.use(express.json());
@@ -143,6 +144,10 @@ io.on('connection', (socket) => {
   
   // Emit compendium database
   socket.emit('compendiumData', { cards: CARD_POOL, relics: Object.values(RELIC_POOL), questTemplates: QUEST_TEMPLATES });
+  
+  socket.on('requestCompendium', () => {
+    socket.emit('compendiumData', { cards: CARD_POOL, relics: Object.values(RELIC_POOL), questTemplates: QUEST_TEMPLATES });
+  });
   
   // Broadcast online count
   io.emit('onlineCountUpdate', io.engine.clientsCount);

@@ -2,6 +2,35 @@
  * ELEMENT CLASH: MODALS, OVERLAYS, TOOLTIPS & DRAWERS
  */
 
+
+/* OVERLAY ENFORCEMENT & CENTERING */
+#game-over-screen,
+#round-result-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  background-color: rgba(10, 14, 22, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 1000 !important;
+  display: none;
+  justify-content: center !important;
+  align-items: center !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#round-result-overlay.active {
+  display: flex !important;
+  z-index: 1000 !important;
+}
+
+#game-over-screen.active {
+  display: flex !important;
+  z-index: 1005 !important; /* Strictly stacks over round result */
+}
+
 /*GAME OVER PANEL */
 .game-over-card {
   width: 90%;
@@ -262,10 +291,8 @@
   gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
-  max-height: calc(85dvh - 280px);
   overflow-y: auto;
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
 }
 

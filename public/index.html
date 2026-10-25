@@ -6,24 +6,42 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
   <title>Element Clash: Realtime Multiplayer Card Game</title>
   <!-- Google Fonts for premium appearance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/base.css?v=1.0.6">
-  <link rel="stylesheet" href="css/lobby.css?v=1.0.6">
-  <link rel="stylesheet" href="css/battle.css?v=1.0.6">
-  <link rel="stylesheet" href="css/prep.css?v=1.0.6">
-  <link rel="stylesheet" href="css/overlays.css?v=1.0.6">
-  <link rel="stylesheet" href="css/effects.css?v=1.0.6">
-  <link rel="stylesheet" href="css/mobile.css?v=1.0.6">
+  <link rel="stylesheet" href="css/base.css?v=2.0.18">
+  <link rel="stylesheet" href="css/lobby.css?v=2.0.18">
+  <link rel="stylesheet" href="css/battle.css?v=2.0.18">
+  <link rel="stylesheet" href="css/prep.css?v=2.0.18">
+  <link rel="stylesheet" href="css/overlays.css?v=2.0.18">
+  <link rel="stylesheet" href="css/effects.css?v=2.0.18">
+  <link rel="stylesheet" href="css/mobile.css?v=2.0.18">
   
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+
+  <!-- Diagonal Slash Page Transition Overlay -->
+  <div id="slash" aria-hidden="true"><div class="band band-a"></div><div class="band band-b"></div></div>
+
+<!-- Initial Gate / Loading Screen (Minimalist Cinematic Brand Splash, No Box, No Buttons) -->
+  <div id="gate-screen" class="gate-overlay">
+    <div class="gate-center-brand">
+      <div class="gate-kicker">AUTHENTICATING COMBATANT</div>
+      <h1 class="gate-brand-title">ELEMENT CLASH</h1>
+      <div class="gate-brand-line"></div>
+      <div class="gate-loading-row">
+        <div class="gate-spinner"></div>
+        <span id="gate-status-text">INITIALIZING ARENA DOSSIER...</span>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Orientation Overlay: Forces Landscape Mode on Mobile -->
   <div id="orientation-overlay" class="overlay">
@@ -43,198 +61,658 @@
     </div>
   </div>
 
-  <!-- Screen 0: Auth Modal (Login / Register) -->
-  <div id="auth-screen" class="screen">
-    <div class="stars-bg"></div>
-    <div class="auth-container glass">
-      <header class="logo-area">
-        <h1 class="logo-main">ELEMENT <span class="accent-text">CLASH</span></h1>
-      </header>
-
-      <div class="auth-tabs">
-        <button id="auth-tab-login" class="auth-tab active">LOGIN</button>
-        <button id="auth-tab-register" class="auth-tab">REGISTER</button>
-      </div>
-
-      <!-- Login Form -->
-      <form id="login-form" class="auth-form">
-        <div class="input-group">
-          <label for="login-username">Username</label>
-          <input type="text" id="login-username" placeholder="Enter username..." required maxlength="15">
-        </div>
-        <div class="input-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" placeholder="Enter password..." required>
-        </div>
-        <div id="auth-error-login" class="auth-error-msg hidden"></div>
-        <button type="submit" class="btn btn-primary full-width">
-          <span class="btn-text">SIGN IN</span>
-        </button>
-      </form>
-
-      <!-- Register Form -->
-      <form id="register-form" class="auth-form hidden">
-        <div class="input-group">
-          <label for="register-username">Username</label>
-          <input type="text" id="register-username" placeholder="3-15 characters..." required maxlength="15">
-        </div>
-        <div class="input-group">
-          <label for="register-password">Password</label>
-          <input type="password" id="register-password" placeholder="At least 4 characters..." required>
-        </div>
-        <div id="auth-error-register" class="auth-error-msg hidden"></div>
-        <button type="submit" class="btn btn-primary full-width">
-          <span class="btn-text">CREATE ACCOUNT</span>
-        </button>
-      </form>
-
-      <div class="guest-divider"><span>OR PLAY ANONYMOUSLY</span></div>
-      <button id="guest-play-btn" class="btn btn-secondary full-width">
-        <i class="fa-solid fa-user-ninja"></i> PLAY AS GUEST
-      </button>
-    </div>
-  </div>
-
   <!-- Screen 1: Lobby & Main Navigation Screen -->
   <div id="matchmaking-screen" class="screen active">
-    <div class="stars-bg"></div>
-    
-    <div class="lobby-container">
-      <header class="logo-area">
-        <h1 class="logo-main">ELEMENT <span class="accent-text">CLASH</span></h1>
-      </header>
+    <!-- Tab 1: Arena / Main Menu Navigation -->
+    <div id="arena-tab" class="tab-content active" style="width: 100%; height: 100%;">
+      <div class="lobby-container">
+        <!-- Atlus Persona Wordmark -->
+        <div class="wordmark">
+          <div class="wm-line">ELEMENT</div>
+          <div class="wm-line red">CLASH</div>
+          <div class="wm-sub">Realtime Card Duel</div>
+          <div class="element-strip" aria-hidden="true">
+            <span class="f"></span><span class="w"></span><span class="n"></span><span class="u"></span><span class="c"></span>
+          </div>
+        </div>
 
-      <!-- Navigation Tabs -->
-      <nav class="lobby-nav-tabs glass">
-        <button class="nav-tab active" data-tab="arena-tab">
-          <i class="fa-solid fa-swords"></i> ARENA
-        </button>
-        <button class="nav-tab" data-tab="stats-tab">
-          <i class="fa-solid fa-chart-simple"></i> STATS & PROFILE
-        </button>
-        <button class="nav-tab" data-tab="history-tab">
-          <i class="fa-solid fa-clock-rotate-left"></i> HISTORY
-        </button>
-      </nav>
+        <!-- Persona Menu Navigation Slots -->
+        <nav class="menu-nav" aria-label="Main menu">
+          <!-- 01 PLAY -->
+          <div class="nav-slot" id="play-slot">
+            <button class="nav-btn" id="play-btn" type="button" aria-expanded="false">
+              <span class="nav-num">01</span>
+              <span class="nav-label">Play</span>
+              <i class="fa-solid fa-chevron-down nav-caret"></i>
+            </button>
+            <div class="play-sub" id="play-sub">
+              <div class="play-sub-inner">
+                <div class="field" id="guest-username-group">
+                  <label for="username-input">Battle Name</label>
+                  <input type="text" id="username-input" class="code-input" placeholder="e.g. ShadowBlade" maxlength="15" autocomplete="off">
+                  <div class="guest-login-hint" id="guest-login-hint" style="font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem;">
+                    Have an account? <button type="button" class="btn-ghost nav-tab" data-tab="stats-tab" id="guest-login-link" style="padding: 0; text-decoration: underline; color: var(--brass-light); font-size: inherit;">Log In</button>
+                  </div>
+                </div>
 
-      <!-- Tab 1: Arena Matchmaking View -->
-      <div id="arena-tab" class="tab-content active">
-        <div class="lobby-card glass">
-          <div class="input-group" id="guest-username-group">
-            <label for="username-input">Enter Battle Name</label>
-            <input type="text" id="username-input" placeholder="e.g. ShadowBlade" maxlength="15">
-            <div class="guest-login-hint" id="guest-login-hint">
-              Already have an account? <button type="button" class="link-btn" id="guest-login-link">Log In</button>
+                <button class="sub-btn sub-btn-red" id="quickplay-btn" type="button">
+                  <div>
+                    <div class="sub-name">Quick Match</div>
+                    <div class="sub-desc">Queue for ranked matchmaking</div>
+                  </div>
+                  <i class="fa-solid fa-bolt"></i>
+                </button>
+
+                <button class="sub-btn" id="custom-btn" type="button">
+                  <div>
+                    <div class="sub-name">Custom Duel</div>
+                    <div class="sub-desc">Create or join with a room code</div>
+                  </div>
+                  <i class="fa-solid fa-dice-d20"></i>
+                </button>
+
+                <div class="code-row" id="code-row">
+                  <input type="text" id="room-code-input" class="code-input" placeholder="CODE..." maxlength="12" autocomplete="off" spellcheck="false">
+                  <button class="btn btn-red code-go" id="code-go-btn" type="button">JOIN</button>
+                  <button class="btn btn-secondary code-go" id="create-room-btn" type="button">CREATE</button>
+                </div>
+
+                <div class="matchmaking-status-box">
+                  <div id="status-text" style="font-size: 0.82rem; font-weight: 700; color: var(--muted);">Ready to enter the arena...</div>
+                  <div id="queue-status-sub" class="hidden" style="font-size: 0.78rem; color: var(--brass-light); margin-top: 0.2rem;">
+                    <span class="loader"></span> Searching for opponent...
+                  </div>
+                </div>
+
+                <button id="leave-queue-btn" class="btn btn-secondary hidden" style="width: 100%; margin-top: 0.4rem;">
+                  LEAVE QUEUE
+                </button>
+              </div>
             </div>
           </div>
-          
-          <div class="input-group room-code-group" id="room-code-group">
-            <label for="room-code-input">
-              <i class="fa-solid fa-key"></i> Room Code <span class="label-optional">(Optional)</span>
-            </label>
-            <input type="text" id="room-code-input" placeholder="e.g. DUEL42 (Leave empty for public queue)" maxlength="12" autocomplete="off" spellcheck="false">
+
+          <!-- 02 PROFILE & STATS -->
+          <div class="nav-slot" id="stats-nav-slot">
+            <button class="nav-btn nav-tab" id="stats-btn" type="button" data-tab="stats-tab">
+              <span class="nav-num" id="stats-nav-num">02</span>
+              <span class="nav-label" id="stats-nav-label">Profile &amp; Stats</span>
+              <i class="fa-solid fa-arrow-right nav-caret"></i>
+            </button>
           </div>
 
-          <div class="matchmaking-status-box">
-            <div id="status-text">Ready to enter the arena...</div>
-            <div id="queue-status-sub" class="hidden">
-              <span class="loader"></span>
-              Searching for opponent...
-            </div>
+          <!-- 03 HISTORY (Shown for Authenticated Players) -->
+          <div class="nav-slot" id="history-nav-slot">
+            <button class="nav-btn nav-tab" id="history-btn" type="button" data-tab="history-tab">
+              <span class="nav-num" id="history-nav-num">03</span>
+              <span class="nav-label">Match History</span>
+              <i class="fa-solid fa-arrow-right nav-caret"></i>
+            </button>
           </div>
 
-          <button id="play-btn" class="btn btn-primary">
-            <span class="btn-text">FIND MATCH</span>
-            <span class="btn-glow"></span>
+          <!-- 04 GAME LIBRARY -->
+          <div class="nav-slot" id="library-nav-slot">
+            <button class="nav-btn nav-tab" id="open-compendium-btn" type="button" data-tab="library-tab">
+              <span class="nav-num" id="library-nav-num">04</span>
+              <span class="nav-label">Game Library</span>
+              <i class="fa-solid fa-arrow-right nav-caret"></i>
+            </button>
+          </div>
+        </nav>
+
+        <!-- Footer -->
+        <footer class="lobby-footer">
+          <div class="queue-counter">
+            <i class="fa-solid fa-circle" style="color: var(--nature); font-size: 0.5rem; vertical-align: middle; margin-right: 0.3rem;"></i>
+            <span>Online: <strong id="online-count-display" style="color: var(--ink);">1</strong></span>
+          </div>
+          <div class="queue-counter">
+            <i class="fa-solid fa-users" style="margin-right: 0.3rem;"></i>
+            <span>Queue: <strong id="queue-count-display" style="color: var(--ink);">0</strong></span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Tab 2: Profile, Stats & Account View -->
+    <div id="stats-tab" class="tab-content hidden" style="width: 100%; height: 100%;">
+      <div class="page">
+        <div class="back-row">
+          <button class="back-btn nav-tab" type="button" data-tab="arena-tab">
+            <i class="fa-solid fa-arrow-left"></i> Main Menu
           </button>
+        </div>
+        <div class="page-head">
+          <div class="page-kicker" id="profile-kicker">02 — Dossier &amp; Statistics</div>
+          <div class="stack-head"><h1 class="page-title" id="profile-title">Combatant Dossier</h1></div>
+          <p class="page-sub" id="profile-subtitle">Career statistics, ranked progression, and profile credentials.</p>
+        </div>
 
-          <button id="leave-queue-btn" class="btn btn-secondary hidden">
-            LEAVE QUEUE
+        <!-- AUTHENTICATED USER DOSSIER -->
+        <div id="auth-user-section" class="auth-section-box hidden">
+          <div class="profile-line">
+            <div class="profile-info-block">
+              <div class="profile-name" id="stat-username"><span id="user-display-name">Player</span></div>
+              <div class="profile-meta" id="stat-joined-date">Authenticated Combatant</div>
+            </div>
+            <div class="rank-block" id="stat-rank-name">GOLD I</div>
+            <button type="button" class="btn btn-sm btn-red" id="session-logout-btn" style="margin-left: auto;">
+              <i class="fa-solid fa-right-from-bracket"></i> LOG OUT
+            </button>
+          </div>
+
+          <div class="stat-rows">
+            <div class="stat-row">
+              <span class="s-label">Total Matches</span>
+              <span class="s-value" id="stat-total-matches">0</span>
+              <span class="s-note">Career Duels</span>
+            </div>
+            <div class="stat-row">
+              <span class="s-label">Wins</span>
+              <span class="s-value" id="stat-wins" style="color: var(--nature);">0</span>
+              <span class="s-note">Victories</span>
+            </div>
+            <div class="stat-row">
+              <span class="s-label">Losses</span>
+              <span class="s-value" id="stat-losses" style="color: var(--red);">0</span>
+              <span class="s-note">Defeats</span>
+            </div>
+            <div class="stat-row">
+              <span class="s-label">Win Rate</span>
+              <span class="s-value" id="stat-winrate">0%</span>
+              <span class="s-note">Performance</span>
+            </div>
+            <div class="stat-row">
+              <span class="s-label">Win Streak</span>
+              <span class="s-value" id="stat-win-streak" style="color: var(--brass-light);">0</span>
+              <span class="s-note">Current Run</span>
+            </div>
+            <div class="stat-row">
+              <span class="s-label">Total Damage</span>
+              <span class="s-value" id="stat-total-damage">0</span>
+              <span class="s-note">Damage Dealt</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- GUEST DOSSIER & INTEGRATED AUTH FORM (ENHANCED ATLU/PERSONA TERMINAL) -->
+        <div id="auth-guest-section" class="auth-section-box">
+          <div class="auth-guest-grid">
+            <!-- Left Card: Guest Dossier & Ranked Perks -->
+            <div class="guest-dossier-card glass">
+              <div class="dossier-badge-header">
+                <span class="guest-status-pill"><i class="fa-solid fa-user-ninja"></i> GUEST CADET</span>
+                <span class="rank-block unranked">UNRANKED</span>
+              </div>
+              <h2 class="dossier-card-title">RECORD YOUR COMBAT CAREER</h2>
+              <p class="guest-dossier-text">
+                You are currently deployed as an unregistered Guest. Duel outcomes, match history, and leaderboard rating will not persist across browser sessions. Sign in to forge your permanent record.
+              </p>
+              
+              <div class="dossier-perks-list">
+                <div class="perk-item">
+                  <div class="perk-icon"><i class="fa-solid fa-trophy"></i></div>
+                  <div class="perk-info">
+                    <span class="perk-title">Ranked MMR &amp; Tiers</span>
+                    <span class="perk-desc">Climb competitive seasons from Bronze to Grandmaster.</span>
+                  </div>
+                </div>
+                <div class="perk-item">
+                  <div class="perk-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                  <div class="perk-info">
+                    <span class="perk-title">Tactical Match History</span>
+                    <span class="perk-desc">Review previous rounds, score differentials, and card drafts.</span>
+                  </div>
+                </div>
+                <div class="perk-item">
+                  <div class="perk-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                  <div class="perk-info">
+                    <span class="perk-title">Cross-Device Persistence</span>
+                    <span class="perk-desc">Resume your combatant profile on desktop or mobile.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Card: Authentication Terminal -->
+            <div class="auth-terminal-card glass">
+              <div class="auth-terminal-header">
+                <div class="terminal-kicker">TERMINAL ACCESS // VERIFY CREDENTIALS</div>
+                <div class="auth-switch">
+                  <button type="button" id="tab-login-btn" class="auth-switch-btn active">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> SIGN IN
+                  </button>
+                  <button type="button" id="tab-register-btn" class="auth-switch-btn">
+                    <i class="fa-solid fa-user-plus"></i> REGISTER
+                  </button>
+                </div>
+              </div>
+
+              <!-- Login Form -->
+              <form id="login-form" class="auth-form-body">
+                <div class="auth-field">
+                  <label for="login-username" class="auth-label">
+                    <i class="fa-solid fa-id-badge"></i> BATTLE NAME
+                  </label>
+                  <div class="auth-input-wrapper">
+                    <input type="text" id="login-username" placeholder="e.g. ShadowBlade" required maxlength="15" autocomplete="username">
+                  </div>
+                </div>
+                <div class="auth-field">
+                  <label for="login-password" class="auth-label">
+                    <i class="fa-solid fa-key"></i> ACCESS KEY
+                  </label>
+                  <div class="auth-input-wrapper">
+                    <input type="password" id="login-password" placeholder="Enter password..." required autocomplete="current-password">
+                  </div>
+                </div>
+                <div id="auth-error-login" class="auth-error-msg hidden"></div>
+                <button type="submit" class="btn btn-auth-submit">
+                  <span>SIGN IN TO ARENA</span>
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </form>
+
+              <!-- Register Form -->
+              <form id="register-form" class="auth-form-body hidden">
+                <div class="auth-field">
+                  <label for="register-username" class="auth-label">
+                    <i class="fa-solid fa-user-tag"></i> NEW BATTLE NAME
+                  </label>
+                  <div class="auth-input-wrapper">
+                    <input type="text" id="register-username" placeholder="3-15 characters..." required maxlength="15" autocomplete="username">
+                  </div>
+                </div>
+                <div class="auth-field">
+                  <label for="register-password" class="auth-label">
+                    <i class="fa-solid fa-lock"></i> CREATE ACCESS KEY
+                  </label>
+                  <div class="auth-input-wrapper">
+                    <input type="password" id="register-password" placeholder="Minimum 4 characters..." required autocomplete="new-password">
+                  </div>
+                </div>
+                <div id="auth-error-register" class="auth-error-msg hidden"></div>
+                <button type="submit" class="btn btn-auth-submit btn-auth-register">
+                  <span>ENLIST COMBATANT</span>
+                  <i class="fa-solid fa-bolt"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Match History View -->
+    <div id="history-tab" class="tab-content hidden" style="width: 100%; height: 100%;">
+      <div class="page">
+        <div class="back-row">
+          <button class="back-btn nav-tab" type="button" data-tab="arena-tab">
+            <i class="fa-solid fa-arrow-left"></i> Main Menu
+          </button>
+        </div>
+        <div class="page-head">
+          <div class="page-kicker">03 — History</div>
+          <div class="stack-head"><h1 class="page-title">Match History</h1></div>
+          <p class="page-sub">Your recent duels, newest first.</p>
+        </div>
+
+        <div class="history-list" id="history-list">
+          <!-- Populated dynamically with consistent slab geometry -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Game Library / Compendium Full Page -->
+    <div id="library-tab" class="tab-content hidden" style="width: 100%; height: 100%;">
+      <div class="page">
+        <div class="back-row">
+          <button class="back-btn nav-tab" type="button" data-tab="arena-tab">
+            <i class="fa-solid fa-arrow-left"></i> Main Menu
+          </button>
+        </div>
+        <div class="page-head">
+          <div class="page-kicker">04 — Game Library</div>
+          <div class="stack-head"><h1 class="page-title">Compendium</h1></div>
+          <p class="page-sub">Cards, relics, and rules of the duel.</p>
+        </div>
+
+        <!-- Sub Tabs (Relics first, then Cards, Matchups, Rules) - Pure Typography -->
+        <div class="modal-tabs lib-tabs">
+          <button class="modal-tab-btn lib-tab active" id="modal-compendium-tab-relics" type="button">
+            RELICS
+          </button>
+          <button class="modal-tab-btn lib-tab" id="modal-compendium-tab-cards" type="button">
+            CARDS
+          </button>
+          <button class="modal-tab-btn lib-tab" id="modal-compendium-tab-matchups" type="button">
+            MATCHUPS
+          </button>
+          <button class="modal-tab-btn lib-tab" id="modal-compendium-tab-rules" type="button">
+            RULES
           </button>
         </div>
 
-        <button id="open-compendium-btn" class="btn btn-secondary" style="margin-top: 1rem;">
-          <i class="fa-solid fa-book-open"></i> GAME LIBRARY
-        </button>
-      </div>
+        <!-- Relics Tab Content (Default Active) -->
+        <div class="tab-content active" id="modal-compendium-relics-content">
+          <div class="compendium-scroll-area" id="compendium-relics-grid"></div>
+        </div>
 
-      <!-- Tab 2: Profile & Stats View -->
-      <div id="stats-tab" class="tab-content hidden">
-        <div class="stats-container glass">
-          <div class="stats-header">
-            <div class="rank-badge glass">
-              <i class="fa-solid fa-trophy rank-icon"></i>
-              <span id="stat-rank-name">GOLD I</span>
+        <!-- Cards Tab Content -->
+        <div class="tab-content hidden" id="modal-compendium-cards-content" style="display: none;">
+          <div id="modal-compendium-filters" class="compendium-filters">
+            <button class="filter-btn active" data-element="ALL" type="button">ALL</button>
+            <button class="filter-btn" data-element="FIRE" type="button">FIRE</button>
+            <button class="filter-btn" data-element="WATER" type="button">WATER</button>
+            <button class="filter-btn" data-element="NATURE" type="button">NATURE</button>
+            <button class="filter-btn" data-element="NEUTRAL" type="button">NEUTRAL</button>
+            <button class="filter-btn" data-element="CHAOS" type="button">CHAOS</button>
+          </div>
+          <div class="compendium-scroll-area" id="compendium-cards-grid"></div>
+        </div>
+
+        <!-- Matchups Tab Content (Sleek Atlus Affinity Matrix) -->
+        <div class="tab-content hidden" id="modal-compendium-matchups-content">
+          <div class="matchups-container">
+            <!-- Compact Cycle Strip -->
+            <div class="mu-cycle-strip">
+              <span class="mu-cycle-label">CYCLE:</span>
+              <span class="chip-el fire"><i class="fa-solid fa-fire"></i> FIRE</span>
+              <i class="fa-solid fa-angle-right mu-arrow"></i>
+              <span class="chip-el nature"><i class="fa-solid fa-leaf"></i> NATURE</span>
+              <i class="fa-solid fa-angle-right mu-arrow"></i>
+              <span class="chip-el water"><i class="fa-solid fa-droplet"></i> WATER</span>
+              <i class="fa-solid fa-angle-right mu-arrow"></i>
+              <span class="chip-el fire"><i class="fa-solid fa-fire"></i> FIRE</span>
+              <span class="mu-cycle-divider">&bull;</span>
+              <span style="color: var(--chaos); font-weight: 800;"><i class="fa-solid fa-bolt"></i> CHAOS</span> beats Triangle
+              <span class="mu-cycle-divider">&bull;</span>
+              <span style="color: var(--neutral); font-weight: 800;"><i class="fa-solid fa-shield-halved"></i> NEUTRAL</span> beats Chaos &amp; ties all
             </div>
-            <div class="user-stat-title">
-              <h3 id="stat-username"><span id="user-display-name">Guest Player</span></h3>
-              <span id="stat-joined-date">Playing as Guest</span>
-            </div>
-            <div class="stats-auth-action">
-              <button id="auth-action-btn" class="btn btn-sm btn-secondary">
-                <i class="fa-solid fa-right-to-bracket"></i> <span id="auth-btn-label">LOGIN</span>
-              </button>
+
+            <!-- Tabular Matrix Ledger -->
+            <div class="mu-matrix-ledger">
+              <div class="mu-ledger-header">
+                <div class="mu-col col-el">ELEMENT</div>
+                <div class="mu-col col-adv">SUPERIOR (COUNTERS)</div>
+                <div class="mu-col col-dis">INFERIOR (WEAK TO)</div>
+                <div class="mu-col col-tie">NEUTRAL (TIES)</div>
+              </div>
+
+              <!-- FIRE -->
+              <div class="mu-ledger-row fire">
+                <div class="mu-col col-el">
+                  <div class="el-badge fire"><i class="fa-solid fa-fire"></i> FIRE</div>
+                </div>
+                <div class="mu-col col-adv">
+                  <span class="chip-el nature"><i class="fa-solid fa-leaf"></i> NATURE</span>
+                </div>
+                <div class="mu-col col-dis">
+                  <span class="chip-el water"><i class="fa-solid fa-droplet"></i> WATER</span>
+                  <span class="chip-el chaos"><i class="fa-solid fa-bolt"></i> CHAOS</span>
+                </div>
+                <div class="mu-col col-tie">
+                  <span class="chip-el fire"><i class="fa-solid fa-fire"></i> FIRE</span>
+                  <span class="chip-el neutral"><i class="fa-solid fa-shield-halved"></i> NEUTRAL</span>
+                </div>
+              </div>
+
+              <!-- WATER -->
+              <div class="mu-ledger-row water">
+                <div class="mu-col col-el">
+                  <div class="el-badge water"><i class="fa-solid fa-droplet"></i> WATER</div>
+                </div>
+                <div class="mu-col col-adv">
+                  <span class="chip-el fire"><i class="fa-solid fa-fire"></i> FIRE</span>
+                </div>
+                <div class="mu-col col-dis">
+                  <span class="chip-el nature"><i class="fa-solid fa-leaf"></i> NATURE</span>
+                  <span class="chip-el chaos"><i class="fa-solid fa-bolt"></i> CHAOS</span>
+                </div>
+                <div class="mu-col col-tie">
+                  <span class="chip-el water"><i class="fa-solid fa-droplet"></i> WATER</span>
+                  <span class="chip-el neutral"><i class="fa-solid fa-shield-halved"></i> NEUTRAL</span>
+                </div>
+              </div>
+
+              <!-- NATURE -->
+              <div class="mu-ledger-row nature">
+                <div class="mu-col col-el">
+                  <div class="el-badge nature"><i class="fa-solid fa-leaf"></i> NATURE</div>
+                </div>
+                <div class="mu-col col-adv">
+                  <span class="chip-el water"><i class="fa-solid fa-droplet"></i> WATER</span>
+                </div>
+                <div class="mu-col col-dis">
+                  <span class="chip-el fire"><i class="fa-solid fa-fire"></i> FIRE</span>
+                  <span class="chip-el chaos"><i class="fa-solid fa-bolt"></i> CHAOS</span>
+                </div>
+                <div class="mu-col col-tie">
+                  <span class="chip-el nature"><i class="fa-solid fa-leaf"></i> NATURE</span>
+                  <span class="chip-el neutral"><i class="fa-solid fa-shield-halved"></i> NEUTRAL</span>
+                </div>
+              </div>
+
+              <!-- NEUTRAL -->
+              <div class="mu-ledger-row neutral">
+                <div class="mu-col col-el">
+                  <div class="el-badge neutral"><i class="fa-solid fa-shield-halved"></i> NEUTRAL</div>
+                </div>
+                <div class="mu-col col-adv">
+                  <span class="chip-el chaos"><i class="fa-solid fa-bolt"></i> CHAOS</span>
+                </div>
+                <div class="mu-col col-dis">
+                  <span class="chip-none">None</span>
+                </div>
+                <div class="mu-col col-tie">
+                  <span class="chip-el all">Ties All</span>
+                </div>
+              </div>
+
+              <!-- CHAOS -->
+              <div class="mu-ledger-row chaos">
+                <div class="mu-col col-el">
+                  <div class="el-badge chaos"><i class="fa-solid fa-bolt"></i> CHAOS</div>
+                </div>
+                <div class="mu-col col-adv">
+                  <span class="chip-el fire"><i class="fa-solid fa-fire"></i> FIRE</span>
+                  <span class="chip-el water"><i class="fa-solid fa-droplet"></i> WATER</span>
+                  <span class="chip-el nature"><i class="fa-solid fa-leaf"></i> NATURE</span>
+                </div>
+                <div class="mu-col col-dis">
+                  <span class="chip-el neutral"><i class="fa-solid fa-shield-halved"></i> NEUTRAL</span>
+                </div>
+                <div class="mu-col col-tie">
+                  <span class="chip-el chaos"><i class="fa-solid fa-bolt"></i> CHAOS</span>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div class="stats-grid">
-            <div class="stat-card glass">
-              <i class="fa-solid fa-gamepad stat-card-icon"></i>
-              <div class="stat-value" id="stat-total-matches">0</div>
-              <div class="stat-label">Total Matches</div>
+        <!-- Rules Tab Content: Visual Tactical Dossier -->
+        <!-- Rules Tab Content: Visual Tactical Dossier -->
+        <div class="tab-content hidden" id="modal-compendium-rules-content">
+          <div class="rules-dossier">
+            
+            <!-- Section 1: Core Flow Steps (Accurate flow: Starter deck, Quests, Prep phase) -->
+            <div class="rules-step-row">
+              <div class="rules-step-card">
+                <div class="rules-step-num">01</div>
+                <div class="rules-step-title"><i class="fa-solid fa-gamepad"></i> MATCH SETUP</div>
+                <p class="rules-step-desc">Enter your battle name and queue <strong>QUICK MATCH</strong> or establish a <strong>CUSTOM DUEL</strong> with a room code.</p>
+              </div>
+              <div class="rules-step-card">
+                <div class="rules-step-num">02</div>
+                <div class="rules-step-title"><i class="fa-solid fa-clone"></i> STARTER DECK</div>
+                <p class="rules-step-desc">Combatants start directly with balanced <strong>Starter Decks</strong>. Draw a 4-card hand each turn to clash in the arena.</p>
+              </div>
+              <div class="rules-step-card">
+                <div class="rules-step-num">03</div>
+                <div class="rules-step-title"><i class="fa-solid fa-eye-slash"></i> BLIND QUEST PICK</div>
+                <p class="rules-step-desc">Combatants secretly choose 1 quest from 3 randomized offers at the start of each round. Quests are hidden from your opponent. Completing your secret objective unlocks <strong>Relics, Bonus Packs, or Bonus Drafts</strong> plus <strong>Removal Tokens</strong>.</p>
+              </div>
+              <div class="rules-step-card">
+                <div class="rules-step-num">04</div>
+                <div class="rules-step-title"><i class="fa-solid fa-box-open"></i> PREPARATION PHASE</div>
+                <p class="rules-step-desc">Between rounds, pick <strong>Card Packs</strong>, claim <strong>Comeback Bonus Picks</strong> (loser), and spend tokens to <strong>Purify (remove) cards</strong> (min deck: 4).</p>
+              </div>
             </div>
-            <div class="stat-card glass">
-              <i class="fa-solid fa-crown stat-card-icon" style="color: #f1c40f;"></i>
-              <div class="stat-value" id="stat-wins">0</div>
-              <div class="stat-label">Wins</div>
+
+            <!-- Section 2: Card Clash Outcomes -->
+            <div class="rule-block-header">
+              <span class="block-kicker">COMBAT RESOLUTION</span>
+              <h2 class="block-title">CARD CLASH OUTCOMES</h2>
             </div>
-            <div class="stat-card glass">
-              <i class="fa-solid fa-skull stat-card-icon" style="color: #e74c3c;"></i>
-              <div class="stat-value" id="stat-losses">0</div>
-              <div class="stat-label">Losses</div>
+            <div class="clash-outcomes-grid">
+              <div class="outcome-card superior">
+                <div class="outcome-badge-bar superior">
+                  <i class="fa-solid fa-crown"></i> SUPERIOR OUTCOME
+                </div>
+                <div class="outcome-card-body">
+                  <p class="outcome-main-desc">Your card element <strong>counters</strong> the opponent's element.</p>
+                  <ul class="outcome-list">
+                    <li><i class="fa-solid fa-check"></i> Triggers all <strong>Superior</strong> damage and status effects</li>
+                    <li><i class="fa-solid fa-check"></i> Opponent card is suppressed to <strong>Inferior</strong></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outcome-card neutral">
+                <div class="outcome-badge-bar neutral">
+                  <i class="fa-solid fa-scale-balanced"></i> NEUTRAL OUTCOME
+                </div>
+                <div class="outcome-card-body">
+                  <p class="outcome-main-desc">Both cards clash in equal standing or identical element (Tie).</p>
+                  <ul class="outcome-list">
+                    <li><i class="fa-solid fa-check"></i> Both cards trigger standard <strong>Neutral</strong> effects</li>
+                    <li><i class="fa-solid fa-check"></i> Base damage and neutral shields apply symmetrically</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="outcome-card inferior">
+                <div class="outcome-badge-bar inferior">
+                  <i class="fa-solid fa-shield-halved"></i> INFERIOR OUTCOME
+                </div>
+                <div class="outcome-card-body">
+                  <p class="outcome-main-desc">Your card element is <strong>countered</strong> by the opponent.</p>
+                  <ul class="outcome-list">
+                    <li><i class="fa-solid fa-check"></i> Triggers <strong>Inferior</strong> mitigation or recoil effects</li>
+                    <li><i class="fa-solid fa-check"></i> Mitigates defeat and primes comeback buffs</li>
+                  </ul>
+                </div>
+              </div>
             </div>
-            <div class="stat-card glass">
-              <i class="fa-solid fa-percent stat-card-icon" style="color: #2ecc71;"></i>
-              <div class="stat-value" id="stat-winrate">0%</div>
-              <div class="stat-label">Win Rate</div>
+
+            <!-- Section 3: Status Effects Visual Cards -->
+            <div class="rule-block-header">
+              <span class="block-kicker">TACTICAL STATUSES &amp; KEYWORDS</span>
+              <h2 class="block-title">STATUS EFFECTS &amp; COMBAT KEYWORDS</h2>
             </div>
-            <div class="stat-card glass">
-              <i class="fa-solid fa-fire stat-card-icon" style="color: #e67e22;"></i>
-              <div class="stat-value" id="stat-win-streak">0</div>
-              <div class="stat-label">Current Streak</div>
+            <div class="status-cards-grid">
+              <div class="status-card burn">
+                <div class="status-card-header">
+                  <span class="status-icon fire"><i class="fa-solid fa-fire"></i></span>
+                  <span class="status-name">BURN</span>
+                  <span class="status-tag fire">FIRE DEBUFF</span>
+                </div>
+                <p class="status-desc">Deals damage equal to <strong>3x stack size</strong> at round end. Absorbed by shields first. Stacks are fully consumed after ticking.</p>
+              </div>
+
+              <div class="status-card poison">
+                <div class="status-card-header">
+                  <span class="status-icon nature"><i class="fa-solid fa-skull-crossbones"></i></span>
+                  <span class="status-name">POISON</span>
+                  <span class="status-tag nature">NATURE DEBUFF</span>
+                </div>
+                <p class="status-desc">Deals direct damage equal to <strong>1x stack size</strong> at round start, <strong>bypassing shields completely</strong>. Decreases by 1 stack per round.</p>
+              </div>
+
+              <div class="status-card buff">
+                <div class="status-card-header">
+                  <span class="status-icon buff"><i class="fa-solid fa-bolt"></i></span>
+                  <span class="status-name">ATTACK BUFF</span>
+                  <span class="status-tag buff">AMPLIFIER</span>
+                </div>
+                <p class="status-desc">Increases card clash damage by <strong>+10% per stack</strong>. Decreases by 1 stack when attacking.</p>
+              </div>
+
+              <div class="status-card weakness">
+                <div class="status-card-header">
+                  <span class="status-icon weak"><i class="fa-solid fa-shield-virus"></i></span>
+                  <span class="status-name">WEAKNESS</span>
+                  <span class="status-tag weak">SUPPRESSION</span>
+                </div>
+                <p class="status-desc">Reduces card clash damage dealt by <strong>-10% per stack</strong>. Decreases by 1 stack when attacking.</p>
+              </div>
+
+              <div class="status-card shield">
+                <div class="status-card-header">
+                  <span class="status-icon shield"><i class="fa-solid fa-shield-halved"></i></span>
+                  <span class="status-name">SHIELD</span>
+                  <span class="status-tag shield">PROTECTION</span>
+                </div>
+                <p class="status-desc">Blocks incoming clash &amp; burn damage. Decays by <strong>50%</strong> at round end (surviving shield carries over).</p>
+              </div>
+
+              <div class="status-card outbreak">
+                <div class="status-card-header">
+                  <span class="status-icon chaos"><i class="fa-solid fa-biohazard"></i></span>
+                  <span class="status-name">OUTBREAK</span>
+                  <span class="status-tag chaos">CATALYST</span>
+                </div>
+                <p class="status-desc">Instantly <strong>doubles</strong> all active Poison stacks on target (minimum 1 stack if unpoisoned).</p>
+              </div>
+
+              <div class="status-card leech">
+                <div class="status-card-header">
+                  <span class="status-icon water"><i class="fa-solid fa-droplet"></i></span>
+                  <span class="status-name">LEECH</span>
+                  <span class="status-tag water">DRAIN</span>
+                </div>
+                <p class="status-desc">When dealing direct unblocked HP damage, restores <strong>3 HP per stack</strong> and consumes 1 stack.</p>
+              </div>
+
+              <div class="status-card thorns">
+                <div class="status-card-header">
+                  <span class="status-icon brass"><i class="fa-solid fa-certificate"></i></span>
+                  <span class="status-name">THORNS</span>
+                  <span class="status-tag brass">RETALIATION</span>
+                </div>
+                <p class="status-desc">Reflects true retaliation damage back to the attacker whenever taking direct unblocked HP damage.</p>
+              </div>
+
+              <div class="status-card cleanse">
+                <div class="status-card-header">
+                  <span class="status-icon cleanse"><i class="fa-solid fa-sparkles"></i></span>
+                  <span class="status-name">CLEANSE</span>
+                  <span class="status-tag cleanse">PURIFY</span>
+                </div>
+                <p class="status-desc">Instantly purges all active debuffs (Poison, Burn, Weakness) from self.</p>
+              </div>
+
+              <div class="status-card dispel">
+                <div class="status-card-header">
+                  <span class="status-icon dispel"><i class="fa-solid fa-ban"></i></span>
+                  <span class="status-name">DISPEL</span>
+                  <span class="status-tag dispel">NULLIFY</span>
+                </div>
+                <p class="status-desc">Instantly strips all positive buffs and status advantages from the opposing combatant.</p>
+              </div>
             </div>
-            <div class="stat-card glass">
-              <i class="fa-solid fa-bolt stat-card-icon" style="color: #9b59b6;"></i>
-              <div class="stat-value" id="stat-total-damage">0</div>
-              <div class="stat-label">Total Damage</div>
+
+            <!-- Section 4: Victory Condition Banner -->
+            <div class="victory-condition-slab">
+              <div class="vc-icon"><i class="fa-solid fa-trophy"></i></div>
+              <div class="vc-text">
+                <div class="vc-title">VICTORY CONDITIONS</div>
+                <div class="vc-desc">Accumulate <strong>3 Round Points</strong> or reduce your opponent's HP to <strong>0</strong> to claim absolute victory in the Arena!</div>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
-
-      <!-- Tab 3: Match History View -->
-      <div id="history-tab" class="tab-content hidden">
-        <div class="history-container glass">
-          <h3>Recent Match History</h3>
-          <div id="history-list" class="history-list">
-            <div class="empty-history-text">No match history found. Play your first match!</div>
-          </div>
-        </div>
-      </div>
-
-      <footer class="lobby-footer">
-        <div class="queue-counter glass">
-          <i class="fa-solid fa-circle" style="color: #2ecc71; font-size: 0.5rem; vertical-align: middle; margin-right: 0.1rem; filter: drop-shadow(0 0 2px #2ecc71);"></i>
-          <span>Online: <strong id="online-count-display">1</strong></span>
-        </div>
-        <div class="queue-counter glass">
-          <i class="fa-solid fa-users"></i>
-          <span>Queue: <strong id="queue-count-display">0</strong></span>
-        </div>
-      </footer>
     </div>
   </div>
-
 
   <!-- Screen 1.5: Draft Screen (Secret Draft Mode) -->
   <div id="draft-screen" class="screen">
@@ -646,151 +1124,6 @@
     </div>
   </div>
 
-  <!-- Screen 10.5: Game Library Modal -->
-  <div id="compendium-modal" class="overlay">
-    <div class="deck-modal-content game-over-card glass">
-      <!-- Modal Title -->
-      <h2 class="deck-modal-title"><i class="fa-solid fa-book-open"></i> GAME LIBRARY</h2>
-      
-      <!-- Tab Headers -->
-      <div class="modal-tabs" style="display: flex; justify-content: center; flex-wrap: wrap;">
-        <button class="modal-tab-btn active" id="modal-compendium-tab-cards">
-          <i class="fa-solid fa-layer-group"></i> CARDS
-        </button>
-        <button class="modal-tab-btn" id="modal-compendium-tab-relics">
-          <i class="fa-solid fa-circle-nodes"></i> RELICS
-        </button>
-        <button class="modal-tab-btn" id="modal-compendium-tab-matchups">
-          <i class="fa-solid fa-arrows-spin"></i> MATCHUPS
-        </button>
-        <button class="modal-tab-btn" id="modal-compendium-tab-rules">
-          <i class="fa-solid fa-circle-info"></i> RULES
-        </button>
-      </div>
-
-      <!-- Cards Tab Content -->
-      <div class="tab-content active" id="modal-compendium-cards-content">
-        <div id="modal-compendium-filters" class="compendium-filters" style="margin-bottom: 0.8rem;">
-          <button class="filter-btn active" data-element="ALL">ALL</button>
-          <button class="filter-btn" data-element="FIRE">FIRE</button>
-          <button class="filter-btn" data-element="WATER">WATER</button>
-          <button class="filter-btn" data-element="NATURE">NATURE</button>
-          <button class="filter-btn" data-element="NEUTRAL">NEUTRAL</button>
-          <button class="filter-btn" data-element="CHAOS">CHAOS</button>
-        </div>
-        <div id="compendium-cards-grid">
-          <div class="compendium-loading">Loading cards library...</div>
-        </div>
-      </div>
-
-      <!-- Relics Tab Content -->
-      <div class="tab-content" id="modal-compendium-relics-content" style="display: none;">
-        <div id="compendium-relics-grid">
-          <div class="compendium-loading">Loading relics library...</div>
-        </div>
-      </div>
-
-      <!-- Matchups Tab Content -->
-      <div class="tab-content" id="modal-compendium-matchups-content" style="display: none;">
-        <div class="compendium-scroll-container-clean">
-          <div class="matchup-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.8rem; margin-bottom: 1rem;">
-            <!-- Fire -->
-            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-fire); text-align: left;">
-              <h4 class="el-tag fire" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">FIRE</h4>
-              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
-                <li><strong style="color: var(--color-nature);">SUPERIOR (Counters):</strong> NATURE</li>
-                <li><strong style="color: var(--color-water);">INFERIOR (Loses to):</strong> WATER, CHAOS</li>
-                <li><strong>NEUTRAL (Ties):</strong> FIRE, NEUTRAL</li>
-              </ul>
-            </div>
-            
-            <!-- Water -->
-            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-water); text-align: left;">
-              <h4 class="el-tag water" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">WATER</h4>
-              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
-                <li><strong style="color: var(--color-fire);">SUPERIOR (Counters):</strong> FIRE</li>
-                <li><strong style="color: var(--color-nature);">INFERIOR (Loses to):</strong> NATURE, CHAOS</li>
-                <li><strong>NEUTRAL (Ties):</strong> WATER, NEUTRAL</li>
-              </ul>
-            </div>
-
-            <!-- Nature -->
-            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-nature); text-align: left;">
-              <h4 class="el-tag nature" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">NATURE</h4>
-              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
-                <li><strong style="color: var(--color-water);">SUPERIOR (Counters):</strong> WATER</li>
-                <li><strong style="color: var(--color-fire);">INFERIOR (Loses to):</strong> FIRE, CHAOS</li>
-                <li><strong>NEUTRAL (Ties):</strong> NATURE, NEUTRAL</li>
-              </ul>
-            </div>
-
-            <!-- Neutral -->
-            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-neutral); text-align: left;">
-              <h4 class="el-tag neutral" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">NEUTRAL</h4>
-              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
-                <li><strong style="color: var(--color-chaos);">SUPERIOR (Counters):</strong> CHAOS</li>
-                <li><strong>INFERIOR (Loses to):</strong> None</li>
-                <li><strong>NEUTRAL (Ties):</strong> Ties all elements</li>
-              </ul>
-            </div>
-
-            <!-- Chaos -->
-            <div class="matchup-card glass" style="padding: 0.8rem; border-color: var(--color-chaos); text-align: left;">
-              <h4 class="el-tag chaos" style="margin-top: 0; margin-bottom: 0.5rem; display: inline-block;">CHAOS</h4>
-              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; line-height: 1.4;">
-                <li><strong style="color: #ffd700;">SUPERIOR (Counters):</strong> FIRE, WATER, NATURE</li>
-                <li><strong style="color: var(--color-neutral);">INFERIOR (Loses to):</strong> NEUTRAL</li>
-                <li><strong>NEUTRAL (Ties):</strong> CHAOS</li>
-              </ul>
-            </div>
-          </div>
-          
-        </div>
-      </div>
-
-      <!-- Rules Tab Content -->
-      <div class="tab-content" id="modal-compendium-rules-content" style="display: none;">
-        <div class="compendium-scroll-container-clean">
-          
-          <ol style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem; text-align: left; font-size: 0.82rem; line-height: 1.5;">
-            <li><strong>Match Setup:</strong> Enter your battle name and click <strong>FIND MATCH</strong> to search for an opponent.</li>
-            <li><strong>Deck Draft:</strong> Draft exactly <strong>5 cards</strong> to form your battle deck. You must ensure you choose at least 4 unique elements!</li>
-            <li><strong>Synchronized Quests:</strong> Select 1 Quest at the start of each round. Both players receive the exact same rarity distribution each round. Completing quests unlocks main rewards (Relic or Bonus Draft) plus guaranteed <strong>Removal Tokens</strong> (Common: +0, Rare: +1, Epic: +2).</li>
-            <li><strong>Card Battles:</strong> Play 1 card each round. The cards clash based on element matchups (see <strong>MATCHUPS</strong> tab):
-              <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary);">
-                <li><strong style="color: var(--color-primary);">SUPERIOR:</strong> Your card counters the opponent's card. Your card's Superior outcomes trigger.</li>
-                <li><strong style="color: var(--text-primary);">NEUTRAL:</strong> The clash is a tie. Neutral outcomes trigger.</li>
-                <li><strong style="color: var(--color-fire);">INFERIOR:</strong> Your card is countered. Inferior outcomes trigger.</li>
-              </ul>
-            </li>
-            <li><strong>Status Effects & Combat Keywords:</strong>
-              <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.3rem;">
-                <li><strong style="color: var(--color-fire);">BURN:</strong> Deals damage equal to 3x stack size at round end. Absorbed by shields first. Stacks are fully consumed after ticking.</li>
-                <li><strong style="color: var(--color-nature);">POISON:</strong> Deals direct damage equal to stack size at round start, bypassing shields completely. Decreases by 1 stack per round.</li>
-                <li><strong style="color: #ffd700);">BUFF:</strong> Increases card clash damage by +10% per stack. Decreases by 1 stack when attacking.</li>
-                <li><strong style="color: #a0aec0);">WEAKNESS:</strong> Reduces card clash damage dealt by -10% per stack. Decreases by 1 stack when attacking.</li>
-                <li><strong style="color: #00bcd4);">SHIELD:</strong> Blocks incoming clash & burn damage. Decays by 50% at round end (surviving shield carries over).</li>
-                <li><strong style="color: #c084fc);">OUTBREAK:</strong> Instantly doubles all active Poison stacks on target (amplifier only; unpoisoned target receives 0).</li>
-                <li><strong style="color: #f43f5e);">LEECH:</strong> When dealing direct unblocked HP damage, restores 20% HP per stack of damage dealt (capped at 10 HP per hit) and consumes 1 stack.</li>
-                <li><strong style="color: #fbbf24);">THORN:</strong> When taking direct clash HP damage, reflects damage equal to current stack back to attacker (bypasses shield) and consumes 1 stack.</li>
-                <li><strong style="color: #9b59b6);">CLEANSE:</strong> Instantly purges all active debuffs (Poison, Burn, Weakness) from self.</li>
-                <li><strong style="color: #ff9f43);">DISPEL:</strong> Instantly strips all positive buffs from the opponent.</li>
-              </ul>
-            </li>
-            <li><strong>Deck Purification & Tokens:</strong> Unused Removal Tokens persist in your inventory across rounds. During Preparation Phase, spend 1 token to permanently burn an unwanted card from your deck (minimum deck size is 4 cards).</li>
-            <li><strong>Winning:</strong> Reach 3 round points or reduce your opponent's HP to 0 to win the duel!</li>
-          </ol>
-        </div>
-      </div>
-
-      <div class="deck-modal-footer">
-        <button id="compendium-close-btn" class="btn btn-secondary" style="min-width: 140px;">
-          CLOSE
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Screen 11: Quest Selection Screen -->
   <div id="quest-selection-screen" class="screen">
     <div class="stars-bg"></div>
@@ -916,18 +1249,18 @@
   </div>
 
   <!-- Local Vendor Scripts (Bypasses Discord Activity CSP Restrictions) -->
-  <script src="js/vendor/discord-sdk.js?v=1.0.4"></script>
-  <script src="/socket.io/socket.io.js?v=1.0.4"></script>
-  <script src="js/vendor/anime.min.js?v=1.0.4"></script>
-  <script src="js/vendor/howler.min.js?v=1.0.4"></script>
+  <script src="js/vendor/discord-sdk.js?v=2.0.18"></script>
+  <script src="/socket.io/socket.io.js?v=2.0.18"></script>
+  <script src="js/vendor/anime.min.js?v=2.0.18"></script>
+  <script src="js/vendor/howler.min.js?v=2.0.18"></script>
   
   <!-- Client Application scripts -->
-  <script src="js/socket.js?v=1.0.6"></script>
-  <script src="js/audio.js?v=1.0.6"></script>
-  <script src="js/animations.js?v=1.0.6"></script>
-  <script src="js/ui.js?v=1.0.6"></script>
-  <script src="js/card-desc.js?v=1.0.6"></script>
-  <script src="js/clash-pipeline.js?v=1.0.6"></script>
-  <script src="js/game.js?v=1.0.6"></script>
+  <script src="js/audio.js?v=2.0.18"></script>
+  <script src="js/animations.js?v=2.0.18"></script>
+  <script src="js/card-desc.js?v=2.0.18"></script>
+  <script src="js/ui.js?v=2.0.18"></script>
+  <script src="js/socket.js?v=2.0.18"></script>
+  <script src="js/clash-pipeline.js?v=2.0.18"></script>
+  <script src="js/game.js?v=2.0.18"></script>
 </body>
 </html>

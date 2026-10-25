@@ -1,325 +1,687 @@
-/* =============================================================================
-   MOBILE LANDSCAPE AND COMPACT SCREEN OPTIMIZATIONS
-   ============================================================================= */
+/**
+ * ELEMENT CLASH: MOBILE & COMPACT SCREEN OPTIMIZATIONS
+ * Persona / Atlus Interactive GFX Aesthetic
+ * Strict 1-Screen Viewport Fit on Mobile Landscape & Tablets
+ */
 
-@media (max-width: 900px), (max-height: 550px) {
-  /* Scale down the entire screen container gap */
+/* ============================================================
+   TABLET & COMPACT SCREENS (max-height: 650px)
+   ============================================================ */
+@media (max-height: 650px) {
+  .lobby-container {
+    padding: 0.6rem 1.4rem;
+  }
+  .wordmark {
+    margin-bottom: 0.6rem;
+  }
+  .menu-nav {
+    gap: 6px;
+  }
+  .nav-btn {
+    height: 48px;
+  }
+  .nav-num {
+    font-size: 58px;
+    left: -12px;
+  }
+  .nav-label {
+    font-size: 1.15rem;
+    margin-left: 64px;
+  }
+  .page {
+    padding: 0.75rem 1.1rem 0.5rem !important;
+    height: 100% !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  .page-head {
+    margin-bottom: 0.45rem !important;
+  }
+  .page-title {
+    font-size: 1.55rem !important;
+  }
+  .page-kicker {
+    font-size: 0.6rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+  .page-sub {
+    font-size: 0.72rem !important;
+    margin-top: 0.1rem !important;
+  }
+  .back-row {
+    margin-bottom: 0.25rem !important;
+  }
+  .back-btn {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.74rem !important;
+  }
+  .auth-section-box {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .guest-dossier-card, .auth-terminal-card {
+    padding: 0.8rem 1rem !important;
+    gap: 0.55rem !important;
+  }
   .draft-container {
-    max-width: 95% !important;
-    gap: 0.2rem !important;
+    padding: 0.6rem 1.4rem;
   }
-
-  /* Shrink draft headers */
   .draft-header {
-    gap: 0.05rem !important;
-    margin-bottom: 0.1rem !important;
+    margin-bottom: 0.5rem;
   }
-  
-  .draft-title {
-    font-size: 1.15rem !important;
-    line-height: 1.1 !important;
+  .prep-steps {
+    margin-bottom: 0.6rem;
+  }
+}
+
+/* ============================================================
+   MOBILE LANDSCAPE / ULTRA-COMPACT (max-height: 480px)
+   ============================================================ */
+@media (max-height: 480px), (max-width: 850px) and (orientation: landscape) {
+  /* Prevent any root page scroll */
+  html, body {
+    overflow: hidden !important;
   }
 
-  .draft-subtitle {
+  .screen {
+    overflow: hidden !important;
+  }
+
+  /* Lobby / Main Menu */
+  .lobby-container {
+    padding: 0.4rem 1rem !important;
+    justify-content: space-evenly !important;
+  }
+
+  .wordmark {
+    margin-bottom: 0.2rem !important;
+  }
+
+  .wordmark .wm-line {
+    font-size: 2rem !important;
+    line-height: 0.85 !important;
+  }
+
+  .wordmark .wm-sub {
+    margin-top: 0.15rem !important;
+    font-size: 0.55rem !important;
+    letter-spacing: 0.2em !important;
+  }
+
+  .element-strip {
+    margin-top: 0.35rem !important;
+    width: 260px !important;
+  }
+
+  .element-strip span {
+    height: 5px !important;
+  }
+
+  .menu-nav {
+    gap: 5px !important;
+    width: min(380px, 92vw) !important;
+  }
+
+  .nav-slot {
+    padding: 0 !important;
+  }
+
+  .nav-btn {
+    height: 42px !important;
+  }
+
+  .nav-num {
+    font-size: 46px !important;
+    left: -10px !important;
+  }
+
+  .nav-label {
+    font-size: 0.98rem !important;
+    margin-left: 58px !important;
+  }
+
+  .nav-slot:hover .nav-btn,
+  .nav-slot.open .nav-btn,
+  .nav-btn.active,
+  .nav-btn {
+    transform: none !important;
+    transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease !important;
+  }
+
+  .nav-slot:hover .nav-num,
+  .nav-slot.open .nav-num,
+  .nav-btn.active .nav-num {
+    transform: translateY(-50%) !important;
+  }
+
+  .nav-caret {
+    margin-right: 0.8rem !important;
+    font-size: 0.82rem !important;
+  }
+
+  .lobby-footer {
+    padding-top: 0.2rem !important;
+    gap: 1rem !important;
     font-size: 0.62rem !important;
+  }
+
+  .play-sub-inner {
+    padding: 0.65rem !important;
+    gap: 6px !important;
+  }
+
+  .sub-btn {
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .sub-btn .sub-name {
+    font-size: 0.92rem !important;
+  }
+
+  .sub-btn .sub-desc {
+    font-size: 0.58rem !important;
+  }
+
+  /* Battle Screen on Compact Landscape */
+  .battle-top-bar {
+    top: 0.3rem !important;
+    gap: 0.6rem !important;
+  }
+
+  .btn-surrender, .btn-clash-log {
+    font-size: 0.6rem !important;
+    padding: 0.25rem 0.6rem !important;
+  }
+
+  .hud-panel {
+    top: 0.35rem !important;
+    width: 205px !important;
+    padding: 0.35rem 0.55rem !important;
+  }
+
+  .hud-panel.player-hud {
+    left: 0.5rem !important;
+  }
+
+  .hud-panel.enemy-hud {
+    right: 0.5rem !important;
+  }
+
+  .hud-name {
+    font-size: 0.92rem !important;
+    max-width: 95px !important;
+  }
+
+  .shield-indicator {
+    font-size: 0.62rem !important;
+    padding: 0.1rem 0.3rem !important;
+  }
+
+  .hp-bar-container {
+    height: 10px !important;
+  }
+
+  .hp-text {
+    font-size: 0.52rem !important;
+  }
+
+  .hud-relics-row {
+    margin-top: 0.25rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .relic-badge {
+    font-size: 0.52rem !important;
+    padding: 0.1rem 0.3rem !important;
+  }
+
+  .hud-bottom-row {
+    margin-top: 0.3rem !important;
+  }
+
+  .point-dot {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .hud-deck-btn {
+    font-size: 0.58rem !important;
+    padding: 0.15rem 0.45rem !important;
+  }
+
+  /* Left Quest Tracker on Mobile */
+  .battle-left-sidebar {
+    top: 110px !important;
+    left: 0.5rem !important;
+    width: 205px !important;
+  }
+
+  .quest-tracker-widget {
+    padding: 0.4rem 0.6rem !important;
+  }
+
+  .tracker-header {
+    font-size: 0.66rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  .tracker-text {
+    font-size: 0.72rem !important;
+  }
+
+  .tracker-progress-container {
+    height: 10px !important;
+    margin-top: 0.3rem !important;
+  }
+
+  .tracker-progress-text {
+    font-size: 0.52rem !important;
+  }
+
+  .tracker-reward {
+    font-size: 0.6rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  /* Central Clash Zone */
+  .arena-zone {
+    top: 42% !important;
+    gap: clamp(1.2rem, 3.5vw, 2.8rem) !important;
+  }
+
+  .play-slot {
+    width: 84px !important;
+    height: 118px !important;
+    border-width: 1.5px !important;
+  }
+
+  .slot-label {
+    font-size: 0.65rem !important;
+  }
+
+  .clash-effects-zone {
+    width: 130px !important;
+    gap: 0.35rem !important;
+  }
+
+  .vs-badge {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.98rem !important;
+  }
+
+  .combat-text, #combat-result-text {
+    font-size: 0.76rem !important;
+    min-height: 1rem !important;
+  }
+
+  .turn-timer-badge {
+    font-size: 0.74rem !important;
+    padding: 0.18rem 0.5rem !important;
+  }
+
+  .btn-lock {
+    width: 124px !important;
+    height: 32px !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* Hand Cards */
+  .hand-container-wrapper {
+    height: 140px !important;
+  }
+
+  .game-card, .card {
+    width: 84px !important;
+    height: 118px !important;
+    border-width: 2.5px !important;
+    bottom: 4px !important;
+    padding: 0.25rem !important;
+    transform: translate(calc(-50% + var(--offset) * 18px), calc(var(--offset) * var(--offset) * 1px)) rotate(calc(var(--offset) * 4deg)) !important;
+  }
+
+  .hand-container:hover .game-card:not(.locked),
+  .hand-container:hover .card:not(.locked) {
+    transform: translate(calc(-50% + var(--offset) * 64px), -8px) rotate(calc(var(--offset) * 0.5deg)) !important;
+  }
+
+  .game-card.selected, .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 18px), -24px) rotate(0deg) !important;
+  }
+
+  .hand-container:hover .game-card.selected,
+  .hand-container:hover .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 64px), -28px) rotate(0deg) !important;
+  }
+
+  .gc-name, .card-name {
+    font-size: 0.48rem !important;
+  }
+
+  .gc-middle, .card-middle {
+    min-height: 24px !important;
+    margin: 0.15rem 0 !important;
+  }
+
+  .gc-icon, .card-element-icon {
+    font-size: 1.05rem !important;
+  }
+
+  .gc-desc, .card-desc {
+    font-size: 0.44rem !important;
+    height: 36px !important;
+    line-height: 1.15 !important;
+  }
+
+  .gc-elname, .card-element-name {
+    font-size: 0.48rem !important;
+  }
+
+  /* Prep Screens on Mobile */
+  /* Sub-pages and Dossier / Auth on Compact Mobile Landscape */
+  .page {
+    padding: 0.35rem 0.85rem 0.35rem !important;
+    height: 100% !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  .back-row {
+    margin-bottom: 0.15rem !important;
+  }
+  .back-btn {
+    padding: 0.18rem 0.55rem !important;
+    font-size: 0.68rem !important;
+    height: 25px !important;
+  }
+  .page-head {
+    margin-bottom: 0.25rem !important;
+  }
+  .page-kicker {
+    font-size: 0.52rem !important;
+    margin-bottom: 0 !important;
+  }
+  .page-title {
+    font-size: 1.15rem !important;
+    line-height: 1 !important;
+  }
+  .page-sub {
+    font-size: 0.6rem !important;
     margin-top: 0.05rem !important;
   }
 
-  .logo-sub {
-    font-size: 0.5rem !important;
-    letter-spacing: 2px !important;
+  /* Auth / Login / Register in Compact Landscape (Side-by-Side Fit!) */
+  .auth-section-box {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 1.5rem !important;
   }
-
-  /* Pack Selection Grid adjustments */
-  .packs-grid {
-    margin: 0.3rem auto !important;
-    gap: 0.8rem !important;
-    padding: 0.2rem !important;
+  .auth-guest-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.6rem !important;
+    align-items: start !important;
   }
-
-  /* Shrink booster pack items vertically to fit within height */
-  .pack-item {
-    width: 120px !important;
-    height: 165px !important;
-    padding: 0.8rem 0.5rem !important;
+  .guest-dossier-card, .auth-terminal-card {
+    padding: 0.55rem 0.75rem !important;
+    gap: 0.35rem !important;
   }
-
-  .pack-item::before, .pack-graphic::before {
-    height: 10px !important;
+  .dossier-badge-header {
+    margin-bottom: 0.1rem !important;
   }
-  
-  .pack-item::after, .pack-graphic::after {
-    height: 10px !important;
+  .guest-status-pill {
+    padding: 0.2rem 0.45rem !important;
+    font-size: 0.64rem !important;
   }
-
-  .pack-theme {
-    font-size: 0.55rem !important;
-    letter-spacing: 0.5px !important;
+  .rank-block.unranked {
+    padding: 0.2rem 0.45rem !important;
+    font-size: 0.62rem !important;
   }
-
-  .pack-title {
-    font-size: 0.8rem !important;
-    line-height: 1.1 !important;
+  .dossier-card-title {
+    font-size: 0.88rem !important;
+    line-height: 1 !important;
   }
-
-  .pack-desc {
-    font-size: 0.55rem !important;
-    margin-top: 0.3rem !important;
+  .guest-dossier-text {
+    font-size: 0.64rem !important;
+    line-height: 1.3 !important;
+  }
+  .dossier-perks-list {
+    gap: 0.25rem !important;
+    margin-top: 0.2rem !important;
+    padding-top: 0.25rem !important;
+  }
+  .perk-item {
+    gap: 0.45rem !important;
+  }
+  .perk-icon {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.62rem !important;
+  }
+  .perk-title {
+    font-size: 0.66rem !important;
+  }
+  .perk-desc {
+    font-size: 0.56rem !important;
     line-height: 1.2 !important;
-    padding: 0.3rem 0.4rem !important;
+  }
+  .auth-terminal-header {
+    gap: 0.25rem !important;
+  }
+  .terminal-kicker {
+    font-size: 0.56rem !important;
+  }
+  .auth-switch {
+    padding: 1.5px !important;
+  }
+  .auth-switch-btn {
+    padding: 0.28rem 0.5rem !important;
+    font-size: 0.68rem !important;
+  }
+  .auth-form-body {
+    gap: 0.35rem !important;
+  }
+  .auth-field {
+    gap: 0.12rem !important;
+  }
+  .auth-label {
+    font-size: 0.56rem !important;
+  }
+  .auth-input-wrapper input {
+    padding: 0.35rem 0.55rem !important;
+    font-size: 0.78rem !important;
+  }
+  .btn-auth-submit {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.82rem !important;
+    margin-top: 0.15rem !important;
+  }
+  .auth-error-msg {
+    padding: 0.35rem 0.5rem !important;
+    font-size: 0.66rem !important;
   }
 
-  .pack-action-hint {
-    font-size: 0.6rem !important;
-    padding: 0.15rem !important;
-    margin-top: 0.3rem !important;
+  /* History & Library Sub-tab Content Scrolling in Compact View */
+  .history-list {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 1.5rem !important;
+  }
+  .hist-row {
+    padding: 0.4rem 0.6rem !important;
+    gap: 0.5rem !important;
+  }
+  #library-tab .lib-tabs {
+    margin-bottom: 0.3rem !important;
+  }
+  #library-tab .compendium-filters {
+    margin-bottom: 0.3rem !important;
+    gap: 3px !important;
+  }
+  .filter-btn {
+    padding: 0.22rem 0.45rem !important;
+    font-size: 0.62rem !important;
+  }
+  #compendium-cards-grid,
+  #compendium-relics-grid {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 1.5rem !important;
+  }
+  #modal-compendium-matchups-content.active,
+  #modal-compendium-rules-content.active {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 1.5rem !important;
   }
 
-  /* Pack opening and card fanning adjustments */
-  .pack-opening-area {
-    min-height: 145px !important;
+  .draft-container {
+    padding: 0.4rem 1rem !important;
   }
 
-  .pack-graphic {
-    width: 120px !important;
-    height: 165px !important;
-    padding: 0.8rem 0.5rem !important;
+  .draft-header {
+    margin-bottom: 0.3rem !important;
   }
 
-  .pack-logo {
-    font-size: 0.95rem !important;
+  .draft-title {
+    font-size: 1.45rem !important;
   }
 
-  .pack-name-text {
+  .draft-subtitle {
+    font-size: 0.65rem !important;
+    margin-top: 0.15rem !important;
+  }
+
+  .tier-card {
+    padding: 0.6rem 0.8rem !important;
+  }
+
+  .tier-card .t-num {
+    font-size: 2.2rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  .tier-card .t-name {
+    font-size: 1.05rem !important;
+  }
+
+  .tier-card .t-desc {
+    font-size: 0.64rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .tier-card .t-tokens {
+    margin-top: 0.4rem !important;
     font-size: 0.62rem !important;
   }
 
-  .horizontal-fan-container {
-    margin: 0.2rem auto !important;
-    min-height: 125px !important;
-    padding: 0.2rem !important;
+  .tier-card .t-payout {
+    margin-top: 0.35rem !important;
+    padding-top: 0.35rem !important;
+    font-size: 0.58rem !important;
   }
 
-  /* Medium-sized cards to balance spacing and legibility */
-  .horizontal-fan-container .card {
-    margin-right: -1.6rem !important; /* tighter overlap for larger size */
-    width: 80px !important;
-    height: 112px !important;
-    border-width: 2px !important;
+  .choice-card .cc-name {
+    font-size: 0.98rem !important;
   }
 
-  .horizontal-fan-container .card .card-face {
-    padding: 0.12rem !important;
+  .choice-card .cc-desc {
+    font-size: 0.64rem !important;
   }
 
-  .horizontal-fan-container .card .card-front {
-    outline-offset: -1px !important;
+  .pack-art {
+    height: 44px !important;
+    font-size: 0.74rem !important;
+    margin-bottom: 0.4rem !important;
   }
 
-  .horizontal-fan-container .card .card-name {
-    font-size: 0.44rem !important;
-    line-height: 1.05 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    letter-spacing: -0.02em !important;
-    width: 100% !important;
-    text-align: center !important;
+  /* Modals */
+  #compendium-modal .deck-modal-content, #deck-modal .deck-modal-content {
+    max-height: 94vh !important;
+    padding: 1rem !important;
+    width: 95% !important;
   }
 
-  .horizontal-fan-container .card .card-middle {
-    margin: 0.05rem 0 !important;
-    padding: 0.01rem !important;
+  .deck-modal-title {
+    font-size: 1.4rem !important;
+    margin-bottom: 0.6rem !important;
   }
 
-  .horizontal-fan-container .card .card-element-icon {
-    font-size: 0.8rem !important;
-  }
-
-  .horizontal-fan-container .card .card-desc {
-    font-size: 0.38rem !important;
-    line-height: 1.05 !important;
-  }
-
-  .horizontal-fan-container .card .card-element-name {
-    font-size: 0.5rem !important;
-  }
-
-  .horizontal-fan-container .card-back::after {
-    width: 20px !important;
-    height: 20px !important;
-    font-size: 0.72rem !important;
-    border-width: 1px !important;
-  }
-
-  /* Specific rotation/translation overrides for 4-card fan inside the smaller box */
-  .horizontal-fan-container .card:nth-child(1) { transform: rotate(-5deg) translateY(3px) !important; }
-  .horizontal-fan-container .card:nth-child(2) { transform: rotate(-1.5deg) translateY(-1px) !important; }
-  .horizontal-fan-container .card:nth-child(3) { transform: rotate(1.5deg) translateY(-1px) !important; }
-  .horizontal-fan-container .card:nth-child(4) { transform: rotate(5deg) translateY(3px) !important; }
-
-  /* Double fan rotation for 3 cards (Loser bonus) */
-  #bonus-cards-fan .card:nth-child(1) { transform: rotate(-4deg) translateY(2px) !important; }
-  #bonus-cards-fan .card:nth-child(2) { transform: rotate(0deg) translateY(-1px) !important; }
-  #bonus-cards-fan .card:nth-child(3) { transform: rotate(4deg) translateY(2px) !important; }
-
-  /* Premium hover scale adjustment to fit mobile limits */
-  .horizontal-fan-container .card:hover {
-    transform: translateY(-18px) scale(1.15) rotate(0deg) !important;
-  }
-
-  /* Surrender button on mobile */
-  .btn-surrender {
-    top: 0.35rem !important;
-    padding: 0.3rem 0.6rem !important;
+  .modal-tab-btn, .lib-tab {
+    padding: 0.42rem 0.25rem !important;
     font-size: 0.68rem !important;
+    gap: 0.25rem !important;
   }
-
-  /* Footer button adjustment */
-  .draft-footer {
-    margin-top: 0.1rem !important;
+  .modal-tab-btn.lib-tab:first-child {
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%) !important;
   }
-
-  .draft-footer .btn {
-    padding: 0.45rem 1rem !important;
-    font-size: 0.75rem !important;
+  .modal-tab-btn.lib-tab:not(:first-child):not(:last-child) {
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%) !important;
+    margin-left: -10px !important;
   }
-
-  /* Game toast placement on mobile landscape */
-  #game-toast {
-    top: 0.5rem !important;
-    font-size: 0.72rem !important;
-    padding: 0.35rem 1.2rem !important;
-    min-width: 200px !important;
-    border-width: 1.5px !important;
+  .modal-tab-btn.lib-tab:last-child {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%) !important;
+    margin-left: -10px !important;
   }
 }
 
-/* ============================================================================= 
-   MOBILE PORTRAIT — LOBBY RESPONSIVE
-   On portrait mobile, tabs move to the bottom as a fixed nav bar
-   ============================================================================= */
-@media (max-width: 600px) and (orientation: portrait) {
-  /* Auth corner removed from floating top-right header */
-  .lobby-auth-corner {
-    display: none !important;
+/* ============================================================
+   ACCESSIBILITY: REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
   }
+}
 
-  .stats-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
+/* Universal Mobile / Touch: Disable button translateX shift completely */
+@media (max-width: 1024px), (hover: none) {
+  .nav-btn,
+  .nav-slot:hover .nav-btn,
+  .nav-slot.open .nav-btn,
+  .nav-btn.active {
+    transform: none !important;
+  }
+  .nav-slot:hover .nav-num,
+  .nav-slot.open .nav-num,
+  .nav-btn.active .nav-num {
+    transform: translateY(-50%) !important;
+  }
+}
+
+/* ============================================================
+   NARROW MOBILE / PORTRAIT SCREENS (max-width: 640px)
+   ============================================================ */
+@media (max-width: 640px) {
+  .page {
+    padding: 0.6rem 0.8rem 0.5rem !important;
+  }
+  .page-title {
+    font-size: 1.35rem !important;
+  }
+  .auth-guest-grid {
+    grid-template-columns: 1fr !important;
     gap: 0.75rem !important;
   }
-
-  .stats-auth-action {
-    margin-left: 0 !important;
-    width: 100% !important;
+  .guest-dossier-card,
+  .auth-terminal-card {
+    padding: 0.75rem 0.9rem !important;
+    gap: 0.5rem !important;
   }
-
-  .stats-auth-action button {
-    width: 100% !important;
-  }
-
-  /* Lobby screen scrolls normally */
-  #matchmaking-screen {
-    align-items: flex-start;
-    overflow-y: auto;
-  }
-
-  /* Lobby container gets bottom padding for fixed tab bar */
-  .lobby-container {
-    padding: 2rem 0 5.5rem;
-    width: 92%;
-  }
-
-  /* Logo smaller on mobile */
-  .logo-main {
-    font-size: 2rem !important;
-  }
-
-  /* Lobby nav tabs become fixed bottom bar */
-  .lobby-nav-tabs {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    border: none !important;
-    border-top: 1px solid var(--border-brass) !important;
-    background: var(--bg-inner-panel) !important;
-    z-index: 100 !important;
-    padding: 0.5rem !important;
-    gap: 0 !important;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.5) !important;
-  }
-
-  .nav-tab {
-    font-size: 0.7rem !important;
-    padding: 0.5rem 0.25rem !important;
-    flex-direction: column !important;
-    gap: 0.2rem !important;
-  }
-
-  .nav-tab i {
-    font-size: 1.1rem !important;
-  }
-
-  /* Lobby card and content width */
-  .lobby-card {
-    padding: 1.5rem 1.2rem !important;
-  }
-
-  /* Stats and history containers fit mobile width */
-  .stats-container,
-  .history-container {
-    max-height: none !important;
-    overflow-y: visible !important;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
-  .btn-sm {
-    padding: 0.35rem 0.75rem !important;
-    font-size: 0.75rem !important;
-  }
-}
-
-/* Also for small landscape phones (< 450px height) */
-@media (max-height: 450px) and (orientation: landscape) {
-  .lobby-container {
-    padding: 1rem 0 1.5rem;
-  }
-  .logo-area {
-    margin-bottom: 0.75rem !important;
-  }
-  .logo-main {
-    font-size: 1.8rem !important;
-  }
-  .lobby-card {
-    padding: 1rem 1.2rem !important;
-    gap: 0.8rem !important;
-  }
-}
-
-/* Mobile adjustments for Clash Log, Turn Timer, and Top Bar */
-@media (max-width: 768px) {
-  .battle-top-bar {
-    top: 0.4rem;
-    gap: 0.5rem;
-  }
-  .btn-surrender,
-  .btn-clash-log {
-    padding: 0.3rem 0.75rem;
-    font-size: 0.72rem;
-  }
-  .turn-timer-badge {
-    padding: 0.25rem 0.65rem;
-    font-size: 0.8rem;
-  }
-  .clash-log-drawer {
-    width: 290px;
+  .auth-section-box {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 2rem !important;
   }
 }

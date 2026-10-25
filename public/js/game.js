@@ -69,18 +69,29 @@ const GameManager = {
       this.onPendingReconnect(data);
     }
 
+    // Process buffered compendiumData if received before init
+    if (window.cachedCompendiumData) {
+      this.setCompendiumData(window.cachedCompendiumData);
+    }
+
+    setTimeout(() => {
+      if (window.UI && typeof window.UI.dismissGate === 'function') {
+        window.UI.dismissGate();
+      }
+    }, 1200);
     console.log('[GameManager] Game initialized.');
   },
 
-  initAuth() {
+    initAuth() {
     const UI = window.UI;
-    const authTabLogin = document.getElementById('auth-tab-login');
-    const authTabRegister = document.getElementById('auth-tab-register');
+    const authTabLogin = document.getElementById('auth-tab-login') || document.getElementById('tab-login-btn');
+    const authTabRegister = document.getElementById('auth-tab-register') || document.getElementById('tab-register-btn');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const guestPlayBtn = document.getElementById('guest-play-btn');
     const authActionBtn = document.getElementById('auth-action-btn');
     const reconnectBtn = document.getElementById('reconnect-btn');
+    const sessionLogoutBtn = document.getElementById('session-logout-btn');
 
     if (authTabLogin && authTabRegister) {
       authTabLogin.addEventListener('click', (e) => {
@@ -96,6 +107,34 @@ const GameManager = {
         authTabLogin.classList.remove('active');
         registerForm.classList.remove('hidden');
         loginForm.classList.add('hidden');
+      });
+    }
+
+    if (sessionLogoutBtn) {
+      sessionLogoutBtn.addEventListener('click', () => {
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        localStorage.removeItem('element_clash_token');
+        localStorage.removeItem('element_clash_user');
+        if (window.updateSocketAuthToken) window.updateSocketAuthToken(null);
+
+        const loginUserEl = document.getElementById('login-username');
+        const loginPassEl = document.getElementById('login-password');
+        if (loginUserEl) loginUserEl.value = '';
+        if (loginPassEl) loginPassEl.value = '';
+
+        if (UI && typeof UI.showGate === 'function') {
+          UI.showGate('TERMINATING COMBATANT SESSION...');
+          setTimeout(() => {
+            this.updateUserSessionState(null);
+            if (UI.switchToTab) UI.switchToTab('arena-tab');
+            UI.dismissGate();
+            if (UI.showToast) UI.showToast('Logged out successfully.');
+          }, 450);
+        } else {
+          this.updateUserSessionState(null);
+          if (UI && UI.switchToTab) UI.switchToTab('arena-tab');
+          if (UI && UI.showToast) UI.showToast('Logged out successfully.');
+        }
       });
     }
 
@@ -129,9 +168,19 @@ const GameManager = {
             window.updateSocketAuthToken(data.token);
           }
 
-          this.updateUserSessionState(data.user);
-          if (UI) UI.hideAuthScreen();
-          if (UI && UI.showToast) UI.showToast(`Welcome back, ${data.user.username}!`);
+          if (UI && typeof UI.showGate === 'function') {
+            UI.showGate('SYNCHRONIZING COMBATANT PROFILE...');
+            setTimeout(() => {
+              this.updateUserSessionState(data.user);
+              if (UI.switchToTab) UI.switchToTab('arena-tab');
+              UI.dismissGate();
+              if (UI.showToast) UI.showToast(`Welcome back, ${data.user.username}!`);
+            }, 450);
+          } else {
+            this.updateUserSessionState(data.user);
+            if (UI) UI.hideAuthScreen();
+            if (UI && UI.showToast) UI.showToast(`Welcome back, ${data.user.username}!`);
+          }
         } catch (err) {
           if (errEl) {
             errEl.textContent = 'Server connection error. Please try again.';
@@ -171,9 +220,19 @@ const GameManager = {
             window.updateSocketAuthToken(data.token);
           }
 
-          this.updateUserSessionState(data.user);
-          if (UI) UI.hideAuthScreen();
-          if (UI && UI.showToast) UI.showToast(`Account created! Welcome, ${data.user.username}!`);
+          if (UI && typeof UI.showGate === 'function') {
+            UI.showGate('INITIALIZING RECRUIT DOSSIER...');
+            setTimeout(() => {
+              this.updateUserSessionState(data.user);
+              if (UI.switchToTab) UI.switchToTab('arena-tab');
+              UI.dismissGate();
+              if (UI.showToast) UI.showToast(`Account created! Welcome, ${data.user.username}!`);
+            }, 450);
+          } else {
+            this.updateUserSessionState(data.user);
+            if (UI) UI.hideAuthScreen();
+            if (UI && UI.showToast) UI.showToast(`Account created! Welcome, ${data.user.username}!`);
+          }
         } catch (err) {
           if (errEl) {
             errEl.textContent = 'Server connection error. Please try again.';
@@ -197,21 +256,7 @@ const GameManager = {
       });
     }
 
-    if (authActionBtn) {
-      authActionBtn.addEventListener('click', () => {
-        const token = localStorage.getItem('element_clash_token');
-        if (token) {
-          localStorage.removeItem('element_clash_token');
-          localStorage.removeItem('element_clash_user');
-          if (window.updateSocketAuthToken) window.updateSocketAuthToken(null);
-          this.updateUserSessionState(null);
-          if (UI && UI.showToast) UI.showToast('Logged out successfully.');
-        } else {
-          if (UI) UI.showAuthScreen();
-        }
-      });
-    }
-
+    // authActionBtn navigates to login-tab via .nav-tab, no direct logout here
     if (reconnectBtn) {
       reconnectBtn.addEventListener('click', () => {
         const token = localStorage.getItem('element_clash_token');
@@ -247,29 +292,52 @@ const GameManager = {
 
   updateUserSessionState(user) {
     const userDisplayName = document.getElementById('user-display-name');
-    const authBtnLabel = document.getElementById('auth-btn-label');
     const guestGroup = document.getElementById('guest-username-group');
     const guestHint = document.getElementById('guest-login-hint');
     const statJoinedDate = document.getElementById('stat-joined-date');
     const statUsername = document.getElementById('stat-username');
+    const authUserSection = document.getElementById('auth-user-section');
+    const authGuestSection = document.getElementById('auth-guest-section');
+    const historyNavSlot = document.getElementById('history-nav-slot');
+    const statsNavLabel = document.getElementById('stats-nav-label');
+    const libraryNavNum = document.getElementById('library-nav-num');
+    const profileKicker = document.getElementById('profile-kicker');
+    const profileTitle = document.getElementById('profile-title');
 
     if (user && user.username) {
       if (userDisplayName) userDisplayName.textContent = user.username;
       if (statUsername && !userDisplayName) statUsername.textContent = user.username;
-      if (authBtnLabel) authBtnLabel.textContent = 'LOGOUT';
       if (guestGroup) guestGroup.classList.add('hidden');
       if (guestHint) guestHint.classList.add('hidden');
       if (statJoinedDate) {
-        statJoinedDate.textContent = user.createdAt ? `Joined: ${new Date(user.createdAt).toLocaleDateString()}` : 'Registered Player';
+        statJoinedDate.textContent = user.createdAt ? `Joined: ${new Date(user.createdAt).toLocaleDateString()} • Authenticated Combatant` : 'Authenticated Combatant';
       }
+      if (authUserSection) authUserSection.classList.remove('hidden');
+      if (authGuestSection) authGuestSection.classList.add('hidden');
+      if (historyNavSlot) historyNavSlot.style.display = 'block';
+      if (statsNavLabel) statsNavLabel.textContent = 'Profile & Stats';
+      if (libraryNavNum) libraryNavNum.textContent = '04';
+      if (profileKicker) profileKicker.textContent = '02 — Dossier & Statistics';
+      if (profileTitle) profileTitle.textContent = 'Combatant Dossier';
+
       this.myName = user.username;
+      if (window.UI && typeof window.UI.loadUserStats === 'function') {
+        window.UI.loadUserStats();
+      }
     } else {
       if (userDisplayName) userDisplayName.textContent = 'Guest Player';
       if (statUsername && !userDisplayName) statUsername.textContent = 'Guest Player';
-      if (authBtnLabel) authBtnLabel.textContent = 'LOGIN';
       if (guestGroup) guestGroup.classList.remove('hidden');
       if (guestHint) guestHint.classList.remove('hidden');
       if (statJoinedDate) statJoinedDate.textContent = 'Playing as Guest';
+      if (authUserSection) authUserSection.classList.add('hidden');
+      if (authGuestSection) authGuestSection.classList.remove('hidden');
+      if (historyNavSlot) historyNavSlot.style.display = 'none';
+      if (statsNavLabel) statsNavLabel.textContent = 'Profile & Sign In';
+      if (libraryNavNum) libraryNavNum.textContent = '03';
+      if (profileKicker) profileKicker.textContent = '02 — Profile & Authentication';
+      if (profileTitle) profileTitle.textContent = 'Sign In to Arena';
+
       this.myName = 'Guest Player';
     }
   },
@@ -496,6 +564,15 @@ const GameManager = {
         const remainingSec = Math.max(0, Math.round((data.phaseEndsAt - Date.now()) / 1000));
         this.onPrepTimerStarted({ secondsLeft: remainingSec });
       }
+    } else if (data.state === 'OVER' || data.state === 'GAME_OVER') {
+      this.triggerGameOver({
+        winnerId: data.winnerId || null,
+        reason: data.reason || 'match_finished',
+        score: {
+          [this.myId]: this.myPoints,
+          [this.opponentId]: this.opponentPoints
+        }
+      });
     }
   },
 
@@ -557,69 +634,88 @@ const GameManager = {
     });
 
 
-    // Play button triggers matchmaking
-    const playBtnEl = document.getElementById('play-btn');
-    if (playBtnEl) {
-      const handlePlayClick = (e) => {
-        console.log('[GameManager] Play button clicked!');
-        const usernameInput = document.getElementById('username-input');
-        const username = usernameInput ? usernameInput.value.trim() : '';
-        const roomCodeInput = document.getElementById('room-code-input');
-        const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : '';
-        this.myName = username || 'Player';
-        
-        // Unlock AudioContext on user gesture
-        if (window.AudioSynth) {
-          try {
-            window.AudioSynth.init();
-            window.AudioSynth.playClick();
-          } catch (audioErr) {
-            console.warn('[AudioSynth Warning]', audioErr);
-          }
-        }
-        
-        // Request immersive fullscreen on mobile to hide toolbars
+    // Play button triggers matchmaking (via dropdown actions only)
+    const handlePlayClick = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      console.log('[GameManager] Matchmaking search initiated!');
+      const usernameInput = document.getElementById('username-input');
+      const username = usernameInput ? usernameInput.value.trim() : '';
+      const roomCodeInput = document.getElementById('room-code-input');
+      const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : '';
+      this.myName = username || 'Player';
+      
+      // Unlock AudioContext on user gesture
+      if (window.AudioSynth) {
         try {
-          const docEl = document.documentElement;
-          if (docEl && docEl.requestFullscreen) {
-            docEl.requestFullscreen().catch(() => {});
-          }
-        } catch (e) {
-          console.warn('Fullscreen request blocked or unsupported:', e);
+          window.AudioSynth.init();
+          window.AudioSynth.playClick();
+        } catch (audioErr) {
+          console.warn('[AudioSynth Warning]', audioErr);
         }
-        
-        // Submit connection queue
-        if (window.SocketService) {
-          window.SocketService.joinQueue(this.myName, roomCode);
+      }
+      
+      // Request immersive fullscreen on mobile to hide toolbars
+      try {
+        const docEl = document.documentElement;
+        if (docEl && docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(() => {});
         }
-        
-        // Update UI matching controls
-        const leaveQueueBtn = document.getElementById('leave-queue-btn');
-        const queueStatusSub = document.getElementById('queue-status-sub');
-        const statusText = document.getElementById('status-text');
+      } catch (err) {
+        console.warn('Fullscreen request blocked or unsupported:', err);
+      }
+      
+      // Submit connection queue
+      if (window.SocketService) {
+        window.SocketService.joinQueue(this.myName, roomCode);
+      }
+      
+      // Update UI matching controls (NEVER hide play-btn!)
+      const leaveQueueBtn = document.getElementById('leave-queue-btn');
+      const queueStatusSub = document.getElementById('queue-status-sub');
+      const statusText = document.getElementById('status-text');
+      const quickplayBtn = document.getElementById('quickplay-btn');
+      const codeGoBtn = document.getElementById('code-go-btn');
+      const createRoomBtn = document.getElementById('create-room-btn');
 
-        if (usernameInput) usernameInput.disabled = true;
-        playBtnEl.classList.add('hidden');
-        if (leaveQueueBtn) leaveQueueBtn.classList.remove('hidden');
-        if (queueStatusSub) queueStatusSub.classList.remove('hidden');
-        if (statusText) statusText.innerText = '';
-      };
+      if (usernameInput) usernameInput.disabled = true;
+      if (quickplayBtn) quickplayBtn.disabled = true;
+      if (codeGoBtn) codeGoBtn.disabled = true;
+      if (createRoomBtn) createRoomBtn.disabled = true;
+      if (leaveQueueBtn) leaveQueueBtn.classList.remove('hidden');
+      if (statusText) statusText.classList.add('hidden'); // Hide static text to prevent double message!
+      if (queueStatusSub) queueStatusSub.classList.remove('hidden');
+    };
 
-      playBtnEl.addEventListener('click', handlePlayClick);
-    }
+    this.startMatchmaking = handlePlayClick;
 
+    const resetMatchmakingUI = () => {
+      const usernameInput = document.getElementById('username-input');
+      const quickplayBtn = document.getElementById('quickplay-btn');
+      const codeGoBtn = document.getElementById('code-go-btn');
+      const createRoomBtn = document.getElementById('create-room-btn');
+      const leaveQueueBtn = document.getElementById('leave-queue-btn');
+      const queueStatusSub = document.getElementById('queue-status-sub');
+      const statusText = document.getElementById('status-text');
+
+      if (usernameInput) usernameInput.disabled = false;
+      if (quickplayBtn) quickplayBtn.disabled = false;
+      if (codeGoBtn) codeGoBtn.disabled = false;
+      if (createRoomBtn) createRoomBtn.disabled = false;
+      if (leaveQueueBtn) leaveQueueBtn.classList.add('hidden');
+      if (queueStatusSub) queueStatusSub.classList.add('hidden');
+      if (statusText) {
+        statusText.classList.remove('hidden');
+        statusText.innerText = 'Ready to enter the arena...';
+      }
+    };
+    this.resetMatchmakingUI = resetMatchmakingUI;
+    
     // Leave queue button triggers matchmaking cancellation
     if (UI.leaveQueueBtn) {
       UI.leaveQueueBtn.addEventListener('click', () => {
         if (window.AudioSynth) window.AudioSynth.playClick();
         if (window.SocketService) window.SocketService.leaveQueue();
-        
-        // Reset matching controls
-        if (UI.usernameInput) UI.usernameInput.disabled = false;
-        if (UI.playBtn) UI.playBtn.classList.remove('hidden');
-        if (UI.leaveQueueBtn) UI.leaveQueueBtn.classList.add('hidden');
-        if (UI.queueStatusSub) UI.queueStatusSub.classList.add('hidden');
-        if (UI.statusText) UI.statusText.innerText = 'Ready to enter the arena...';
+        resetMatchmakingUI();
       });
     }
 
@@ -986,41 +1082,6 @@ const GameManager = {
         }
       });
     }
-
-    if (tabCompendiumCardsBtn && tabCompendiumRelicsBtn && tabCompendiumMatchupsBtn && tabCompendiumRulesBtn &&
-        compendiumCardsContent && compendiumRelicsContent && compendiumMatchupsContent && compendiumRulesContent) {
-      
-      const allTabs = [tabCompendiumCardsBtn, tabCompendiumRelicsBtn, tabCompendiumMatchupsBtn, tabCompendiumRulesBtn];
-      const allContents = [compendiumCardsContent, compendiumRelicsContent, compendiumMatchupsContent, compendiumRulesContent];
-      
-      const switchTab = (activeTab, activeContent) => {
-        window.AudioSynth.playClick();
-        allTabs.forEach(t => t.classList.remove('active'));
-        activeTab.classList.add('active');
-        allContents.forEach(c => c.style.display = 'none');
-        activeContent.style.display = 'block';
-      };
-
-      tabCompendiumCardsBtn.addEventListener('click', () => switchTab(tabCompendiumCardsBtn, compendiumCardsContent));
-      tabCompendiumRelicsBtn.addEventListener('click', () => switchTab(tabCompendiumRelicsBtn, compendiumRelicsContent));
-      tabCompendiumMatchupsBtn.addEventListener('click', () => switchTab(tabCompendiumMatchupsBtn, compendiumMatchupsContent));
-      tabCompendiumRulesBtn.addEventListener('click', () => switchTab(tabCompendiumRulesBtn, compendiumRulesContent));
-    }
-
-    if (compendiumFilters) {
-      const filterBtns = compendiumFilters.querySelectorAll('.filter-btn');
-      filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          window.AudioSynth.playClick();
-          filterBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const element = btn.dataset.element;
-          if (window.UI && typeof window.UI.renderCompendiumCards === 'function') {
-            window.UI.renderCompendiumCards(this.compendiumCards, element);
-          }
-        });
-      });
-    }
   },
 
   /**
@@ -1063,7 +1124,7 @@ const GameManager = {
     
     // Reset inputs and HUD panels
     UI.usernameInput.disabled = false;
-    UI.playBtn.classList.remove('hidden');
+    
     UI.leaveQueueBtn.classList.add('hidden');
     UI.queueStatusSub.classList.add('hidden');
     UI.statusText.innerText = 'Ready to enter the arena...';
@@ -1079,9 +1140,27 @@ const GameManager = {
     UI.renderPoints(UI.playerPoints, 0);
     UI.renderPoints(UI.enemyPoints, 0);
     
+    // Stop any active anime tweens on overlays
+    if (typeof anime !== 'undefined') {
+      if (UI.gameOverScreen) anime.remove(UI.gameOverScreen);
+      if (UI.roundResultOverlay) anime.remove(UI.roundResultOverlay);
+    }
+    if (this._roundFinishTimeout) {
+      clearTimeout(this._roundFinishTimeout);
+      this._roundFinishTimeout = null;
+    }
+    if (UI.gameOverScreen) {
+      UI.gameOverScreen.classList.remove('active');
+      UI.gameOverScreen.style.display = 'none';
+      UI.gameOverScreen.style.opacity = '0';
+    }
+    if (UI.roundResultOverlay) {
+      UI.roundResultOverlay.classList.remove('active');
+      UI.roundResultOverlay.style.display = 'none';
+      UI.roundResultOverlay.style.opacity = '0';
+    }
+
     UI.showScreen('lobby');
-    UI.gameOverScreen.classList.remove('active');
-    UI.gameOverScreen.style.display = 'none'; // Force hide inline flex set by animation
   },
 
   /**
@@ -1783,14 +1862,27 @@ const GameManager = {
       }
     }
 
+    // If game over is already pending, don't show round result, jump to game over immediately!
+    if (this.pendingGameOver) {
+      const goData = this.pendingGameOver;
+      this.pendingGameOver = null;
+      this.pendingRoundFinished = null;
+      this.pendingDraftPhase = null;
+      this.triggerGameOver(goData);
+      return;
+    }
+
     // Keep round completed overlay visible for a minimum of 2.2 seconds (or 3.7 seconds if a quest is completed)
     const displayDuration = (myQuest && myQuest.completed) ? 3700 : 2200;
     this.roundFinishedShowing = true;
-    setTimeout(() => {
+    if (this._roundFinishTimeout) clearTimeout(this._roundFinishTimeout);
+    this._roundFinishTimeout = setTimeout(() => {
+      this._roundFinishTimeout = null;
       this.roundFinishedShowing = false;
 
       // Hide round overlay
       if (UI.roundResultOverlay) {
+        if (typeof anime !== 'undefined') anime.remove(UI.roundResultOverlay);
         UI.roundResultOverlay.classList.remove('active');
         UI.roundResultOverlay.style.display = 'none';
         UI.roundResultOverlay.style.opacity = '0';
@@ -2041,6 +2133,19 @@ const GameManager = {
   triggerGameOver(data) {
     const UI = window.UI;
     const Animations = window.Animations;
+
+    // Cleanly cancel and dismiss round result overlay
+    this.roundFinishedShowing = false;
+    if (this._roundFinishTimeout) {
+      clearTimeout(this._roundFinishTimeout);
+      this._roundFinishTimeout = null;
+    }
+    if (UI.roundResultOverlay) {
+      if (typeof anime !== 'undefined') anime.remove(UI.roundResultOverlay);
+      UI.roundResultOverlay.classList.remove('active');
+      UI.roundResultOverlay.style.display = 'none';
+      UI.roundResultOverlay.style.opacity = '0';
+    }
 
     // Hide prep timers
     const globalTimer = document.getElementById('global-prep-timer');
@@ -2356,8 +2461,13 @@ const GameManager = {
 // Bind to window load safely (handles cases where DOM is already interactive/complete)
 function initGame() {
   window.gameManager = GameManager;
+  window.GameManager = GameManager;
   GameManager.init();
 }
+
+// Expose globally immediately for other scripts
+window.gameManager = GameManager;
+window.GameManager = GameManager;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initGame);

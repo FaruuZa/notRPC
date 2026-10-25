@@ -99,7 +99,96 @@ const UI = {
    * Toggles active screens
    * @param {string} screenName 'lobby' | 'draft' | 'battle' | 'gameOver' | 'bonusPick' | 'waiting' | 'packSelection' | 'packReveal'
    */
+  showGate(statusText = 'INITIALIZING ARENA DOSSIER...') {
+    const gate = document.getElementById('gate-screen');
+    const text = document.getElementById('gate-status-text');
+    if (text) text.textContent = statusText;
+    if (gate) {
+      gate.classList.remove('hidden');
+      gate.style.display = 'flex';
+      gate.style.opacity = '1';
+      gate.style.visibility = 'visible';
+      gate.style.pointerEvents = 'auto';
+    }
+  },
+
+  dismissGate() {
+    const gate = document.getElementById('gate-screen');
+    if (!gate || gate.classList.contains('hidden')) return;
+    this.triggerSlashTransition(() => {
+      gate.classList.add('hidden');
+      setTimeout(() => {
+        gate.style.display = 'none';
+      }, 400);
+    });
+  },
+
+  triggerSlashTransition(callback, isReverse = false) {
+    const slash = document.getElementById('slash');
+    if (!slash) {
+      if (callback) callback();
+      return;
+    }
+    slash.classList.remove('run', 'reverse');
+    void slash.offsetWidth;
+    if (isReverse) slash.classList.add('reverse');
+    slash.classList.add('run');
+    setTimeout(() => {
+      if (callback) callback();
+    }, 240);
+    setTimeout(() => {
+      slash.classList.remove('run', 'reverse');
+    }, 540);
+  },
+
   showScreen(screenName) {
+    this.triggerSlashTransition(() => {
+      document.querySelectorAll('.screen').forEach(s => {
+        s.classList.remove('active');
+      });
+      // Strictly dismiss all modal overlays during screen transitions
+      document.querySelectorAll('.overlay').forEach(o => {
+        o.classList.remove('active');
+        o.style.display = 'none';
+        o.style.opacity = '0';
+      });
+      if (typeof anime !== 'undefined') {
+        if (this.gameOverScreen) anime.remove(this.gameOverScreen);
+        if (this.roundResultOverlay) anime.remove(this.roundResultOverlay);
+      }
+      this.hideAuthScreen();
+
+      if (screenName === 'lobby') {
+        if (this.matchmakingScreen) this.matchmakingScreen.classList.add('active');
+      } else if (screenName === 'draft') {
+        if (this.draftScreen) this.draftScreen.classList.add('active');
+      } else if (screenName === 'battle') {
+        if (this.battleScreen) this.battleScreen.classList.add('active');
+      } else if (screenName === 'gameOver') {
+        if (this.gameOverScreen) {
+          this.gameOverScreen.classList.add('active');
+          this.gameOverScreen.style.display = 'flex';
+          this.gameOverScreen.style.opacity = '1';
+        }
+      } else if (screenName === 'bonusPick') {
+        if (this.bonusPickScreen) this.bonusPickScreen.classList.add('active');
+      } else if (screenName === 'waiting') {
+        if (this.waitingScreen) this.waitingScreen.classList.add('active');
+      } else if (screenName === 'packSelection') {
+        if (this.packSelectionScreen) this.packSelectionScreen.classList.add('active');
+      } else if (screenName === 'packReveal') {
+        if (this.packRevealScreen) this.packRevealScreen.classList.add('active');
+      } else if (screenName === 'questSelection') {
+        if (this.questSelectionScreen) this.questSelectionScreen.classList.add('active');
+      } else if (screenName === 'cardRemoval') {
+        if (this.cardRemovalScreen) this.cardRemovalScreen.classList.add('active');
+      } else if (screenName === 'relicSelection') {
+        if (this.relicSelectionScreen) this.relicSelectionScreen.classList.add('active');
+      }
+    });
+    return;
+  },
+  _origShowScreen(screenName) {
     document.querySelectorAll('.screen').forEach(s => {
       s.classList.remove('active');
     });
@@ -163,32 +252,184 @@ const UI = {
     if (banner) banner.classList.add('hidden');
   },
 
-  initTabNavigation() {
-    const navTabs = document.querySelectorAll('.nav-tab');
-    navTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        navTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        const targetId = tab.getAttribute('data-tab');
-        
-        document.querySelectorAll('#matchmaking-screen .tab-content').forEach(tc => {
-          tc.classList.add('hidden');
-          tc.classList.remove('active');
-        });
+  switchToTab(targetId) {
+    const isReverse = (targetId === 'arena-tab');
+    this.triggerSlashTransition(() => {
+      document.querySelectorAll('#matchmaking-screen > .tab-content').forEach(tc => {
+        tc.classList.add('hidden');
+        tc.classList.remove('active');
+      });
 
-        const targetContent = document.getElementById(targetId);
-        if (targetContent) {
-          targetContent.classList.remove('hidden');
-          targetContent.classList.add('active');
+      document.querySelectorAll('.nav-tab').forEach(t => {
+        if (t.getAttribute('data-tab') === targetId) t.classList.add('active');
+        else t.classList.remove('active');
+      });
+
+      const targetContent = document.getElementById(targetId);
+      if (targetContent) {
+        targetContent.classList.remove('hidden');
+        targetContent.classList.add('active');
+      }
+
+      if (targetId === 'stats-tab') {
+        this.loadUserStats();
+      } else if (targetId === 'history-tab') {
+        this.loadMatchHistory();
+      } else if (targetId === 'library-tab') {
+        const gm = window.gameManager || window.GameManager;
+        const cards = (gm && gm.compendiumCards && gm.compendiumCards.length > 0) ? gm.compendiumCards : (window.cachedCompendiumData ? window.cachedCompendiumData.cards : []);
+        const relics = (gm && gm.compendiumRelics && gm.compendiumRelics.length > 0) ? gm.compendiumRelics : (window.cachedCompendiumData ? window.cachedCompendiumData.relics : []);
+        const grid = document.getElementById('compendium-cards-grid');
+        const relicsGrid = document.getElementById('compendium-relics-grid');
+        if ((cards && cards.length > 0) || (relics && relics.length > 0)) {
+          if (!relicsGrid || relicsGrid.children.length === 0 || !grid || grid.children.length === 0) {
+            this.renderCompendium(cards, relics);
+          }
+        } else if (window.SocketService && window.SocketService.socket) {
+          window.SocketService.socket.emit('requestCompendium');
         }
+      }
+    }, isReverse);
+  },
 
-        if (targetId === 'stats-tab') {
-          this.loadUserStats();
-        } else if (targetId === 'history-tab') {
-          this.loadMatchHistory();
+  initTabNavigation() {
+    // Delegated click handler for .nav-tab
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('.nav-tab');
+      if (!tab) return;
+      const targetId = tab.getAttribute('data-tab');
+      if (targetId) {
+        e.preventDefault();
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        this.switchToTab(targetId);
+      }
+    });
+
+    // Persona Menu Slot Toggles
+    const playSlot = document.getElementById('play-slot');
+    const playBtn = document.getElementById('play-btn');
+    const customBtn = document.getElementById('custom-btn');
+    const codeRow = document.getElementById('code-row');
+    const quickplayBtn = document.getElementById('quickplay-btn');
+    const codeGoBtn = document.getElementById('code-go-btn');
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const roomCodeInput = document.getElementById('room-code-input');
+
+    if (playBtn && playSlot) {
+      playBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        const isOpen = playSlot.classList.toggle('open');
+        playBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (!isOpen && codeRow) codeRow.classList.remove('show');
+      });
+    }
+
+    // Close play dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (playSlot && playSlot.classList.contains('open') && !playSlot.contains(e.target)) {
+        playSlot.classList.remove('open');
+        if (playBtn) playBtn.setAttribute('aria-expanded', 'false');
+        if (codeRow) codeRow.classList.remove('show');
+      }
+    });
+
+    if (customBtn && codeRow) {
+      customBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        codeRow.classList.toggle('show');
+        if (roomCodeInput) roomCodeInput.focus();
+      });
+    }
+
+    if (quickplayBtn) {
+      quickplayBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (quickplayBtn.disabled) return;
+        if (roomCodeInput) roomCodeInput.value = '';
+        const gm = window.gameManager || window.GameManager;
+        if (gm && gm.startMatchmaking) {
+          gm.startMatchmaking();
         }
       });
-    });
+    }
+
+    if (codeGoBtn) {
+      codeGoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (codeGoBtn.disabled) return;
+        const gm = window.gameManager || window.GameManager;
+        if (gm && gm.startMatchmaking) {
+          gm.startMatchmaking();
+        }
+      });
+    }
+
+    if (createRoomBtn) {
+      createRoomBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (createRoomBtn.disabled) return;
+        if (roomCodeInput) {
+          const rand = Math.floor(1000 + Math.random() * 9000);
+          roomCodeInput.value = `DUEL${rand}`;
+        }
+        const gm = window.gameManager || window.GameManager;
+        if (gm && gm.startMatchmaking) {
+          gm.startMatchmaking();
+        }
+      });
+    }
+
+    // Library tab internal switching
+    const tabCards = document.getElementById('modal-compendium-tab-cards');
+    const tabRelics = document.getElementById('modal-compendium-tab-relics');
+    const tabMatchups = document.getElementById('modal-compendium-tab-matchups');
+    const tabRules = document.getElementById('modal-compendium-tab-rules');
+    const cardsContent = document.getElementById('modal-compendium-cards-content');
+    const relicsContent = document.getElementById('modal-compendium-relics-content');
+    const matchupsContent = document.getElementById('modal-compendium-matchups-content');
+    const rulesContent = document.getElementById('modal-compendium-rules-content');
+
+    const switchLibTab = (activeTab, activeContent) => {
+      if (window.AudioSynth) window.AudioSynth.playClick();
+      [tabCards, tabRelics, tabMatchups, tabRules].forEach(t => t && t.classList.remove('active'));
+      [cardsContent, relicsContent, matchupsContent, rulesContent].forEach(c => {
+        if (!c) return;
+        c.classList.remove('active');
+        c.classList.add('hidden');
+        c.style.display = 'none';
+      });
+      if (activeTab) activeTab.classList.add('active');
+      if (activeContent) {
+        activeContent.classList.remove('hidden');
+        activeContent.classList.add('active');
+        activeContent.style.display = (activeContent === cardsContent || activeContent === relicsContent) ? 'flex' : 'block';
+      }
+    };
+
+    if (tabCards) tabCards.addEventListener('click', () => switchLibTab(tabCards, cardsContent));
+    if (tabRelics) tabRelics.addEventListener('click', () => switchLibTab(tabRelics, relicsContent));
+    if (tabMatchups) tabMatchups.addEventListener('click', () => switchLibTab(tabMatchups, matchupsContent));
+    if (tabRules) tabRules.addEventListener('click', () => switchLibTab(tabRules, rulesContent));
+
+    // Element filter chips for Library
+    const compFilters = document.getElementById('modal-compendium-filters');
+    if (compFilters) {
+      compFilters.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (window.AudioSynth) window.AudioSynth.playClick();
+          compFilters.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const element = btn.getAttribute('data-element');
+          const gm = window.gameManager || window.GameManager;
+          const cards = (gm && gm.compendiumCards) ? gm.compendiumCards : (window.cachedCompendiumData ? window.cachedCompendiumData.cards : []);
+          if (window.UI) {
+            window.UI.renderCompendiumCards(cards || [], element);
+          }
+        });
+      });
+    }
   },
 
   async loadUserStats() {
@@ -242,7 +483,18 @@ const UI = {
 
     const token = localStorage.getItem('element_clash_token');
     if (!token) {
-      listEl.innerHTML = `<div class="empty-history-text">Please login to view your match history.</div>`;
+      listEl.innerHTML = `
+        <div class="hist-row empty-state">
+          <div class="hist-result" style="color: var(--brass-light); font-size: 1.4rem;">GUEST</div>
+          <div class="hist-mid history-details">
+            <div class="hist-opp history-opponent" style="color: var(--ink);">Account sign-in required</div>
+            <div class="hist-meta history-meta">Log in or create an account to record your match history across sessions.</div>
+          </div>
+          <div class="hist-score history-score">
+            <button type="button" class="btn btn-sm btn-red nav-tab" data-tab="stats-tab">SIGN IN</button>
+          </div>
+        </div>
+      `;
       return;
     }
 
@@ -255,7 +507,16 @@ const UI = {
       const history = data.history || [];
 
       if (history.length === 0) {
-        listEl.innerHTML = `<div class="empty-history-text">No match history found. Play your first match!</div>`;
+        listEl.innerHTML = `
+          <div class="hist-row empty-state">
+            <div class="hist-result" style="color: var(--faint); font-size: 1.4rem;">NO DUELS</div>
+            <div class="hist-mid history-details">
+              <div class="hist-opp history-opponent" style="color: var(--muted);">No combat records yet</div>
+              <div class="hist-meta history-meta">Play your first duel in the Arena to view your match history here.</div>
+            </div>
+            <div class="hist-score history-score" style="color: var(--faint); font-size: 1.4rem;">0 <small>—</small> 0</div>
+          </div>
+        `;
         return;
       }
 
@@ -271,204 +532,20 @@ const UI = {
         const dateStr = new Date(item.created_at).toLocaleString();
 
         const row = document.createElement('div');
-        row.className = `history-item ${isVictory ? 'victory' : 'defeat'}`;
+        row.className = `hist-row history-item ${isVictory ? 'win victory' : 'lose defeat'}`;
         row.innerHTML = `
-          <div class="history-result-badge">${isVictory ? 'VICTORY' : 'DEFEAT'}</div>
-          <div class="history-details">
-            <span class="history-vs">VS ${opponentName}</span>
-            <span class="history-date">${dateStr}</span>
+          <div class="hist-result history-result-badge">${isVictory ? 'VICTORY' : 'DEFEAT'}</div>
+          <div class="hist-mid history-details">
+            <div class="hist-opp history-opponent">vs ${opponentName}</div>
+            <div class="hist-meta history-meta">${dateStr}</div>
           </div>
-          <div class="history-score">${yourScore} - ${oppScore}</div>
+          <div class="hist-score history-score">${yourScore} <small>—</small> ${oppScore}</div>
         `;
         listEl.appendChild(row);
       });
     } catch (err) {
-      console.warn('Failed to load history:', err);
+      console.error('[UI] Failed to load match history:', err);
     }
-  },
-
-  /**
-   * Renders the 8 cards in the draft pool
-   * @param {Array} pool List of card templates
-   * @param {Function} onCardClick Callback when a draft card is clicked (passed instanceId, cardEl)
-   */
-  renderDraftPool(pool, onCardClick) {
-    this.draftCardsGrid.innerHTML = '';
-    pool.forEach(card => {
-      const cardEl = this.createCardElement(card);
-      this.draftCardsGrid.appendChild(cardEl);
-      cardEl.addEventListener('click', () => {
-        onCardClick(card.instanceId, cardEl);
-      });
-    });
-  },
-
-  /**
-   * Parses card description for keywords and renders the explanations
-   * @param {HTMLElement} container DOM element for keyword explanations
-   * @param {string} cardDescription InnerHTML or string description of card
-   */
-  updateKeywordExplanations(container, cardDescription = '') {
-    if (!container) return;
-    container.innerHTML = '';
-    
-    const keywords = [];
-    if (cardDescription.includes('kw-burn')) {
-      keywords.push({
-        title: 'BURN',
-        class: 'burn',
-        desc: 'Takes damage equal to stack x3 (absorbed by shields first). All stacks are consumed at the end of the round.'
-      });
-    }
-    if (cardDescription.includes('kw-poison')) {
-      keywords.push({
-        title: 'POISON',
-        class: 'poison',
-        desc: 'Takes damage equal to stack count (bypassing shields). Stack decreases by 1 each round.'
-      });
-    }
-    if (cardDescription.includes('kw-buff')) {
-      keywords.push({
-        title: 'BUFF',
-        class: 'buff',
-        desc: 'Increases card clash damage by +10% per stack. Stack decreases by 1 only when attacking.'
-      });
-    }
-    if (cardDescription.includes('kw-weak')) {
-      keywords.push({
-        title: 'WEAK',
-        class: 'weak',
-        desc: 'Reduces card clash damage by -10% per stack. Stack decreases by 1 only when attacking.'
-      });
-    }
-    if (cardDescription.includes('kw-shield')) {
-      keywords.push({
-        title: 'SHIELD',
-        class: 'shield',
-        desc: 'Blocks incoming attack damage. Decays by 50% at the end of the round, and the remainder carries over.'
-      });
-    }
-    if (cardDescription.includes('kw-cleanse')) {
-      keywords.push({
-        title: 'CLEANSE',
-        class: 'cleanse',
-        desc: 'Immediately removes all active debuffs (Poison, Burn, and Weakness).'
-      });
-    }
-    if (cardDescription.includes('kw-dispel')) {
-      keywords.push({
-        title: 'DISPEL',
-        class: 'dispel',
-        desc: 'Immediately removes all active buffs (Attack Buffs) from the opponent.'
-      });
-    }
-    if (cardDescription.includes('kw-heal')) {
-      keywords.push({
-        title: 'HEAL',
-        class: 'heal',
-        desc: 'Restores HP to the player (up to 100 max HP).'
-      });
-    }
-    if (cardDescription.includes('kw-outbreak') || cardDescription.includes('OUTBREAK')) {
-      keywords.push({
-        title: 'OUTBREAK',
-        class: 'outbreak',
-        desc: 'Doubles all active Poison stacks on target (amplifier only; unpoisoned target receives 0).'
-      });
-    }
-    if (cardDescription.includes('kw-leech') || cardDescription.includes('LEECH')) {
-      keywords.push({
-        title: 'LEECH',
-        class: 'leech',
-        desc: 'When dealing unblocked HP damage, heals 20% per stack of damage dealt (max 10 HP per hit). Consumes 1 stack per trigger.'
-      });
-    }
-    
-    if (cardDescription.includes('kw-thorn') || cardDescription.includes('kw-thorns') || cardDescription.includes('THORN')) {
-      keywords.push({
-        title: 'THORN',
-        class: 'thorns',
-        desc: 'When taking clash HP damage, reflects damage equal to current stack back to attacker (bypasses shield). Decays by 1 stack per trigger.'
-      });
-    }
-    if (keywords.length === 0) {
-      container.classList.add('hidden');
-    } else {
-      keywords.forEach(kw => {
-        const div = document.createElement('div');
-        div.className = 'keyword-entry';
-        div.innerHTML = `<span class="keyword-title ${kw.class}">${kw.title}</span>: ${kw.desc}`;
-        container.appendChild(div);
-      });
-      container.classList.remove('hidden');
-    }
-  },
-
-  /**
-   * Displays details of active status effects for a player
-   */
-  showPlayerStatusExplanations(statuses, username) {
-    if (!this.battleKeywordInfo) return;
-    this.battleKeywordInfo.innerHTML = '';
-    
-    const keywords = [];
-    if (statuses && statuses.burn > 0) {
-      keywords.push({
-        title: 'BURN',
-        class: 'burn',
-        desc: `Currently active stack: ${statuses.burn}. Takes damage equal to stack x3 (absorbed by shields first). All stacks are consumed at the end of the round.`
-      });
-    }
-    if (statuses && statuses.poison > 0) {
-      keywords.push({
-        title: 'POISON',
-        class: 'poison',
-        desc: `Currently active stack: ${statuses.poison}. Takes damage equal to stack count (bypassing shields). Stack decreases by 1 each round.`
-      });
-    }
-    if (statuses && statuses.attackBuff > 0) {
-      keywords.push({
-        title: 'BUFF',
-        class: 'buff',
-        desc: `Currently active stack: ${statuses.attackBuff}. Increases card clash damage by +10% per stack. Stack decreases by 1 when attacking.`
-      });
-    }
-    if (statuses && statuses.weakness > 0) {
-      keywords.push({
-        title: 'WEAK',
-        class: 'weak',
-        desc: `Currently active stack: ${statuses.weakness}. Reduces card clash damage by -10% per stack. Stack decreases by 1 when attacking.`
-      });
-    }
-    if (statuses && statuses.leech > 0) {
-      keywords.push({
-        title: 'LEECH',
-        class: 'leech',
-        desc: `Currently active stack: ${statuses.leech}. Heals ${statuses.leech * 20}% of unblocked HP damage dealt (max 10 HP). Consumes 1 stack per trigger.`
-      });
-    }
-    if (statuses && statuses.thorn > 0) {
-      keywords.push({
-        title: 'THORN',
-        class: 'thorns',
-        desc: `Currently active stack: ${statuses.thorn}. When taking clash HP damage, reflects ${statuses.thorn} damage back to attacker (bypasses shield). Consumes 1 stack per trigger.`
-      });
-    }
-
-    if (keywords.length === 0) {
-      const div = document.createElement('div');
-      div.className = 'keyword-entry';
-      div.innerHTML = `<span style="color: var(--text-secondary); font-style: italic;">${username} has no active status effects.</span>`;
-      this.battleKeywordInfo.appendChild(div);
-    } else {
-      keywords.forEach(kw => {
-        const div = document.createElement('div');
-        div.className = 'keyword-entry';
-        div.innerHTML = `<span class="keyword-title ${kw.class}">${kw.title}</span>: ${kw.desc}`;
-        this.battleKeywordInfo.appendChild(div);
-      });
-    }
-    this.battleKeywordInfo.classList.remove('hidden');
   },
 
   /**
@@ -501,11 +578,11 @@ const UI = {
   },
 
   /**
-   * Generates card HTML string (without element badge in header)
+   * Generates card HTML element (unified Persona design)
    */
   createCardElement(card) {
     const cardDiv = document.createElement('div');
-    cardDiv.className = 'card';
+    cardDiv.className = 'card game-card';
     cardDiv.setAttribute('data-element', card.element);
     const instId = card.instanceId || `library-${card.id || Math.random().toString(36).substr(2, 9)}`;
     cardDiv.setAttribute('data-instance-id', instId);
@@ -516,15 +593,15 @@ const UI = {
     
     cardDiv.innerHTML = `
       <div class="card-face card-front">
-        <div class="card-header">
-          <span class="card-name" title="${card.name}">${card.name}</span>
+        <div class="gc-header card-header">
+          <span class="gc-name card-name" title="${card.name}">${card.name}</span>
         </div>
-        <div class="card-middle">
-          <i class="card-element-icon fa-solid ${iconClass}"></i>
-          <p class="card-desc">${formattedDesc}</p>
+        <div class="gc-middle card-middle">
+          <i class="gc-icon card-element-icon fa-solid ${iconClass}"></i>
+          <p class="gc-desc card-desc">${formattedDesc}</p>
         </div>
-        <div class="card-footer">
-          <span class="card-element-name">${card.element}</span>
+        <div class="gc-footer card-footer">
+          <span class="gc-elname card-element-name">${card.element}</span>
         </div>
       </div>
       <div class="card-face card-back"></div>
@@ -533,12 +610,6 @@ const UI = {
     return cardDiv;
   },
 
-  /**
-   * Renders active status effect badges in player HUDs
-   */
-  /**
-   * Renders active status effect badges in player HUDs and toggles HUD aura classes
-   */
   renderStatuses(container, statuses = {}) {
     container.innerHTML = '';
     if (!statuses) return;
@@ -1538,7 +1609,6 @@ const UI = {
   renderCompendiumCards(cards, filterElement = 'ALL') {
     const grid = document.getElementById('compendium-cards-grid');
     if (!grid) return;
-    grid.innerHTML = '';
     
     const filtered = filterElement === 'ALL' ? cards : cards.filter(c => c.element === filterElement);
     
@@ -1555,70 +1625,75 @@ const UI = {
       return a.name.localeCompare(b.name);
     });
     
+    const fragment = document.createDocumentFragment();
     sorted.forEach(card => {
       // Create standard in-game card element
       const cardEl = this.createCardElement(card);
       
       let outcomesDesc = '<div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 0.3rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.15rem;">CLASH OUTCOMES:</div>';
-      Object.entries(card.outcomes).forEach(([outcome, data]) => {
-        let details = [];
-        if (data.damage) details.push(`<span class="accent-text" style="color: #e74c3c;">${data.damage} DMG</span>`);
-        if (data.shield) details.push(`<span class="accent-text" style="color: #3498db;">${data.shield} SHIELD</span>`);
-        if (data.heal) details.push(`<span class="accent-text" style="color: #2ecc71;">${data.heal} HEAL</span>`);
-        if (data.selfDamage) details.push(`<span class="accent-text" style="color: #e67e22;">${data.selfDamage} SELF DMG</span>`);
-        
-        if (data.applyStatus) {
-          if (data.applyStatus.opponent) {
-            Object.entries(data.applyStatus.opponent).forEach(([stat, val]) => {
-              const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
-              if (typeof val === 'boolean') {
-                details.push(`<span style="color: #e74c3c; font-weight: bold;">Opponent ${statName}</span>`);
-              } else if (stat === 'dispel' || stat === 'cleanse') {
-                details.push(`<span style="color: #e74c3c; font-weight: bold;">Opponent ${statName}</span>`);
-              } else {
-                details.push(`<span style="color: #e74c3c; font-weight: bold;">+${val} Opponent ${statName}</span>`);
-              }
-            });
+      if (card.outcomes) {
+        Object.entries(card.outcomes).forEach(([outcome, data]) => {
+          let details = [];
+          if (data.damage) details.push(`<span class="accent-text" style="color: #e74c3c;">${data.damage} DMG</span>`);
+          if (data.shield) details.push(`<span class="accent-text" style="color: #3498db;">${data.shield} SHIELD</span>`);
+          if (data.heal) details.push(`<span class="accent-text" style="color: #2ecc71;">${data.heal} HEAL</span>`);
+          if (data.selfDamage) details.push(`<span class="accent-text" style="color: #e67e22;">${data.selfDamage} SELF DMG</span>`);
+          
+          if (data.applyStatus) {
+            if (data.applyStatus.opponent) {
+              Object.entries(data.applyStatus.opponent).forEach(([stat, val]) => {
+                const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
+                if (typeof val === 'boolean') {
+                  details.push(`<span style="color: #e74c3c; font-weight: bold;">Opponent ${statName}</span>`);
+                } else if (stat === 'dispel' || stat === 'cleanse') {
+                  details.push(`<span style="color: #e74c3c; font-weight: bold;">Opponent ${statName}</span>`);
+                } else {
+                  details.push(`<span style="color: #e74c3c; font-weight: bold;">+${val} Opponent ${statName}</span>`);
+                }
+              });
+            }
+            if (data.applyStatus.self) {
+              Object.entries(data.applyStatus.self).forEach(([stat, val]) => {
+                const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
+                if (typeof val === 'boolean') {
+                  details.push(`<span style="color: #f1c40f; font-weight: bold;">Self ${statName}</span>`);
+                } else if (stat === 'cleanse' || stat === 'dispel') {
+                  details.push(`<span style="color: #f1c40f; font-weight: bold;">Self ${statName}</span>`);
+                } else {
+                  details.push(`<span style="color: #f1c40f; font-weight: bold;">+${val} Self ${statName}</span>`);
+                }
+              });
+            }
+            if (data.applyStatus.both) {
+              Object.entries(data.applyStatus.both).forEach(([stat, val]) => {
+                const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
+                if (typeof val === 'boolean') {
+                  details.push(`<span style="color: #c084fc; font-weight: bold;">Both ${statName}</span>`);
+                } else if (stat === 'cleanse' || stat === 'dispel') {
+                  details.push(`<span style="color: #c084fc; font-weight: bold;">Both ${statName}</span>`);
+                } else {
+                  details.push(`<span style="color: #c084fc; font-weight: bold;">+${val} Both ${statName}</span>`);
+                }
+              });
+            }
           }
-          if (data.applyStatus.self) {
-            Object.entries(data.applyStatus.self).forEach(([stat, val]) => {
-              const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
-              if (typeof val === 'boolean') {
-                details.push(`<span style="color: #f1c40f; font-weight: bold;">Self ${statName}</span>`);
-              } else if (stat === 'cleanse' || stat === 'dispel') {
-                details.push(`<span style="color: #f1c40f; font-weight: bold;">Self ${statName}</span>`);
-              } else {
-                details.push(`<span style="color: #f1c40f; font-weight: bold;">+${val} Self ${statName}</span>`);
-              }
-            });
-          }
-          if (data.applyStatus.both) {
-            Object.entries(data.applyStatus.both).forEach(([stat, val]) => {
-              const statName = stat === 'thorns' ? 'THORN' : stat.toUpperCase();
-              if (typeof val === 'boolean') {
-                details.push(`<span style="color: #c084fc; font-weight: bold;">Both ${statName}</span>`);
-              } else if (stat === 'cleanse' || stat === 'dispel') {
-                details.push(`<span style="color: #c084fc; font-weight: bold;">Both ${statName}</span>`);
-              } else {
-                details.push(`<span style="color: #c084fc; font-weight: bold;">+${val} Both ${statName}</span>`);
-              }
-            });
-          }
-        }
-        
-        outcomesDesc += `<div style="margin-top: 0.25rem;"><strong>${outcome}:</strong> ${details.length > 0 ? details.join(' & ') : 'No Effect'}</div>`;
-      });
+          
+          outcomesDesc += `<div style="margin-top: 0.25rem;"><strong>${outcome}:</strong> ${details.length > 0 ? details.join(' & ') : 'No Effect'}</div>`;
+        });
+      }
       
       this.bindTooltip(cardEl, card.name, outcomesDesc, `Element: ${card.element}`);
       
-      grid.appendChild(cardEl);
+      fragment.appendChild(cardEl);
     });
+    grid.innerHTML = '';
+    grid.appendChild(fragment);
+    this._lastRenderedFilter = filterElement;
   },
 
   renderCompendiumRelics(relics) {
     const grid = document.getElementById('compendium-relics-grid');
     if (!grid) return;
-    grid.innerHTML = '';
     
     if (relics.length === 0) {
       grid.innerHTML = `<div class="compendium-loading">No relics found.</div>`;
@@ -1633,6 +1708,7 @@ const UI = {
       return a.name.localeCompare(b.name);
     });
     
+    const fragment = document.createDocumentFragment();
     sortedRelics.forEach(relic => {
       const itemEl = document.createElement('div');
       itemEl.className = `compendium-relic-item ${relic.quality}`;
@@ -1648,8 +1724,10 @@ const UI = {
       
       this.bindTooltip(itemEl, relic.name, relic.description, `Quality: ${relic.quality}`);
       
-      grid.appendChild(itemEl);
+      fragment.appendChild(itemEl);
     });
+    grid.innerHTML = '';
+    grid.appendChild(fragment);
   },
 
   /**

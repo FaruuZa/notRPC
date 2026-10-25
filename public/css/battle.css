@@ -704,12 +704,12 @@
 .card[data-element="NEUTRAL"] .card-header { background: var(--color-neutral); }
 .card[data-element="CHAOS"] .card-header { background: var(--color-chaos); }
 
-.card-name {
-  font-family: var(--font-title);
-  font-size: 0.7rem;
-  font-weight: 700;
+.card-name, .gc-name {
+  font-family: var(--font-card-title, 'Space Grotesk', 'Archivo', sans-serif) !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
   line-height: 1.1;
   text-align: center;
   width: 100%;

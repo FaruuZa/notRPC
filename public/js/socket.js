@@ -144,8 +144,18 @@ socket.on('onlineCountUpdate', (count) => {
 });
 
 socket.on('compendiumData', (data) => {
-  if (window.gameManager) {
-    window.gameManager.setCompendiumData(data);
+  window.cachedCompendiumData = data;
+  const gm = window.gameManager || window.GameManager;
+  if (gm && typeof gm.setCompendiumData === 'function') {
+    gm.setCompendiumData(data);
+  }
+  if (window.UI && typeof window.UI.renderCompendium === 'function') {
+    window.UI.renderCompendium(data.cards, data.relics);
+  }
+  if (window.UI && typeof window.UI.dismissGate === 'function') {
+    setTimeout(() => {
+      window.UI.dismissGate();
+    }, 350);
   }
 });
 
