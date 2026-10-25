@@ -796,11 +796,11 @@
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <h2 class="draft-title">SELECT <span class="accent-text">QUEST</span></h2>
-        <p class="draft-subtitle">Choose exactly <strong>1 Quest</strong> to active during this round. Earn rewards on completion!</p>
+        <h2 class="draft-title" id="quest-screen-title">SELECT <span class="accent-text">QUEST TIER</span></h2>
+        <p class="draft-subtitle" id="quest-screen-subtitle">Choose your risk tier. Quests and rewards are drawn based on your choice.</p>
         
         <div class="draft-meta-row">
-          <div class="draft-meta-badge glass" id="quest-reroll-box">
+          <div class="draft-meta-badge glass hidden" id="quest-reroll-box">
             <i class="fa-solid fa-rotate"></i>
             <span>REROLLS LEFT: <strong id="quest-rerolls-val">1</strong></span>
           </div>
@@ -808,7 +808,7 @@
       </header>
       
       <div class="quest-selection-grid" id="quest-cards-grid">
-        <!-- 3 quest cards will be rendered dynamically here -->
+        <!-- 3 quest tier cards or revealed quest card will be rendered dynamically here -->
       </div>
       
       <div id="quest-keyword-info" class="keyword-info-box glass hidden" style="margin-top: 1rem;"></div>
@@ -817,13 +817,29 @@
         <button id="quest-view-deck-btn" class="btn btn-secondary">
           <i class="fa-solid fa-layer-group"></i> LIHAT DECK
         </button>
-        <button id="quest-reroll-btn" class="btn btn-secondary">
-          REROLL QUESTS
+        <button id="quest-reroll-btn" class="btn btn-secondary hidden">
+          REROLL QUEST
         </button>
-        <button id="quest-confirm-btn" class="btn btn-primary disabled" disabled>
-          CONFIRM QUEST
+        <button id="quest-confirm-btn" class="btn btn-primary disabled hidden" disabled>
+          LOCK IN QUEST
         </button>
       </footer>
+    </div>
+  </div>
+
+  <!-- Modal: Quest Reward Pool Details -->
+  <div id="quest-pool-modal" class="overlay">
+    <div class="deck-modal-content game-over-card glass" style="max-width: 600px;">
+      <h2 class="deck-modal-title" id="quest-pool-modal-title"><i class="fa-solid fa-gift"></i> REWARD POOL DETAILS</h2>
+      <p class="deck-modal-desc" id="quest-pool-modal-subtitle">Potential relics and bonuses for this tier:</p>
+      <div id="quest-pool-modal-content" class="relics-modal-grid" style="max-height: 45vh; overflow-y: auto; padding: 0.5rem; margin-bottom: 1.5rem;">
+        <!-- Relic items will be injected dynamically -->
+      </div>
+      <div class="deck-modal-footer">
+        <button id="quest-pool-close-btn" class="btn btn-secondary" style="min-width: 140px;">
+          CLOSE
+        </button>
+      </div>
     </div>
   </div>
 

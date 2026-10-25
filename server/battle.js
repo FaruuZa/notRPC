@@ -2,7 +2,7 @@ const { nanoid } = require('nanoid');
 const { MAX_HP, TURN_DURATION_SEC, AFK_TURN_DURATION_SEC, AFK_STREAK_THRESHOLD, PREP_PHASE_DURATION_SEC, CLASH_WINDOW_MS } = require('./constants');
 const { evaluateClash, generateBonusPickCards, generatePacks } = require('./gameLogic');
 const { RELIC_POOL } = require('./relics');
-const { updateQuestProgress } = require('./quests');
+const { updateQuestProgress, generateReward, getRemovalTokenReward } = require('./quests');
 const { rooms, playerToRoom, recordMatchToDb } = require('./roomState');
 
 // Late-bound delegate helpers to avoid circular evaluation issues
@@ -1133,13 +1133,14 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         if (progress >= target) {
           p.questCompletedThisRound = true;
           
-          // Guaranteed removal token yield based on quest difficulty
-          const tokensEarned = p.activeQuest.removalTokens || 0;
+          // Guaranteed removal token yield based on quest difficulty tier (1 for EASY, 2 for MEDIUM, 3 for HARD)
+          const questTier = p.activeQuest.tier || p.activeQuest.difficulty || 'EASY';
+          const tokensEarned = p.activeQuest.removalTokens !== undefined ? p.activeQuest.removalTokens : getRemovalTokenReward(questTier);
           p.removalTokens = (p.removalTokens || 0) + tokensEarned;
           p.tokensEarnedThisRound = tokensEarned;
 
-          // Hand out rewards
-          const reward = p.activeQuest.reward;
+          // Hand out rewards (roll now if not pre-rolled)
+          const reward = p.activeQuest.reward || generateReward(questTier);
           
           if (reward.type === 'relic') {
             const relicsOfQuality = Object.values(RELIC_POOL).filter(r => {

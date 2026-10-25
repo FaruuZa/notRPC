@@ -199,6 +199,12 @@ socket.on('questSelectionStart', (data) => {
   }
 });
 
+socket.on('questRevealed', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onQuestRevealed(data);
+  }
+});
+
 socket.on('questLocked', (data) => {
   if (window.gameManager) {
     window.gameManager.onQuestLocked(data);
@@ -404,6 +410,9 @@ const SocketService = {
   },
   clashFinished() {
     socket.emit('clashFinished');
+  },
+  pickQuestTier(tier) {
+    socket.emit('pickQuestTier', tier);
   },
   selectQuest(questId) {
     socket.emit('selectQuest', questId);

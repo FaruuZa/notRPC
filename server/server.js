@@ -181,6 +181,10 @@ io.on('connection', (socket) => {
     roomManager.handleSelectPack(socket, packId, io);
   });
 
+  socket.on('pickQuestTier', (tier) => {
+    roomManager.handlePickQuestTier(socket, tier, io);
+  });
+
   socket.on('selectQuest', (questId) => {
     roomManager.handleSelectQuest(socket, questId, io);
   });

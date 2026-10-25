@@ -1,7 +1,7 @@
 const { MAX_HP, PREP_PHASE_DURATION_SEC, PREP_STEP_TIMEOUT_SEC } = require('./constants');
 const { PACK_POOL } = require('./packs');
 const { RELIC_POOL } = require('./relics');
-const { generatePlayerQuests } = require('./quests');
+const { generatePlayerQuests, getTierOffers, drawQuestForTier } = require('./quests');
 const { generatePackCards, generateBonusPickCards, generatePacks } = require('./gameLogic');
 const { rooms, playerToRoom } = require('./roomState');
 
@@ -14,7 +14,7 @@ function drawHandFromDeck(...args) {
 }
 
 /**
- * Starts the quest selection phase by generating and sending 3 quests to each player
+ * Starts the quest selection phase by sending Blind Pick tier offers (and fallback quests) to each player
  */
 function startQuestSelectionPhase(roomId, io) {
   const room = rooms[roomId];
@@ -28,7 +28,11 @@ function startQuestSelectionPhase(roomId, io) {
   const playerIds = Object.keys(room.players);
   playerIds.forEach(id => {
     const p = room.players[id];
+    p.tierOffers = getTierOffers(p.deck, p.relics);
     p.offeredQuests = generatePlayerQuests(p.deck, p.relics);
+    p.selectedTier = null;
+    p.currentDrawnQuest = null;
+    p.drawnQuestsHistory = [];
     p.questRerollCount = 0;
     p.questLocked = false;
     p.activeQuest = null;
@@ -37,6 +41,7 @@ function startQuestSelectionPhase(roomId, io) {
     // Sub-phase timers removed: no timer in quest selection.
 
     p.socket.emit('questSelectionStart', {
+      tierOffers: p.tierOffers,
       quests: p.offeredQuests,
       rerollsLeft: 1,
       deck: p.deck,
@@ -46,7 +51,34 @@ function startQuestSelectionPhase(roomId, io) {
 }
 
 /**
- * Handles quest selection
+ * Handles choosing a Blind Pick quest tier (Stage 1 -> Stage 2)
+ */
+function handlePickQuestTier(socket, tier, io) {
+  const roomId = playerToRoom[socket.id];
+  const room = rooms[roomId];
+  if (!room || room.state !== 'QUEST_PHASE') return;
+
+  const player = room.players[socket.id];
+  if (!player || player.questLocked) return;
+
+  const validTiers = ['EASY', 'MEDIUM', 'HARD'];
+  if (!validTiers.includes(tier)) return;
+
+  const drawn = drawQuestForTier(player.deck, player.relics, tier);
+  player.selectedTier = tier;
+  player.currentDrawnQuest = drawn;
+  player.drawnQuestsHistory = [drawn.id];
+
+  console.log(`[RoomManager] Player ${player.username} picked tier ${tier}, received quest: ${drawn.text}`);
+  socket.emit('questRevealed', {
+    quest: drawn,
+    tier: tier,
+    rerollsLeft: Math.max(0, 1 - (player.questRerollCount || 0))
+  });
+}
+
+/**
+ * Handles quest selection / lock in
  */
 function handleSelectQuest(socket, questId, io) {
   const roomId = playerToRoom[socket.id];
@@ -54,9 +86,13 @@ function handleSelectQuest(socket, questId, io) {
   if (!room || room.state !== 'QUEST_PHASE') return;
 
   const player = room.players[socket.id];
-  if (player.questLocked) return;
+  if (!player || player.questLocked) return;
 
-  const chosenQuest = player.offeredQuests.find(q => q.id === questId);
+  // Prefer the current drawn quest from blind pick; fallback to offeredQuests search
+  let chosenQuest = player.currentDrawnQuest;
+  if (!chosenQuest || (questId && chosenQuest.id !== questId)) {
+    chosenQuest = (player.offeredQuests || []).find(q => q.id === questId) || chosenQuest;
+  }
   if (!chosenQuest) return;
 
   clearPlayerPrepTimer(player);
@@ -91,18 +127,35 @@ function handleRerollQuests(socket, io) {
   if (!room || room.state !== 'QUEST_PHASE') return;
 
   const player = room.players[socket.id];
-  if (player.questLocked || player.questRerollCount >= 1) return;
+  if (!player || player.questLocked || player.questRerollCount >= 1) return;
 
   player.questRerollCount += 1;
-  player.offeredQuests = generatePlayerQuests(player.deck, player.relics);
 
-  console.log(`[RoomManager] Player ${player.username} rerolled quests.`);
-  socket.emit('questSelectionStart', {
-    quests: player.offeredQuests,
-    rerollsLeft: 0,
-    deck: player.deck,
-    relics: player.relics
-  });
+  if (player.selectedTier) {
+    // Blind pick reroll within the chosen tier
+    const newQuest = drawQuestForTier(player.deck, player.relics, player.selectedTier, player.drawnQuestsHistory || []);
+    if (!player.drawnQuestsHistory) player.drawnQuestsHistory = [];
+    player.drawnQuestsHistory.push(newQuest.id);
+    player.currentDrawnQuest = newQuest;
+
+    console.log(`[RoomManager] Player ${player.username} rerolled quest in tier ${player.selectedTier}: ${newQuest.text}`);
+    socket.emit('questRevealed', {
+      quest: newQuest,
+      tier: player.selectedTier,
+      rerollsLeft: 0
+    });
+  } else {
+    // Fallback: reroll all offered quests
+    player.offeredQuests = generatePlayerQuests(player.deck, player.relics);
+    console.log(`[RoomManager] Player ${player.username} rerolled quests.`);
+    socket.emit('questSelectionStart', {
+      tierOffers: getTierOffers(player.deck, player.relics),
+      quests: player.offeredQuests,
+      rerollsLeft: 0,
+      deck: player.deck,
+      relics: player.relics
+    });
+  }
 }
 
 /**
@@ -674,6 +727,7 @@ function proceedToQuestPhase(room, io) {
 
 module.exports = {
   startQuestSelectionPhase,
+  handlePickQuestTier,
   handleSelectQuest,
   handleRerollQuests,
   handleSelectBonusCard,

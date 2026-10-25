@@ -1287,36 +1287,62 @@ const GameManager = {
 
     UI.showScreen('questSelection');
     
-    this.offeredQuests = data.quests;
+    this.tierOffers = data.tierOffers || [];
+    this.offeredQuests = data.quests || [];
     this.selectedQuestId = null;
+    this.selectedTier = null;
+    this.revealedQuest = null;
     
-    const rerollsVal = document.getElementById('quest-rerolls-val');
-    if (rerollsVal) rerollsVal.innerText = data.rerollsLeft;
-    
-    const rerollBtn = document.getElementById('quest-reroll-btn');
-    if (rerollBtn) {
-      if (data.rerollsLeft > 0) {
-        rerollBtn.classList.remove('disabled');
-        rerollBtn.disabled = false;
-      } else {
-        rerollBtn.classList.add('disabled');
-        rerollBtn.disabled = true;
+    if (this.tierOffers && this.tierOffers.length > 0) {
+      UI.renderQuestTiers(
+        this.tierOffers,
+        (tier) => {
+          this.selectedTier = tier;
+          window.SocketService.pickQuestTier(tier);
+        },
+        (offer) => {
+          UI.showQuestPoolModal(offer, this.compendiumRelics);
+        }
+      );
+    } else {
+      // Legacy fallback
+      const rerollsVal = document.getElementById('quest-rerolls-val');
+      if (rerollsVal) rerollsVal.innerText = data.rerollsLeft;
+      
+      const rerollBtn = document.getElementById('quest-reroll-btn');
+      if (rerollBtn) {
+        if (data.rerollsLeft > 0) {
+          rerollBtn.classList.remove('disabled');
+          rerollBtn.disabled = false;
+        } else {
+          rerollBtn.classList.add('disabled');
+          rerollBtn.disabled = true;
+        }
       }
-    }
-    
-    const confirmBtn = document.getElementById('quest-confirm-btn');
-    if (confirmBtn) {
-      confirmBtn.classList.add('disabled');
-      confirmBtn.disabled = true;
-    }
-    
-    UI.renderQuestCards(data.quests, (questId) => {
-      this.selectedQuestId = questId;
+      
+      const confirmBtn = document.getElementById('quest-confirm-btn');
       if (confirmBtn) {
-        confirmBtn.classList.remove('disabled');
-        confirmBtn.disabled = false;
+        confirmBtn.classList.add('disabled');
+        confirmBtn.disabled = true;
       }
-    });
+      
+      UI.renderQuestCards(data.quests, (questId) => {
+        this.selectedQuestId = questId;
+        if (confirmBtn) {
+          confirmBtn.classList.remove('disabled');
+          confirmBtn.disabled = false;
+        }
+      });
+    }
+  },
+
+  onQuestRevealed(data) {
+    const UI = window.UI;
+    this.revealedQuest = data.quest;
+    this.selectedQuestId = data.quest.id;
+    this.selectedTier = data.tier;
+    
+    UI.renderRevealedQuest(data.quest, data.tier, data.rerollsLeft);
   },
 
   onQuestLocked(chosenQuest) {

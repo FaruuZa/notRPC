@@ -34,6 +34,7 @@ module.exports = {
 
   // Preparation & Draft Phase (prepPhase.js)
   startQuestSelectionPhase: prepPhase.startQuestSelectionPhase,
+  handlePickQuestTier: prepPhase.handlePickQuestTier,
   handleSelectQuest: prepPhase.handleSelectQuest,
   handleRerollQuests: prepPhase.handleRerollQuests,
   handleSelectBonusCard: prepPhase.handleSelectBonusCard,

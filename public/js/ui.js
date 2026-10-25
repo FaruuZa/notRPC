@@ -1123,6 +1123,186 @@ const UI = {
     });
   },
 
+  renderQuestTiers(tierOffers, onSelectTier, onInspectPool) {
+    const grid = document.getElementById('quest-cards-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const titleEl = document.getElementById('quest-screen-title');
+    if (titleEl) titleEl.innerHTML = 'SELECT <span class="accent-text">QUEST TIER</span>';
+    const subtitleEl = document.getElementById('quest-screen-subtitle');
+    if (subtitleEl) subtitleEl.innerText = 'Choose your risk tier. Quests and rewards are drawn based on your choice.';
+
+    const rerollBox = document.getElementById('quest-reroll-box');
+    if (rerollBox) rerollBox.classList.add('hidden');
+    const rerollBtn = document.getElementById('quest-reroll-btn');
+    if (rerollBtn) rerollBtn.classList.add('hidden');
+    const confirmBtn = document.getElementById('quest-confirm-btn');
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+
+    tierOffers.forEach(offer => {
+      const card = document.createElement('div');
+      card.className = `quest-tier-card ${offer.tier}`;
+
+      const tokensBadgeHtml = `<div class="quest-tier-token-badge"><i class="fa-solid fa-fire-flame-curved"></i> +${offer.removalTokens} Removal Token${offer.removalTokens > 1 ? 's' : ''}</div>`;
+
+      const perksHtml = (offer.perks && offer.perks.length > 0)
+        ? offer.perks.map(p => `
+            <div class="quest-tier-perk-item">
+              <i class="fa-solid ${p.icon}"></i>
+              <span>${p.label}</span>
+            </div>
+          `).join('')
+        : `<div class="quest-tier-perk-item"><i class="fa-solid fa-gift"></i><span>${offer.summaryText}</span></div>`;
+
+      card.innerHTML = `
+        <div class="quest-tier-header">
+          <div class="quest-tier-name">${offer.tier} TIER</div>
+          ${tokensBadgeHtml}
+        </div>
+        <div class="quest-tier-perks">
+          ${perksHtml}
+        </div>
+        <div class="quest-tier-actions">
+          <button class="btn btn-tier-pick ${offer.tier}">CHOOSE ${offer.tier}</button>
+          <button class="btn-tier-inspect"><i class="fa-solid fa-circle-info"></i> View Pool Details</button>
+        </div>
+      `;
+
+      card.querySelector('.btn-tier-pick').addEventListener('click', () => {
+        window.AudioSynth.playClick();
+        onSelectTier(offer.tier);
+      });
+
+      card.querySelector('.btn-tier-inspect').addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.AudioSynth.playClick();
+        if (typeof onInspectPool === 'function') {
+          onInspectPool(offer);
+        }
+      });
+
+      grid.appendChild(card);
+    });
+  },
+
+  renderRevealedQuest(quest, tier, rerollsLeft, onLockIn, onReroll) {
+    const grid = document.getElementById('quest-cards-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const titleEl = document.getElementById('quest-screen-title');
+    if (titleEl) titleEl.innerHTML = 'QUEST <span class="accent-text">REVEALED</span>';
+    const subtitleEl = document.getElementById('quest-screen-subtitle');
+    if (subtitleEl) subtitleEl.innerText = 'Review your objective. Lock in to commit, or reroll for another quest in this tier.';
+
+    const rerollBox = document.getElementById('quest-reroll-box');
+    if (rerollBox) rerollBox.classList.remove('hidden');
+    const rerollsVal = document.getElementById('quest-rerolls-val');
+    if (rerollsVal) rerollsVal.innerText = rerollsLeft;
+
+    const rerollBtn = document.getElementById('quest-reroll-btn');
+    if (rerollBtn) {
+      rerollBtn.classList.remove('hidden');
+      if (rerollsLeft > 0) {
+        rerollBtn.classList.remove('disabled');
+        rerollBtn.disabled = false;
+      } else {
+        rerollBtn.classList.add('disabled');
+        rerollBtn.disabled = true;
+      }
+    }
+
+    const confirmBtn = document.getElementById('quest-confirm-btn');
+    if (confirmBtn) {
+      confirmBtn.classList.remove('hidden');
+      confirmBtn.classList.remove('disabled');
+      confirmBtn.disabled = false;
+      confirmBtn.innerText = 'LOCK IN QUEST';
+    }
+
+    const container = document.createElement('div');
+    container.className = 'quest-revealed-container';
+
+    const card = document.createElement('div');
+    card.className = `quest-revealed-card ${tier || quest.difficulty}`;
+
+    const tokens = quest.removalTokens !== undefined ? quest.removalTokens : (quest.difficulty === 'HARD' ? 3 : (quest.difficulty === 'MEDIUM' ? 2 : 1));
+    const tokensBadgeHtml = `<div class="quest-token-bonus"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`;
+    const rewardPoolDesc = quest.rewardPoolText || (quest.difficulty === 'HARD' ? '70% Epic/Legendary Relic · 30% Bonus Pack' : (quest.difficulty === 'MEDIUM' ? '70% Rare/Epic Relic · 30% Bonus Draft' : '80% Common Relic · 20% Bonus Draft'));
+
+    card.innerHTML = `
+      <div class="quest-revealed-header">
+        <div class="quest-revealed-difficulty ${tier || quest.difficulty}">${tier || quest.difficulty} TIER</div>
+        ${tokensBadgeHtml}
+      </div>
+      <div class="quest-revealed-target">${quest.text}</div>
+      <div class="quest-card-reward-box">
+        <div class="quest-card-reward-label">REWARD POOL (ON COMPLETION)</div>
+        <div class="quest-card-reward-text">${rewardPoolDesc}</div>
+        <div class="quest-card-reward-subnote"><i class="fa-solid fa-lock"></i> Rolled & revealed upon completion after round</div>
+      </div>
+    `;
+
+    container.appendChild(card);
+    grid.appendChild(container);
+  },
+
+  showQuestPoolModal(offer, allRelics = []) {
+    const modal = document.getElementById('quest-pool-modal');
+    if (!modal) return;
+
+    const relicsList = (allRelics && allRelics.length > 0)
+      ? allRelics
+      : (window.gameManager?.compendiumRelics || []);
+
+    const titleEl = document.getElementById('quest-pool-modal-title');
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-gift"></i> ${offer.tier} REWARD POOL`;
+    const subtitleEl = document.getElementById('quest-pool-modal-subtitle');
+    if (subtitleEl) subtitleEl.innerText = offer.summaryText;
+
+    const contentEl = document.getElementById('quest-pool-modal-content');
+    if (contentEl) {
+      contentEl.innerHTML = '';
+      const pool = offer.pool || {};
+      const qualities = (pool.relicQualities || []).map(q => q.quality);
+      const eligibleRelics = (relicsList || []).filter(r => qualities.includes(r.quality));
+
+      if (eligibleRelics.length > 0) {
+        eligibleRelics.forEach(relic => {
+          const item = document.createElement('div');
+          item.className = `relic-card-item ${relic.quality}`;
+          item.innerHTML = `
+            <div class="relic-item-header">
+              <span class="relic-quality-badge ${relic.quality}">${relic.quality}</span>
+              <strong class="relic-card-name">${relic.name}</strong>
+            </div>
+            <p class="relic-card-desc">${relic.description}</p>
+          `;
+          contentEl.appendChild(item);
+        });
+      } else {
+        contentEl.innerHTML = `<div style="padding: 1.5rem; color: var(--text-secondary); text-align: center;">${qualities.join(' / ')} Relics eligible from library. Non-relic reward: ${pool.nonRelicText || 'Bonus'}.</div>`;
+      }
+    }
+
+    modal.classList.add('active');
+
+    const closeBtn = document.getElementById('quest-pool-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        window.AudioSynth.playClick();
+        modal.classList.remove('active');
+      };
+    }
+
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    };
+  },
+
   renderQuestCards(quests, onQuestClick) {
     const grid = document.getElementById('quest-cards-grid');
     if (!grid) return;
@@ -1199,9 +1379,10 @@ const UI = {
     }
     
     if (rewardEl) {
-      const tokens = activeQuest.removalTokens !== undefined ? activeQuest.removalTokens : (activeQuest.difficulty === 'HARD' ? 2 : (activeQuest.difficulty === 'MEDIUM' ? 1 : 0));
+      const tokens = activeQuest.removalTokens !== undefined ? activeQuest.removalTokens : (activeQuest.difficulty === 'HARD' ? 3 : (activeQuest.difficulty === 'MEDIUM' ? 2 : 1));
       const tokenBonusStr = tokens > 0 ? ` & +${tokens} Token${tokens > 1 ? 's' : ''}` : '';
-      rewardEl.innerText = `Reward: ${activeQuest.reward.text}${tokenBonusStr}`;
+      const mainRewardText = activeQuest.reward?.text || activeQuest.rewardPoolText || `${activeQuest.tier || activeQuest.difficulty} Tier Reward`;
+      rewardEl.innerText = `Reward: ${mainRewardText}${tokenBonusStr}`;
     }
   },
 

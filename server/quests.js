@@ -1,73 +1,349 @@
 const { RELIC_POOL } = require('./relics');
 const { getCardProfile } = require('./cardProfiler');
 
+/**
+ * REFACTORED QUEST TEMPLATES
+ * 
+ * Supports two distinct quest template types:
+ * 1. Scalable Templates: Define per-tier parameters (EASY, MEDIUM, HARD) where targets and text scale.
+ * 2. Tier-Exclusive Templates: Defined strictly for specific difficulties (e.g., streaks, thresholds, or rare archetypes).
+ */
 const QUEST_TEMPLATES = [
-  // Outcome Quests
-  { id: 'superior_4', text: 'Superior outcome 4 times', tags: ['outcome', 'superior'], difficulty: 'MEDIUM', target: 4 },
-  { id: 'neutral_4', text: 'Neutral outcome 4 times', tags: ['outcome', 'neutral'], difficulty: 'MEDIUM', target: 4 },
-  { id: 'inferior_3', text: 'Inferior outcome 3 times', tags: ['outcome', 'inferior'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'superior_2_row', text: 'Superior 2 times in a row', tags: ['outcome', 'superior', 'row'], difficulty: 'HARD', target: 2 },
-  { id: 'neutral_3_row', text: 'Neutral 3 times in a row', tags: ['outcome', 'neutral', 'row'], difficulty: 'HARD', target: 3 },
+  // ==========================================
+  // 1. SCALABLE QUEST TEMPLATES
+  // ==========================================
 
-  // Damage Quests
-  { id: 'deal_30', text: 'Deal 30 damage in battle', tags: ['damage'], difficulty: 'EASY', target: 30 },
-  { id: 'deal_50', text: 'Deal 50 damage in battle', tags: ['damage'], difficulty: 'HARD', target: 50 },
+  // Damage Quests (Hard updated from 50 to 70!)
+  {
+    id: 'deal_damage',
+    category: 'damage',
+    tags: ['damage'],
+    tiers: {
+      EASY:   { target: 30, text: 'Deal 30 damage in battle' },
+      MEDIUM: { target: 50, text: 'Deal 50 damage in battle' },
+      HARD:   { target: 70, text: 'Deal 70 damage in battle' }
+    }
+  },
 
-  // Burn Quests
-  { id: 'apply_burn_3', text: 'Apply Burn 3 times', tags: ['burn'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'apply_burn_5', text: 'Apply Burn 5 times', tags: ['burn'], difficulty: 'HARD', target: 5 },
-  { id: 'deal_15_burn', text: 'Deal 15 Burn damage', tags: ['burn'], difficulty: 'HARD', target: 15 },
+  // Superior Outcomes
+  {
+    id: 'superior_outcome',
+    category: 'outcome',
+    tags: ['outcome', 'superior'],
+    tiers: {
+      EASY:   { target: 3, text: 'Superior outcome 3 times' },
+      MEDIUM: { target: 4, text: 'Superior outcome 4 times' },
+      HARD:   { target: 5, text: 'Superior outcome 5 times' }
+    }
+  },
 
-  // Poison Quests
-  { id: 'apply_poison_3', text: 'Apply Poison 3 times', tags: ['poison'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'apply_poison_5', text: 'Apply Poison 5 times', tags: ['poison'], difficulty: 'HARD', target: 5 },
+  // Neutral Outcomes
+  {
+    id: 'neutral_outcome',
+    category: 'outcome',
+    tags: ['outcome', 'neutral'],
+    tiers: {
+      EASY:   { target: 3, text: 'Neutral outcome 3 times' },
+      MEDIUM: { target: 4, text: 'Neutral outcome 4 times' },
+      HARD:   { target: 5, text: 'Neutral outcome 5 times' }
+    }
+  },
+
+  // Burn Status Quests
+  {
+    id: 'apply_burn',
+    category: 'burn',
+    tags: ['burn'],
+    tiers: {
+      EASY:   { target: 3, text: 'Apply Burn 3 times' },
+      MEDIUM: { target: 5, text: 'Apply Burn 5 times' },
+      HARD:   { target: 7, text: 'Apply Burn 7 times' }
+    }
+  },
+
+  // Poison Status Quests
+  {
+    id: 'apply_poison',
+    category: 'poison',
+    tags: ['poison'],
+    tiers: {
+      EASY:   { target: 3, text: 'Apply Poison 3 times' },
+      MEDIUM: { target: 5, text: 'Apply Poison 5 times' },
+      HARD:   { target: 7, text: 'Apply Poison 7 times' }
+    }
+  },
 
   // Shield Quests
-  { id: 'gain_20_shield', text: 'Gain 20 Shield in battle', tags: ['shield'], difficulty: 'EASY', target: 20 },
-  { id: 'gain_40_shield', text: 'Gain 40 Shield in battle', tags: ['shield'], difficulty: 'MEDIUM', target: 40 },
+  {
+    id: 'gain_shield',
+    category: 'shield',
+    tags: ['shield'],
+    tiers: {
+      EASY:   { target: 20, text: 'Gain 20 Shield in battle' },
+      MEDIUM: { target: 40, text: 'Gain 40 Shield in battle' },
+      HARD:   { target: 60, text: 'Gain 60 Shield in battle' }
+    }
+  },
 
   // Heal Quests
-  { id: 'heal_10', text: 'Heal 10 HP in battle', tags: ['heal'], difficulty: 'EASY', target: 10 },
-  { id: 'heal_20', text: 'Heal 20 HP in battle', tags: ['heal'], difficulty: 'MEDIUM', target: 20 },
+  {
+    id: 'heal_hp',
+    category: 'heal',
+    tags: ['heal'],
+    tiers: {
+      EASY:   { target: 10, text: 'Heal 10 HP in battle' },
+      MEDIUM: { target: 20, text: 'Heal 20 HP in battle' },
+      HARD:   { target: 30, text: 'Heal 30 HP in battle' }
+    }
+  },
 
-  // Element Quests
-  { id: 'play_3_fire', text: 'Play 3 Fire cards', tags: ['fire'], difficulty: 'EASY', target: 3 },
-  { id: 'play_3_water', text: 'Play 3 Water cards', tags: ['water'], difficulty: 'EASY', target: 3 },
-  { id: 'play_3_nature', text: 'Play 3 Nature cards', tags: ['nature'], difficulty: 'EASY', target: 3 },
-  { id: 'play_2_chaos', text: 'Play 2 Chaos cards', tags: ['chaos'], difficulty: 'MEDIUM', target: 2 },
-  { id: 'play_2_neutral', text: 'Play 2 Neutral cards', tags: ['neutral'], difficulty: 'EASY', target: 2 },
+  // Buff Stacks Quests
+  {
+    id: 'gain_buff',
+    category: 'buff',
+    tags: ['buff'],
+    tiers: {
+      EASY:   { target: 3, text: 'Gain Buff 3 times' },
+      MEDIUM: { target: 5, text: 'Gain Buff 5 times' },
+      HARD:   { target: 7, text: 'Gain Buff 7 times' }
+    }
+  },
 
-  // Buff Quests
-  { id: 'gain_buff_5', text: 'Gain Buff 5 times', tags: ['buff'], difficulty: 'MEDIUM', target: 5 },
-  { id: 'reach_buff_5', text: 'Reach Buff(5) in battle', tags: ['buff'], difficulty: 'HARD', target: 5 },
+  // Weakness Stacks Quests
+  {
+    id: 'apply_weak',
+    category: 'weak',
+    tags: ['weak'],
+    tiers: {
+      EASY:   { target: 3, text: 'Apply Weakness 3 times' },
+      MEDIUM: { target: 5, text: 'Apply Weakness 5 times' },
+      HARD:   { target: 7, text: 'Apply Weakness 7 times' }
+    }
+  },
 
-  // Weak Quests
-  { id: 'apply_weak_3', text: 'Apply Weakness 3 times', tags: ['weak'], difficulty: 'MEDIUM', target: 3 },
-  { id: 'apply_weak_6', text: 'Apply Weakness 6 times', tags: ['weak'], difficulty: 'HARD', target: 6 }
+  // Elemental Play Quests (Primary Elements)
+  {
+    id: 'play_fire',
+    category: 'element',
+    tags: ['fire'],
+    tiers: {
+      EASY:   { target: 3, text: 'Play 3 Fire cards' },
+      MEDIUM: { target: 4, text: 'Play 4 Fire cards' },
+      HARD:   { target: 5, text: 'Play 5 Fire cards' }
+    }
+  },
+  {
+    id: 'play_water',
+    category: 'element',
+    tags: ['water'],
+    tiers: {
+      EASY:   { target: 3, text: 'Play 3 Water cards' },
+      MEDIUM: { target: 4, text: 'Play 4 Water cards' },
+      HARD:   { target: 5, text: 'Play 5 Water cards' }
+    }
+  },
+  {
+    id: 'play_nature',
+    category: 'element',
+    tags: ['nature'],
+    tiers: {
+      EASY:   { target: 3, text: 'Play 3 Nature cards' },
+      MEDIUM: { target: 4, text: 'Play 4 Nature cards' },
+      HARD:   { target: 5, text: 'Play 5 Nature cards' }
+    }
+  },
+
+  // ==========================================
+  // 2. TIER-EXCLUSIVE QUEST TEMPLATES
+  // ==========================================
+
+  // Streak Outcomes (HARD only)
+  {
+    id: 'superior_2_row',
+    category: 'streak',
+    tags: ['outcome', 'superior', 'row'],
+    tiers: {
+      HARD: { target: 2, text: 'Superior 2 times in a row' }
+    }
+  },
+  {
+    id: 'neutral_3_row',
+    category: 'streak',
+    tags: ['outcome', 'neutral', 'row'],
+    tiers: {
+      HARD: { target: 3, text: 'Neutral 3 times in a row' }
+    }
+  },
+
+  // Inferior Survival (MEDIUM only)
+  {
+    id: 'inferior_3',
+    category: 'outcome',
+    tags: ['outcome', 'inferior'],
+    tiers: {
+      MEDIUM: { target: 3, text: 'Inferior outcome 3 times' }
+    }
+  },
+
+  // Burn Damage Tick (HARD only)
+  {
+    id: 'deal_15_burn',
+    category: 'burn_dmg',
+    tags: ['burn'],
+    tiers: {
+      HARD: { target: 15, text: 'Deal 15 Burn damage' }
+    }
+  },
+
+  // Peak Buff (HARD only)
+  {
+    id: 'reach_buff_5',
+    category: 'buff_threshold',
+    tags: ['buff'],
+    tiers: {
+      HARD: { target: 5, text: 'Reach Buff(5) in battle' }
+    }
+  },
+
+  // Chaos Cards (MEDIUM & HARD only - Chaos cards are rare and not in starter decks)
+  {
+    id: 'play_chaos',
+    category: 'element',
+    tags: ['chaos'],
+    tiers: {
+      MEDIUM: { target: 2, text: 'Play 2 Chaos cards' },
+      HARD:   { target: 3, text: 'Play 3 Chaos cards' }
+    }
+  },
+
+  // Neutral Cards (EASY & MEDIUM only)
+  {
+    id: 'play_neutral',
+    category: 'element',
+    tags: ['neutral'],
+    tiers: {
+      EASY:   { target: 2, text: 'Play 2 Neutral cards' },
+      MEDIUM: { target: 3, text: 'Play 3 Neutral cards' }
+    }
+  }
 ];
 
+const DIFFICULTY_RANK = { EASY: 1, MEDIUM: 2, HARD: 3 };
+
 /**
- * Estimasi progres maksimum realistis quest dalam satu ronde berdasarkan deck dan relic.
- * Asumsi: tiap kartu sumber dimainkan ±2× per ronde.
- * Diskon outcome: stack status yang hanya muncul di SUPERIOR dihitung ×0.75 (disediakan profiler).
+ * Guaranteed removal token yield per quest difficulty tier.
+ * Easy now awards 1 token (up from 0).
+ */
+function getRemovalTokenReward(difficulty) {
+  if (difficulty === 'EASY') return 1;
+  if (difficulty === 'MEDIUM') return 2;
+  if (difficulty === 'HARD') return 3;
+  return 1;
+}
+
+/**
+ * Reward Pool metadata for UI transparency and server roll mechanics.
+ */
+const TIER_REWARD_POOLS = {
+  EASY: {
+    relicChance: 0.80,
+    relicQualities: [{ quality: 'COMMON', weight: 1.0 }],
+    nonRelicType: 'bonus_draft',
+    nonRelicChance: 0.20,
+    nonRelicText: 'Bonus Draft Pick (1 Card)',
+    removalTokens: 1,
+    summaryText: '80% Common Relic · 20% Bonus Draft Pick',
+    perks: [
+      { icon: 'fa-gift', label: '80% Common Relic' },
+      { icon: 'fa-layer-group', label: '20% Bonus Draft Pick' }
+    ]
+  },
+  MEDIUM: {
+    relicChance: 0.70,
+    relicQualities: [
+      { quality: 'RARE', weight: 0.85 },
+      { quality: 'EPIC', weight: 0.15 }
+    ],
+    nonRelicType: 'bonus_draft',
+    nonRelicChance: 0.30,
+    nonRelicText: 'Bonus Draft Pick (1 Card)',
+    removalTokens: 2,
+    summaryText: '70% Rare/Epic Relic · 30% Bonus Draft Pick',
+    perks: [
+      { icon: 'fa-gift', label: '70% Rare / Epic Relic' },
+      { icon: 'fa-layer-group', label: '30% Bonus Draft Pick' }
+    ]
+  },
+  HARD: {
+    relicChance: 0.70,
+    relicQualities: [
+      { quality: 'EPIC', weight: 0.80 },
+      { quality: 'LEGENDARY', weight: 0.20 }
+    ],
+    nonRelicType: 'bonus_pack',
+    nonRelicChance: 0.30,
+    nonRelicText: 'Bonus 4-Card Pack',
+    removalTokens: 3,
+    summaryText: '70% Epic/Legendary Relic · 30% Bonus Pack',
+    perks: [
+      { icon: 'fa-gift', label: '70% Epic / Legendary Relic' },
+      { icon: 'fa-box-open', label: '30% Bonus 4-Card Pack' }
+    ]
+  }
+};
+
+/**
+ * Generates a main reward matched to a quest tier / difficulty.
+ * Used upon quest completion (or during legacy preview).
+ */
+function generateReward(difficulty) {
+  const pool = TIER_REWARD_POOLS[difficulty] || TIER_REWARD_POOLS.EASY;
+  const roll = Math.random();
+
+  if (roll < pool.relicChance) {
+    let quality = pool.relicQualities[0].quality;
+    if (pool.relicQualities.length > 1) {
+      const qRoll = Math.random();
+      let cumulative = 0;
+      for (const q of pool.relicQualities) {
+        cumulative += q.weight;
+        if (qRoll < cumulative) {
+          quality = q.quality;
+          break;
+        }
+      }
+    }
+    return { type: 'relic', quality, text: `${quality} Relic` };
+  } else {
+    if (pool.nonRelicType === 'bonus_pack') {
+      return { type: 'bonus_pack', text: pool.nonRelicText };
+    } else {
+      return { type: 'bonus_draft', text: pool.nonRelicText };
+    }
+  }
+}
+
+/**
+ * Realistic maximum quest progress capacity per round based on deck and relics.
  */
 function questCapacity(quest, deck, relics = {}) {
-  // Outcome, damage, dan row quest tidak dinilai kapasitasnya
-  if (quest.tags.some(t => ['outcome', 'damage', 'row', 'superior', 'neutral', 'inferior'].includes(t))) {
+  const tags = quest.tags || [];
+
+  // Outcome, damage, and streak quests are not constrained by card status capacity
+  if (tags.some(t => ['outcome', 'damage', 'row', 'streak', 'superior', 'neutral', 'inferior'].includes(t))) {
     return null;
   }
 
   const profiles = (deck || []).map(c => getCardProfile(c)).filter(Boolean);
 
-  if (quest.tags.includes('burn')) {
+  if (tags.includes('burn')) {
     const hasEmberSpark = (relics?.ember_spark || 0) > 0;
     const emberMultiplier = relics?.ember_spark || 1;
     const fireCardsCount = (deck || []).filter(c => c.element === 'FIRE').length;
-    // Ember Spark: Fire card on superior applies +1 burn (superior discount x0.75)
     const emberBonus = hasEmberSpark ? fireCardsCount * emberMultiplier * 0.75 : 0;
     const oppBurnStacks = profiles.reduce((sum, p) => sum + (p.effectiveOppBurnStacks || 0), 0) + emberBonus;
 
-    if (quest.id === 'deal_15_burn') {
+    if (quest.id === 'deal_15_burn' || quest.templateId === 'deal_15_burn') {
       const burningCoreStacks = relics?.burning_core || 0;
       const dmgPerBurn = 3 * (1 + burningCoreStacks);
       return dmgPerBurn * 2 * oppBurnStacks;
@@ -75,42 +351,41 @@ function questCapacity(quest, deck, relics = {}) {
     return 2 * oppBurnStacks;
   }
 
-  if (quest.tags.includes('poison')) {
+  if (tags.includes('poison')) {
     const hasVenomousBrambles = (relics?.venomous_brambles || 0) > 0;
     const brambleMultiplier = relics?.venomous_brambles || 1;
     const natureCardsCount = (deck || []).filter(c => c.element === 'NATURE').length;
-    // Venomous Brambles: Nature card on superior applies +1 poison (superior discount x0.75)
     const brambleBonus = hasVenomousBrambles ? natureCardsCount * brambleMultiplier * 0.75 : 0;
     const oppPoisonStacks = profiles.reduce((sum, p) => sum + (p.effectiveOppPoisonStacks || 0), 0) + brambleBonus;
     return 2 * oppPoisonStacks;
   }
 
-  if (quest.tags.includes('weak')) {
+  if (tags.includes('weak')) {
     const oppWeakStacks = profiles.reduce((sum, p) => sum + (p.effectiveOppWeakStacks || 0), 0);
     return 2 * oppWeakStacks;
   }
 
-  if (quest.tags.includes('buff')) {
+  if (tags.includes('buff')) {
     const selfBuffStacks = profiles.reduce((sum, p) => sum + (p.effectiveSelfBuffStacks || 0), 0);
-    if (quest.id === 'reach_buff_5') {
+    if (quest.id === 'reach_buff_5' || quest.templateId === 'reach_buff_5') {
       return selfBuffStacks;
     }
     return 2 * selfBuffStacks;
   }
 
-  if (quest.tags.includes('shield')) {
+  if (tags.includes('shield')) {
     const shieldSum = profiles.reduce((sum, p) => sum + (p.shieldSum || 0), 0);
     return 2 * shieldSum;
   }
 
-  if (quest.tags.includes('heal')) {
+  if (tags.includes('heal')) {
     const healSum = profiles.reduce((sum, p) => sum + (p.healSum || 0), 0);
     return 2 * healSum;
   }
 
   // Element Quests
   for (const elem of ['fire', 'water', 'nature', 'chaos', 'neutral']) {
-    if (quest.tags.includes(elem)) {
+    if (tags.includes(elem)) {
       const count = (deck || []).filter(c => c.element === elem.toUpperCase()).length;
       return count * 2;
     }
@@ -119,156 +394,142 @@ function questCapacity(quest, deck, relics = {}) {
   return 0;
 }
 
-const DIFFICULTY_RANK = { EASY: 1, MEDIUM: 2, HARD: 3 };
-
 /**
- * Menghitung kelayakan (feasibility) dan difficulty efektif quest.
- * Pagar promotion-only: hanya boleh naik, tidak pernah turun dari label template.
+ * Checks if a specific quest target is feasible for the player's current deck and relics.
  */
-function getEffectiveDifficulty(quest, deck, relics = {}) {
-  // Outcome, damage, in-a-row tetap memakai label template
-  if (quest.tags.some(t => ['outcome', 'damage', 'row', 'superior', 'neutral', 'inferior'].includes(t))) {
-    return { feasible: true, effectiveDifficulty: quest.difficulty, ratio: null };
-  }
-
+function isQuestFeasible(quest, deck, relics = {}) {
   const capacity = questCapacity(quest, deck, relics);
-  if (quest.target <= 0) {
-    return { feasible: true, effectiveDifficulty: quest.difficulty, ratio: 999 };
+  if (capacity === null) {
+    // Damage and outcome quests are always achievable
+    return true;
   }
-
+  if (!quest.target || quest.target <= 0) return true;
   const ratio = capacity / quest.target;
-  if (ratio < 1.15) {
-    return { feasible: false, effectiveDifficulty: null, ratio };
-  }
-
-  let rawDifficulty;
-  if (ratio < 1.6) {
-    rawDifficulty = 'HARD';
-  } else if (ratio < 2.5) {
-    rawDifficulty = 'MEDIUM';
-  } else {
-    rawDifficulty = 'EASY';
-  }
-
-  const templateRank = DIFFICULTY_RANK[quest.difficulty] || 1;
-  const rawRank = DIFFICULTY_RANK[rawDifficulty] || 1;
-  const effectiveRank = Math.max(templateRank, rawRank);
-  const effectiveDifficulty = Object.keys(DIFFICULTY_RANK).find(k => DIFFICULTY_RANK[k] === effectiveRank) || quest.difficulty;
-
-  return { feasible: true, effectiveDifficulty, ratio };
+  return ratio >= 1.15;
 }
 
 /**
- * Kompatibilitas mundur: memeriksa apakah quest feasible untuk deck pemain.
+ * Instantiates a concrete quest instance from a template for a given tier.
  */
-function isQuestSupported(quest, deck, relics = {}) {
-  return getEffectiveDifficulty(quest, deck, relics).feasible;
+function instantiateQuest(template, tier) {
+  const tierConfig = template.tiers?.[tier];
+  if (!tierConfig) return null;
+
+  return {
+    id: `${template.id}_${tier.toLowerCase()}`,
+    templateId: template.id,
+    text: tierConfig.text,
+    tags: [...template.tags],
+    difficulty: tier,
+    tier: tier,
+    target: tierConfig.target,
+    removalTokens: getRemovalTokenReward(tier),
+    reward: null // Rolled upon completion in Blind Pick, or populated on demand
+  };
 }
 
 /**
- * Returns the guaranteed removal token reward for completing a quest of this difficulty
+ * Returns all feasible quest instances for a given difficulty tier.
  */
-function getRemovalTokenReward(difficulty) {
-  if (difficulty === 'EASY') return 0;
-  if (difficulty === 'MEDIUM') return 1;
-  if (difficulty === 'HARD') return 2;
-  return 0;
+function getFeasibleQuestsForTier(deck, relics = {}, tier) {
+  const candidates = [];
+  for (const template of QUEST_TEMPLATES) {
+    if (!template.tiers || !template.tiers[tier]) continue;
+    const instance = instantiateQuest(template, tier);
+    if (isQuestFeasible(instance, deck, relics)) {
+      candidates.push(instance);
+    }
+  }
+  return candidates;
 }
 
 /**
- * Generates a main reward matched to a quest's difficulty.
- * HARD non-relic reward adalah bonus pack (alur draft pack dipakai ulang).
+ * Generates the 3 Blind Pick Tier Offers for Stage 1.
+ * Payload exposes ONLY tier metadata and reward pool ranges — no quest details.
  */
-function generateReward(difficulty) {
-  const roll = Math.random();
-
-  if (difficulty === 'EASY') {
-    // 80% COMMON Relic, 20% Bonus Draft Pick
-    if (roll < 0.80) {
-      return { type: 'relic', quality: 'COMMON', text: 'COMMON Relic' };
-    } else {
-      return { type: 'bonus_draft', text: 'Bonus Draft Pick' };
-    }
-  } else if (difficulty === 'MEDIUM') {
-    // 70% RARE/EPIC Relic, 30% Bonus Draft Pick
-    if (roll < 0.70) {
-      const q = Math.random() < 0.85 ? 'RARE' : 'EPIC';
-      return { type: 'relic', quality: q, text: `${q} Relic` };
-    } else {
-      return { type: 'bonus_draft', text: 'Bonus Draft Pick' };
-    }
-  } else { // HARD
-    // 70% EPIC/LEGENDARY Relic, 30% Bonus Pack
-    if (roll < 0.70) {
-      const q = Math.random() < 0.80 ? 'EPIC' : 'LEGENDARY';
-      return { type: 'relic', quality: q, text: `${q} Relic` };
-    } else {
-      return { type: 'bonus_pack', text: 'Bonus Pack (Choose 1 of 3)' };
-    }
-  }
-}
-
-/**
- * Generates 3 deck-aware quests for a player.
- * Slot tetap: selalu tepat 1 EASY, 1 MEDIUM, 1 HARD (difficulty efektif).
- */
-function generatePlayerQuests(deck, relics = {}) {
-  const evaluated = [];
-  for (const q of QUEST_TEMPLATES) {
-    const res = getEffectiveDifficulty(q, deck, relics);
-    if (res.feasible) {
-      evaluated.push({
-        template: q,
-        effectiveDifficulty: res.effectiveDifficulty
-      });
-    }
-  }
-
-  const slotTargets = ['EASY', 'MEDIUM', 'HARD'];
-  const selected = [];
-
-  for (const targetDiff of slotTargets) {
-    // Candidates matching exact target difficulty not yet picked
-    const candidates = evaluated.filter(e => e.effectiveDifficulty === targetDiff && !selected.some(s => s.template.id === e.template.id));
-    if (candidates.length > 0) {
-      const picked = candidates[Math.floor(Math.random() * candidates.length)];
-      selected.push(picked);
-    } else {
-      // Fallback: ambil template feasible terdekat difficulty-nya, JANGAN pernah yang infeasible
-      const targetRank = DIFFICULTY_RANK[targetDiff];
-      const remaining = evaluated.filter(e => !selected.some(s => s.template.id === e.template.id));
-      if (remaining.length > 0) {
-        remaining.sort((a, b) => {
-          const distA = Math.abs(DIFFICULTY_RANK[a.effectiveDifficulty] - targetRank);
-          const distB = Math.abs(DIFFICULTY_RANK[b.effectiveDifficulty] - targetRank);
-          return distA - distB;
-        });
-        const minDistance = Math.abs(DIFFICULTY_RANK[remaining[0].effectiveDifficulty] - targetRank);
-        const closest = remaining.filter(e => Math.abs(DIFFICULTY_RANK[e.effectiveDifficulty] - targetRank) === minDistance);
-        const picked = closest[Math.floor(Math.random() * closest.length)];
-        selected.push(picked);
-      }
-    }
-  }
-
-  return selected.map(({ template, effectiveDifficulty }) => {
-    const reward = generateReward(effectiveDifficulty);
-    const tokens = getRemovalTokenReward(effectiveDifficulty);
+function getTierOffers(deck, relics = {}) {
+  const tiers = ['EASY', 'MEDIUM', 'HARD'];
+  return tiers.map(tier => {
+    const feasible = getFeasibleQuestsForTier(deck, relics, tier);
+    const pool = TIER_REWARD_POOLS[tier];
     return {
-      id: template.id,
-      text: template.text,
-      tags: template.tags,
-      difficulty: effectiveDifficulty,
-      target: template.target,
-      reward: reward,
-      removalTokens: tokens
+      tier,
+      available: feasible.length > 0,
+      candidateCount: feasible.length,
+      removalTokens: getRemovalTokenReward(tier),
+      summaryText: pool.summaryText,
+      perks: pool.perks || [],
+      pool: {
+        relicChance: pool.relicChance,
+        relicQualities: pool.relicQualities,
+        nonRelicType: pool.nonRelicType,
+        nonRelicChance: pool.nonRelicChance,
+        nonRelicText: pool.nonRelicText
+      }
     };
   });
 }
 
 /**
+ * Draws a single quest for the selected tier (Stage 2 or Reroll Stage 3).
+ * Excludes previously rejected quests during rerolls.
+ */
+function drawQuestForTier(deck, relics = {}, tier, excludeIds = []) {
+  let candidates = getFeasibleQuestsForTier(deck, relics, tier);
+
+  if (excludeIds && excludeIds.length > 0) {
+    const filtered = candidates.filter(c => !excludeIds.includes(c.id) && !excludeIds.includes(c.templateId));
+    if (filtered.length > 0) {
+      candidates = filtered;
+    }
+  }
+
+  // Guaranteed fallback: Outcome or damage quests for this tier always exist
+  if (candidates.length === 0) {
+    candidates = QUEST_TEMPLATES
+      .filter(t => t.tiers && t.tiers[tier] && t.tags.some(tag => ['damage', 'outcome'].includes(tag)))
+      .map(t => instantiateQuest(t, tier));
+  }
+
+  const picked = candidates[Math.floor(Math.random() * candidates.length)];
+  const pool = TIER_REWARD_POOLS[tier] || TIER_REWARD_POOLS.EASY;
+  return {
+    ...picked,
+    reward: null, // Rolled on completion at end of battle, hidden during round!
+    rewardPoolText: pool.summaryText,
+    rewardPoolPerks: pool.perks || []
+  };
+}
+
+/**
+ * Generates 3 deck-aware quests (1 Easy, 1 Medium, 1 Hard) for backward compatibility.
+ */
+function generatePlayerQuests(deck, relics = {}) {
+  return ['EASY', 'MEDIUM', 'HARD'].map(tier => drawQuestForTier(deck, relics, tier));
+}
+
+/**
+ * Backward compatibility helper for legacy feasibility check.
+ */
+function isQuestSupported(quest, deck, relics = {}) {
+  return isQuestFeasible(quest, deck, relics);
+}
+
+/**
+ * Backward compatibility helper for effective difficulty.
+ */
+function getEffectiveDifficulty(quest, deck, relics = {}) {
+  const feasible = isQuestFeasible(quest, deck, relics);
+  return {
+    feasible,
+    effectiveDifficulty: quest.difficulty || 'MEDIUM',
+    ratio: 1.5
+  };
+}
+
+/**
  * Updates a player's quest progress after a round clash.
- * (Definisi tunggal yang bersih tanpa duplikasi).
+ * Robust matching supports both new template IDs and legacy IDs.
  */
 function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg) {
   if (!player.activeQuest) return;
@@ -276,82 +537,93 @@ function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain,
   const q = player.activeQuest;
   if (player.questProgress >= q.target) return;
 
+  const templateId = q.templateId || q.id;
   let progressDelta = 0;
 
-  switch (q.id) {
-    case 'superior_3':
-    case 'superior_4':
-      if (outcome === 'SUPERIOR') progressDelta = 1;
-      break;
-    case 'neutral_4':
-      if (outcome === 'NEUTRAL') progressDelta = 1;
-      break;
-    case 'inferior_3':
-      if (outcome === 'INFERIOR') progressDelta = 1;
-      break;
-    case 'superior_2_row':
-      if (outcome === 'SUPERIOR') {
-        progressDelta = 1;
-      } else {
-        player.questProgress = 0;
-      }
-      break;
-    case 'neutral_3_row':
-      if (outcome === 'NEUTRAL') {
-        progressDelta = 1;
-      } else {
-        player.questProgress = 0;
-      }
-      break;
-    case 'deal_30':
-    case 'deal_50':
-      progressDelta = damageDealt;
-      break;
-    case 'apply_burn_3':
-    case 'apply_burn_5':
-      progressDelta = appliedBurnToOpponent;
-      break;
-    case 'deal_15_burn':
-      progressDelta = opponentBurnTickDmg;
-      break;
-    case 'apply_poison_3':
-    case 'apply_poison_5':
-      progressDelta = appliedPoisonToOpponent;
-      break;
-    case 'gain_20_shield':
-    case 'gain_40_shield':
-      progressDelta = shieldGain;
-      break;
-    case 'heal_10':
-    case 'heal_20':
-      progressDelta = healGain;
-      break;
-    case 'play_3_fire':
-      if (cardPlayed.element === 'FIRE') progressDelta = 1;
-      break;
-    case 'play_3_water':
-      if (cardPlayed.element === 'WATER') progressDelta = 1;
-      break;
-    case 'play_3_nature':
-      if (cardPlayed.element === 'NATURE') progressDelta = 1;
-      break;
-    case 'play_2_chaos':
-      if (cardPlayed.element === 'CHAOS') progressDelta = 1;
-      break;
-    case 'play_2_neutral':
-      if (cardPlayed.element === 'NEUTRAL') progressDelta = 1;
-      break;
-    case 'gain_buff_5':
-      progressDelta = appliedBuffToSelf;
-      break;
-    case 'reach_buff_5':
-      player.questProgress = player.statuses.attackBuff || 0;
-      return;
-    case 'apply_weak_3':
-    case 'apply_weak_5':
-    case 'apply_weak_6':
-      progressDelta = appliedWeakToOpponent;
-      break;
+  // 1. Damage Quests
+  if (templateId === 'deal_damage' || q.tags?.includes('damage') || q.id === 'deal_30' || q.id === 'deal_50' || q.id === 'deal_70') {
+    progressDelta = damageDealt;
+  }
+  // 2. Superior Outcomes (Count)
+  else if (templateId === 'superior_outcome' || q.id === 'superior_3' || q.id === 'superior_4' || q.id === 'superior_5') {
+    if (outcome === 'SUPERIOR') progressDelta = 1;
+  }
+  // 3. Neutral Outcomes (Count)
+  else if (templateId === 'neutral_outcome' || q.id === 'neutral_3' || q.id === 'neutral_4' || q.id === 'neutral_5') {
+    if (outcome === 'NEUTRAL') progressDelta = 1;
+  }
+  // 4. Inferior Outcomes (Count)
+  else if (templateId === 'inferior_3' || templateId === 'inferior_outcome') {
+    if (outcome === 'INFERIOR') progressDelta = 1;
+  }
+  // 5. Streaks (Superior 2 in a row)
+  else if (templateId === 'superior_2_row') {
+    if (outcome === 'SUPERIOR') {
+      progressDelta = 1;
+    } else {
+      player.questProgress = 0;
+    }
+  }
+  // 6. Streaks (Neutral 3 in a row)
+  else if (templateId === 'neutral_3_row') {
+    if (outcome === 'NEUTRAL') {
+      progressDelta = 1;
+    } else {
+      player.questProgress = 0;
+    }
+  }
+  // 7. Burn Stacks Applied
+  else if (templateId === 'apply_burn' || q.id === 'apply_burn_3' || q.id === 'apply_burn_5' || q.id === 'apply_burn_7') {
+    progressDelta = appliedBurnToOpponent;
+  }
+  // 8. Burn Damage Ticks
+  else if (templateId === 'deal_15_burn') {
+    progressDelta = opponentBurnTickDmg;
+  }
+  // 9. Poison Stacks Applied
+  else if (templateId === 'apply_poison' || q.id === 'apply_poison_3' || q.id === 'apply_poison_5' || q.id === 'apply_poison_7') {
+    progressDelta = appliedPoisonToOpponent;
+  }
+  // 10. Shield Gained
+  else if (templateId === 'gain_shield' || q.id === 'gain_20_shield' || q.id === 'gain_40_shield' || q.id === 'gain_60_shield') {
+    progressDelta = shieldGain;
+  }
+  // 11. Health Healed
+  else if (templateId === 'heal_hp' || q.id === 'heal_10' || q.id === 'heal_20' || q.id === 'heal_30') {
+    progressDelta = healGain;
+  }
+  // 12. Element: Fire
+  else if (templateId === 'play_fire' || q.id === 'play_3_fire') {
+    if (cardPlayed?.element === 'FIRE') progressDelta = 1;
+  }
+  // 13. Element: Water
+  else if (templateId === 'play_water' || q.id === 'play_3_water') {
+    if (cardPlayed?.element === 'WATER') progressDelta = 1;
+  }
+  // 14. Element: Nature
+  else if (templateId === 'play_nature' || q.id === 'play_3_nature') {
+    if (cardPlayed?.element === 'NATURE') progressDelta = 1;
+  }
+  // 15. Element: Chaos
+  else if (templateId === 'play_chaos' || q.id === 'play_2_chaos') {
+    if (cardPlayed?.element === 'CHAOS') progressDelta = 1;
+  }
+  // 16. Element: Neutral
+  else if (templateId === 'play_neutral' || q.id === 'play_2_neutral') {
+    if (cardPlayed?.element === 'NEUTRAL') progressDelta = 1;
+  }
+  // 17. Buff Stacks Gained
+  else if (templateId === 'gain_buff' || q.id === 'gain_buff_5') {
+    progressDelta = appliedBuffToSelf;
+  }
+  // 18. Reach Buff Threshold
+  else if (templateId === 'reach_buff_5') {
+    player.questProgress = player.statuses?.attackBuff || 0;
+    return;
+  }
+  // 19. Weakness Applied
+  else if (templateId === 'apply_weak' || q.id === 'apply_weak_3' || q.id === 'apply_weak_5' || q.id === 'apply_weak_6' || q.id === 'apply_weak_7') {
+    progressDelta = appliedWeakToOpponent;
   }
 
   player.questProgress = Math.min(q.target, player.questProgress + progressDelta);
@@ -359,7 +631,13 @@ function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain,
 
 module.exports = {
   QUEST_TEMPLATES,
+  TIER_REWARD_POOLS,
   questCapacity,
+  isQuestFeasible,
+  instantiateQuest,
+  getFeasibleQuestsForTier,
+  getTierOffers,
+  drawQuestForTier,
   getEffectiveDifficulty,
   isQuestSupported,
   generatePlayerQuests,
