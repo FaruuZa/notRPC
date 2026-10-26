@@ -603,6 +603,143 @@
     margin-bottom: 0.4rem !important;
   }
 
+  /* Quest Selection Mobile Landscape Constraints */
+  #quest-selection-screen .draft-container {
+    padding: 0.35rem 0.8rem !important;
+    max-height: 100dvh !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
+  }
+
+  #quest-selection-screen .draft-header {
+    margin-bottom: 0.2rem !important;
+  }
+
+  #quest-selection-screen .draft-title {
+    font-size: 1.3rem !important;
+    margin: 0 !important;
+  }
+
+  #quest-selection-screen .draft-subtitle {
+    font-size: 0.64rem !important;
+    margin-top: 0.1rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  #quest-selection-screen .draft-meta-row {
+    margin-top: 0.15rem !important;
+  }
+
+  #quest-selection-screen .draft-meta-badge {
+    padding: 0.15rem 0.5rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  #quest-cards-grid.quest-selection-grid {
+    margin: 0.2rem auto !important;
+    gap: 0.5rem !important;
+    padding: 0 !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    align-items: center !important;
+  }
+
+  #quest-cards-grid .quest-tier-card {
+    width: 140px !important;
+    min-height: 200px !important;
+    height: 205px !important;
+    padding: 0.5rem 0.45rem !important;
+    gap: 0.25rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-header {
+    min-height: 38px !important;
+    padding-bottom: 0.25rem !important;
+    gap: 0.2rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-name {
+    font-size: 0.75rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-token-badge {
+    padding: 0.15rem 0.35rem !important;
+    font-size: 0.58rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-perks {
+    min-height: 48px !important;
+    padding: 0.3rem 0.25rem !important;
+    margin: 0.2rem 0 !important;
+    gap: 0.2rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-perk-item {
+    font-size: 0.58rem !important;
+    gap: 0.25rem !important;
+    line-height: 1.1 !important;
+  }
+
+  #quest-cards-grid .quest-tier-perk-item i {
+    font-size: 0.65rem !important;
+    width: 0.75rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-actions {
+    min-height: 46px !important;
+    gap: 0.2rem !important;
+  }
+
+  #quest-cards-grid .btn-tier-pick {
+    padding: 0.35rem 0.2rem !important;
+    font-size: 0.68rem !important;
+  }
+
+  #quest-cards-grid .btn-tier-inspect {
+    font-size: 0.58rem !important;
+    padding: 0.1rem !important;
+  }
+
+  #quest-cards-grid .quest-revealed-container {
+    margin: 0.2rem auto !important;
+    max-width: 380px !important;
+  }
+
+  #quest-cards-grid .quest-revealed-card {
+    min-height: 165px !important;
+    padding: 0.7rem 0.8rem !important;
+    gap: 0.4rem !important;
+  }
+
+  #quest-cards-grid .quest-revealed-target {
+    font-size: 0.95rem !important;
+    min-height: 38px !important;
+    margin: 0.1rem 0 !important;
+  }
+
+  #quest-cards-grid .quest-card-reward-box {
+    padding: 0.4rem 0.5rem !important;
+    gap: 0.15rem !important;
+  }
+
+  #quest-cards-grid .quest-card-reward-label {
+    font-size: 0.55rem !important;
+  }
+
+  #quest-cards-grid .quest-card-reward-text {
+    font-size: 0.68rem !important;
+  }
+
+  #quest-selection-screen .draft-footer.quest-footer {
+    margin-top: 0.35rem !important;
+    gap: 0.6rem !important;
+  }
+
+  #quest-selection-screen .draft-footer .btn {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.72rem !important;
+  }
+
   /* Modals */
   #compendium-modal .deck-modal-content, #deck-modal .deck-modal-content {
     max-height: 94vh !important;
@@ -683,5 +820,37 @@
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     padding-bottom: 2rem !important;
+  }
+
+  /* Quest Selection in Mobile Portrait */
+  #quest-selection-screen .draft-container {
+    padding: 0.6rem 0.75rem !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #quest-cards-grid.quest-selection-grid {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    max-width: 320px !important;
+    margin: 0.5rem auto !important;
+  }
+
+  #quest-cards-grid .quest-tier-card,
+  #quest-cards-grid .quest-card {
+    width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0.8rem !important;
+  }
+
+  #quest-cards-grid .quest-tier-perks {
+    min-height: auto !important;
+  }
+
+  #quest-cards-grid .quest-tier-actions {
+    min-height: auto !important;
   }
 }

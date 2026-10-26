@@ -142,6 +142,31 @@ const UI = {
   },
 
   showScreen(screenName) {
+    // If we're already on this screen (e.g. next clash round in battle), do NOT trigger slash transition
+    const isTargetAlreadyActive = (() => {
+      if (screenName === 'battle' && this.battleScreen?.classList.contains('active')) return true;
+      if (screenName === 'lobby' && this.matchmakingScreen?.classList.contains('active')) return true;
+      if (screenName === 'draft' && this.draftScreen?.classList.contains('active')) return true;
+      if (screenName === 'bonusPick' && this.bonusPickScreen?.classList.contains('active')) return true;
+      if (screenName === 'waiting' && this.waitingScreen?.classList.contains('active')) return true;
+      if (screenName === 'packSelection' && this.packSelectionScreen?.classList.contains('active')) return true;
+      if (screenName === 'packReveal' && this.packRevealScreen?.classList.contains('active')) return true;
+      if (screenName === 'questSelection' && this.questSelectionScreen?.classList.contains('active')) return true;
+      if (screenName === 'cardRemoval' && this.cardRemovalScreen?.classList.contains('active')) return true;
+      if (screenName === 'relicSelection' && this.relicSelectionScreen?.classList.contains('active')) return true;
+      return false;
+    })();
+
+    if (isTargetAlreadyActive) {
+      // Just ensure modals/overlays are dismissed without running slash transition
+      document.querySelectorAll('.overlay').forEach(o => {
+        o.classList.remove('active');
+        o.style.removeProperty('display');
+        o.style.removeProperty('opacity');
+      });
+      return;
+    }
+
     this.triggerSlashTransition(() => {
       document.querySelectorAll('.screen').forEach(s => {
         s.classList.remove('active');
@@ -149,8 +174,8 @@ const UI = {
       // Strictly dismiss all modal overlays during screen transitions
       document.querySelectorAll('.overlay').forEach(o => {
         o.classList.remove('active');
-        o.style.display = 'none';
-        o.style.opacity = '0';
+        o.style.removeProperty('display');
+        o.style.removeProperty('opacity');
       });
       if (typeof anime !== 'undefined') {
         if (this.gameOverScreen) anime.remove(this.gameOverScreen);
@@ -999,6 +1024,79 @@ const UI = {
   },
 
   /**
+   * Updates keyword explanations in preparation/battle screen
+   * @param {HTMLElement} container The container box
+   * @param {string} cardDescription InnerHTML or string description of card
+   */
+  updateKeywordExplanations(container, cardDescription = '') {
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const keywords = [];
+    if (cardDescription.includes('kw-burn')) {
+      keywords.push({
+        title: 'BURN',
+        class: 'burn',
+        desc: 'Takes damage equal to stack x2 (bypassing shields). All stacks expire at the end of the round.'
+      });
+    }
+    if (cardDescription.includes('kw-poison')) {
+      keywords.push({
+        title: 'POISON',
+        class: 'poison',
+        desc: 'Takes damage equal to stack count (bypassing shields). Stack decreases by 1 each round.'
+      });
+    }
+    if (cardDescription.includes('kw-buff')) {
+      keywords.push({
+        title: 'BUFF',
+        class: 'buff',
+        desc: 'Increases card clash damage by +10% per stack (max 5 stacks). Stack decreases by 1 only when attacking.'
+      });
+    }
+    if (cardDescription.includes('kw-weak')) {
+      keywords.push({
+        title: 'WEAK',
+        class: 'weak',
+        desc: 'Reduces card clash damage by -10% per stack (max 5 stacks). Stack decreases by 1 only when attacking.'
+      });
+    }
+    if (cardDescription.includes('kw-shield')) {
+      keywords.push({
+        title: 'SHIELD',
+        class: 'shield',
+        desc: 'Blocks incoming attack damage. Remaining shield carries over to the next round.'
+      });
+    }
+    if (cardDescription.includes('kw-cleanse')) {
+      keywords.push({
+        title: 'CLEANSE',
+        class: 'cleanse',
+        desc: 'Immediately removes all active debuffs (Poison, Burn, and Weakness).'
+      });
+    }
+    if (cardDescription.includes('kw-heal')) {
+      keywords.push({
+        title: 'HEAL',
+        class: 'heal',
+        desc: 'Restores HP to the player (up to 100 max HP).'
+      });
+    }
+    
+    if (keywords.length === 0) {
+      container.classList.add('hidden');
+    } else {
+      keywords.forEach(kw => {
+        const div = document.createElement('div');
+        div.className = 'keyword-entry';
+        div.innerHTML = `<span class="keyword-title ${kw.class}">${kw.title}</span>: ${kw.desc}`;
+        container.appendChild(div);
+      });
+      container.classList.remove('hidden');
+    }
+  },
+
+  /**
    * Updates player/enemy shield indicators
    */
   updateShield(elementBox, elementText, val) {
@@ -1299,7 +1397,7 @@ const UI = {
     card.className = `quest-revealed-card ${tier || quest.difficulty}`;
 
     const tokens = quest.removalTokens !== undefined ? quest.removalTokens : (quest.difficulty === 'HARD' ? 3 : (quest.difficulty === 'MEDIUM' ? 2 : 1));
-    const tokensBadgeHtml = `<div class="quest-token-bonus"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`;
+    const tokensBadgeHtml = `<div class="quest-tier-token-badge"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`;
     const rewardPoolDesc = quest.rewardPoolText || (quest.difficulty === 'HARD' ? '70% Epic/Legendary Relic · 30% Bonus Pack' : (quest.difficulty === 'MEDIUM' ? '70% Rare/Epic Relic · 30% Bonus Draft' : '80% Common Relic · 20% Bonus Draft'));
 
     card.innerHTML = `
@@ -1386,17 +1484,18 @@ const UI = {
       
       const tokens = q.removalTokens !== undefined ? q.removalTokens : (q.difficulty === 'HARD' ? 2 : (q.difficulty === 'MEDIUM' ? 1 : 0));
       const tokensBadgeHtml = tokens > 0 
-        ? `<div class="quest-token-bonus"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`
-        : `<div class="quest-token-bonus zero"><i class="fa-solid fa-fire-flame-curved"></i> +0 Removal Tokens</div>`;
+        ? `<div class="quest-tier-token-badge"><i class="fa-solid fa-fire-flame-curved"></i> +${tokens} Removal Token${tokens > 1 ? 's' : ''}</div>`
+        : `<div class="quest-tier-token-badge zero"><i class="fa-solid fa-fire-flame-curved"></i> +0 Removal Tokens</div>`;
 
       card.innerHTML = `
-        <div class="quest-card-difficulty ${q.difficulty}">${q.difficulty}</div>
+        <div class="quest-card-header">
+          <div class="quest-card-difficulty ${q.difficulty}">${q.difficulty}</div>
+          ${tokensBadgeHtml}
+        </div>
         <div class="quest-card-text">${q.text}</div>
         <div class="quest-card-reward-box">
-          <div class="quest-card-reward-label">MAIN REWARD</div>
+          <div class="quest-card-reward-label">REWARD POOL</div>
           <div class="quest-card-reward-text">${q.reward.text}</div>
-          <div class="quest-card-token-label">GUARANTEED BONUS</div>
-          ${tokensBadgeHtml}
         </div>
       `;
       
