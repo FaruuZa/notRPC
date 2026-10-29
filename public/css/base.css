@@ -312,9 +312,9 @@ input {
 /* STACKED SLABS */
 .glass {
   background: var(--slab);
-  border: 2px solid var(--slab-4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: var(--shadow-hard);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .hidden {

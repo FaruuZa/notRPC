@@ -4,10 +4,10 @@ description: Realtime multiplayer tactical element card game
 colors:
   primary: "#a68058"
   bg-felt: "#121620"
-  bg-cardboard: "#1c202d"
-  bg-inner-panel: "#181c26"
-  border-mat: "#293245"
-  border-brass: "#a68058"
+  bg-surface: "#181c26"
+  bg-subsurface: "#141720"
+  border-subtle: "rgba(255, 255, 255, 0.08)"
+  border-focus: "#a68058"
   text-primary: "#f8fafc"
   text-secondary: "#94a3b8"
   text-dark: "#0f172a"
@@ -24,164 +24,119 @@ colors:
   shield: "#00bcd4"
 typography:
   display:
-    fontFamily: "'Space Grotesk', sans-serif"
+    fontFamily: "'Anton', sans-serif"
     fontWeight: 700
     lineHeight: 1.1
   title:
-    fontFamily: "'Space Grotesk', sans-serif"
-    fontWeight: 600
+    fontFamily: "'Anton', sans-serif"
+    fontWeight: 700
     lineHeight: 1.2
   body:
-    fontFamily: "'Outfit', sans-serif"
-    fontWeight: 400
+    fontFamily: "'Archivo', sans-serif"
+    fontWeight: 500
     lineHeight: 1.5
   label:
-    fontFamily: "'Space Grotesk', sans-serif"
-    fontWeight: 500
-    letterSpacing: "0.05em"
+    fontFamily: "'Anton', sans-serif"
+    fontWeight: 700
+    letterSpacing: "0.06em"
 rounded:
-  sm: "4px"
-  md: "8px"
-  lg: "12px"
-spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
+  none: "0px"
+  circle: "50%"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.text-dark}"
-    rounded: "{rounded.sm}"
-    padding: "12px 24px"
+    rounded: "{rounded.none}"
+    padding: "10px 22px"
   button-secondary:
-    backgroundColor: "{colors.bg-cardboard}"
+    backgroundColor: "{colors.bg-surface}"
     textColor: "{colors.text-primary}"
-    rounded: "{rounded.sm}"
-    padding: "10px 20px"
+    rounded: "{rounded.none}"
+    padding: "8px 18px"
 ---
 
 # Design System: Element Clash
 
 ## Overview
 
-**Creative North Star: "Classic Tabletop Felt Sanctum"**
+**Creative North Star: "Tumpukan Geometri Dasar (Pure Geometric Stacking)"**
 
-Element Clash channels the disciplined, weighty atmosphere of high-stakes physical trading card games played on pristine tabletop felt mats. Rather than relying on ephemeral digital neon washes or sensory overload, the system establishes immersion through tactile materiality: deep carbon felt playmats, rich cardboard textures, antique warm brass boundary lines, and subdued matte elemental hues.
+Element Clash mengadopsi bahasa visual **geometri murni yang ditumpuk-tumpuk**:
+- **Bentuk tegas tanpa kompromi**: Jika kotak, maka benar-benar bersudut siku murni (`border-radius: 0px`). Jika lingkaran, maka benar-benar lingkaran sempurna (`border-radius: 50%` untuk indikator titik/poin/avatar). Tidak ada sudut tanggung (rounded 2px-8px ataupun bentuk oval/pill).
+- **Border yang tenang & menyatu (Low-Contrast Framing)**: Mengurangi border kontras tebal atau garis neon mencolok. Hirarki visual dibangun melalui **penumpukan bidang geometri** dengan perbedaan gelap-terang latar (tonal stacking), border tipis berdensitas rendah (`rgba(255, 255, 255, 0.08)` atau tonal match), dan aksen warna hanya pada status kritis atau interaktif aktif.
+- **Integritas Kartu**: Kartu duel tetap mempertahankan proporsi dan desain standarnya tanpa diubah.
 
-Every screen behaves as a deliberate gaming surface. Panels feel like solid, physical game boards laid out with purpose, where elemental affinities (Fire, Water, Nature, Neutral, and Chaos) are communicated through crisp graphic icons and solid, saturated pigments. Contrast is structural and confident, prioritizing immediate tactical legibility during rapid turn clocks.
+---
 
-**Key Characteristics:**
-- Grounded tabletop materiality rooted in dark carbon felt (`#121620`) and cardboard tones (`#1c202d`).
-- Warm antique brass framing (`#a68058`) providing distinct heirloom gaming aesthetics.
-- Solid, non-neon elemental color coding for instantaneous cognitive recognition.
-- Pure flat elevation relying on tonal separation and precise borders rather than heavy ambient blur.
+## Aturan Geometri & Bentuk
 
-## Colors
+1. **Kotak Siku Murni (`0px radius`)**:
+   - Play slot arena (drop zone): kontainer dibuat transparan murni (`background: transparent !important`) dengan border putus-putus halus, sehingga teks coretan di background terlihat tembus pandang tanpa terhalang kotak solid. Jarak pemisah antar-kartu dibuat lapang (`gap: clamp(8rem, 20vw, 16rem)` desktop, `clamp(4.5rem, 14vw, 8rem)` mobile).
+   - Tombol aksi (Inventory kanan bawah, Menu Dropdown items)
+   - HP Bar container & meter diperbesar (`22px` desktop, `16px` mobile) dengan outline bersih tanpa kotak objek latar belakang tebal (penghapusan kotak latar agar tidak mendistraksi pandangan).
+   - Drawer, Modal, & Dialog container
+2. **Peniadaan Box Container pada HUD, Relik, & Status**:
+   - Panel HUD pemain dan musuh mengapung bebas (*free-floating*) tanpa kotak/bingkai latar (*no box container*), tanpa efek glow membungkus bekas box container lama.
+   - HP Bar tampil bersih tanpa objek geometri latar belakang tebal (`::before` dihapus agar tidak mendistraksi pandangan).
+   - HUD Musuh dicerminkan (*mirrored*): posisi dimulai dari sisi kanan, pengurangan HP mengalir ke kanan, deretan relik & status rata kanan.
+   - Relik dan efek status mengapung langsung dengan ikon bernuansa warna kelangkaan/status & bayangan tipis (*drop-shadow*), tanpa pembungkus kotak balok.
+   - Shield indicator tampil bersih langsung bersama ikon dan nilai numeriknya tanpa box framing.
+3. **Peniadaan Tombol Lock & Text VS: Coretan Latar Belakang Masif (Flat Watermark Backdrop)**:
+   - Teks VS dan tombol lock di tengah arena dihilangkan sepenuhnya.
+   - Pemilihan kartu dilakukan murni langsung melalui kartu di tangan: klik sekali untuk memilih/melihat efek kartu, klik kembali pada kartu yang dipilih atau klik dua kali untuk mengonfirmasi (*lock in*).
+   - Indikator status pertarungan tampil sebagai "coretan" tipografi masif atmosferik (`clamp(3.8rem, 9.5vw, 7.5rem)` di PC, `clamp(3.2rem, 11vw, 5.2rem)` di mobile — mencakup ~70-75% lebar layar mobile tanpa overflow) dengan `position: absolute; z-index: 0;` di layer paling bawah di belakang slot arena dan kartu:
+     - Bentuk dibuat miring/diagonal (`transform: translate(-50%, -50%) rotate(-7deg)`).
+     - Pure flat 1 warna polos tanpa glow, tanpa bayangan teks (*text-shadow: none*), dan tanpa animasi/gerakan berdenyut (*pure static watermark*).
+     - Status tetap bertahan pada sudut pandang pemain (`CHOOSE CARD` saat memilih kartu, `WAITING` saat menunggu musuh).
+     - Bahasa Inggris: `CHOOSE CARD`, `WAITING`, `SUPERIOR`, `TIE`, `INFERIOR`.
+4. **Lingkaran Murni & Semi-Lingkaran (Arch)**:
+   - Titik ronde / skor (`.point-dot`) yang mengapit sayap kiri/kanan di widget tengah atas dicerminkan simetris mulai dari tengah (`flex-direction: row-reverse` pada pemain): poin ronde 1 menyala dari titik terdekat dengan arch menuju ke luar.
+   - Semi-circle Arch (`.hub-arch-container`) di tengah atas: outline visual dengan transisi warna dinamis halus (Hijau saat penuh -> Kuning saat separuh -> Merah saat kritis) tanpa angka numerik, dan menghilang total saat durasi 0 detik tanpa sisa cap SVG. Tombol menu dropdown berada di pusat busur (`CLASH LOG`, `SURRENDER`).
+   - Indikator stack relik (`.relic-stack-indicator`).
+   - Hand tracker kartu musuh di HUD dihilangkan sepenuhnya agar area status musuh bersih.
+5. **Bahasa Inggris Standar (English UI)**:
+   - Semua elemen antarmuka duel menggunakan Bahasa Inggris standar yang ringkas dan profesional:
+     - Slot arena: `YOUR PLAY`, `OPPONENT PLAY`.
+     - Tombol & Menu: `INVENTORY`, `CLASH LOG`, `SURRENDER`, `CLOSE`, `CANCEL`, `YES, SURRENDER`.
+     - Tab & Koleksi: `MY CARDS`, `MY RELICS`, `PURIFY TOKENS`.
+     - Label Status HUD: `You`, `Opponent`, `No active quest`.
+6. **Quest Tracker Ultra-Kompak**:
+   - Tampilan bersih menggunakan lempengan slate transparan gelap.
+   - Saat di-collapse, mengecil secara drastis menjadi tab minimalis di tepi kiri (`< 85px`) yang hanya menampilkan ikon scroll dan progres mini (`0/0`). Info reward disembunyikan.
+7. **Major Rework Layar Penuh Inventory (Zero Layout Shift & Super Ringan)**:
+   - Arsitektur antarmuka inventory (`#deck-modal .inventory-shell`) dirancang murni layar penuh (`100vw x 100dvh`), tidak lagi mengecil atau bergeser ketika jumlah kartu sedikit maupun kosong (*strict zero layout shift*).
+   - Viewport kartu/relik mengisi sisa ruang layar secara penuh (`flex: 1 1 0; height: 100%; min-height: 0;`).
+   - Header terstruktur: judul minimal, tab kartu & relik dengan garis bawah aktif, tag Purify Token polos tanpa background box (`background: none; border: none;`), dan tombol Close tunggal di kanan atas (tombol back/close bawah dihilangkan agar tidak redundan).
+   - Viewport kartu/relik mengisi ruang layar secara penuh hingga tepi bawah (`flex: 1 1 0; height: 100%; min-height: 0;`).
+   - Optimasi performa: `DocumentFragment` batching, caching hash deck (menghindari rebuild DOM saat tab aktif), CSS `content-visibility: auto; contain: content;` pada grid dan `contain: layout style paint;` pada kartu.
+8. **Clash History Log Bersih & Tanpa Kotak Latar Belakang Item**:
+   - Menghapus seluruh background kotak dan outline berlebih pada entri dan badge log (`.clash-outcome-badge.inferior`, `.clash-outcome-badge.superior`, `.stat-pill`, `.clash-log-entry`).
+   - Format duel minimalis 2 baris berbasis warna teks murni: badge putaran (`R1·T2`), teks status berwarna tegas, nama kartu terpotong elipsis, serta angka damage & shield tanpa kotak pembungkus.
+9. **Popup & Dialog Minimalis**:
+   - Semua modal/popup (`surrender-modal`, `quest-pool-modal`) menggunakan kontainer `.minimal-popup-card`: latar belakang gelap pekat (`#0d111a`), single border halus `1px solid rgba(255, 255, 255, 0.09)`, tanpa border kuning/brass tebal di bagian atas, dan tanpa tumpukan outline yang mengganggu.
+10. **Komponen Kartu Tunggal & Kanonikal (Single Canonical Card Component - Scale Only)**:
+   - Kartu adalah satu objek tunggal imutabel dengan dimensi dasar `140px × 196px` (rasio aspek 5:7).
+   - Seluruh sub-elemen internal kartu (`.card-face`, `.card-header`, `.card-name`, `.card-middle`, `.card-element-icon`, `.card-desc`, `.card-footer`, `.card-element-name`) didefinisikan satu kali secara eksklusif di `battle.css`.
+   - **Larangan mutlak mengubah ukuran font, padding, tinggi, atau margin internal kartu** di media query atau file CSS lainnya.
+   - Pengecilan/pembesaran ukuran kartu di mana pun (hand, slot arena, inventori landscape, kompendium, draft) dilakukan strictly menggunakan `transform: scale(...)` sehingga seluruh tipografi, border, dan proporsi internal terskala secara vektor murni (100% presisi dan tidak pernah gepeng/melar).
+   - Tampilan koleksi kartu di Inventori dan Kompendium menggunakan `display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem;` alih-alih CSS Grid kolom `1fr`, memastikan kartu selalu mempertahankan bentuk aslinya berapapun jumlah kartu yang dimiliki.
 
-The palette balances dark neutral felts with warm brass structural accents and distinct matte elemental signifiers.
+---
 
-### Primary
-- **Warm Antique Brass** (`#a68058`): Used for primary interactive triggers, active turn frames, card borders, and victory/gold accents.
+## Palet Warna & Permukaan
 
-### Neutral
-- **Carbon Felt** (`#121620`): The base tabletop surface across all game screens and arena playmats.
-- **Cardboard Surface** (`#1c202d`): Secondary structural containers, card backings, and lobby cards.
-- **Inner Panel Surface** (`#181c26`): Recessed slots, HUD trays, and inactive card wells.
-- **Mat Border** (`#293245`): Subtle architectural framing delineating table partitions and card slots.
-- **Text Primary** (`#f8fafc`): High-contrast crisp white for essential combat numbers, names, and titles.
-- **Text Secondary** (`#94a3b8`): Subdued slate grey for descriptive rules, timers, and meta information.
-- **Text Dark** (`#0f172a`): Deep contrast ink used on warm brass button faces.
+- **Base Felt (`#121620`)**: Permukaan meja duel terluar.
+- **Bidang Permukaan (`#181c26`)**: Blok dasar untuk panel HUD, tray, dan drawer.
+- **Bidang Tumpukan Atas (`#1e2330` / `#232938`)**: Elemen yang ditumpuk di atas blok dasar (slot HP, tombol, dsb).
+- **Border Rendah Kontras (`rgba(255, 255, 255, 0.08)` / `#232a3b`)**: Pemisah antar-blok yang elegan tanpa garis mencolok.
+- **Aksen Tonal (Fokus)**:
+   - Antique Brass (`#a68058`): Tombol aktif, giliran aktif.
+   - Fire (`#d93838`), Water (`#2c7be5`), Nature (`#2d9a59`), Chaos (`#8e44ad`), Neutral (`#64748b`), Shield (`#00bcd4`).
 
-### Elemental Palette (Solid & Matte)
-- **Fire** (`#d93838`) / **Fire Matte** (`#2c1616`): Aggressive crimson red representing raw attack and combustion.
-- **Water** (`#2c7be5`) / **Water Matte** (`#16202c`): Focused cobalt blue representing flow, control, and recovery.
-- **Nature** (`#2d9a59`) / **Nature Matte** (`#162c1e`): Vibrant forest emerald representing growth, poison, and resilience.
-- **Neutral** (`#64748b`) / **Neutral Matte** (`#20242c`): Balanced stone grey representing stability, counter-chaos, and fortitude.
-- **Chaos** (`#8e44ad`) / **Chaos Matte** (`#25162c`): Deep amethyst violet representing unpredictability, superiority over basics, and arcane risk.
-- **Shield** (`#00bcd4`): Cyan highlight representing dynamic warding and absorption barriers.
+---
 
-### Named Rules
-**The No-Neon Rule.** Dilarang menggunakan efek glow bloom atau neon berlebihan. Gunakan solid flat color dan warna dasar matte yang bersih untuk menjaga kejernihan visual dan nuansa TCG fisik.
-**The Flat-Surface Rule.** Elemen bertumpuk mengandalkan kontras tonal antar panel (`--bg-inner-panel` vs `--bg-cardboard` vs `--bg-felt`) serta border garis tegas, bukan drop shadow tebal yang mengaburkan batas elemen.
+## Tipografi
 
-## Typography
-
-**Display Font:** 'Space Grotesk' (fallback: sans-serif)  
-**Body Font:** 'Outfit' (fallback: sans-serif)  
-**Label Font:** 'Space Grotesk' (fallback: sans-serif)
-
-**Character:** Technical precision meets clean modern geometric clarity. Space Grotesk injects structural authority into headers, scores, and elemental tags, while Outfit provides effortless legibility across dense rulebooks, card descriptions, and HUD statistics.
-
-### Hierarchy
-- **Display** (Bold 700, `clamp(2rem, 5vw, 3.2rem)`, `line-height: 1.1`): Arena banners, main logo titles, game-over proclamations.
-- **Headline** (Semi-bold 600, `1.4rem` to `1.8rem`, `line-height: 1.2`): Screen headers, draft phase titles, modal headers.
-- **Title** (Semi-bold 600, `1.1rem` to `1.25rem`, `line-height: 1.3`): Card names, player names in HUD, quest titles.
-- **Body** (Regular 400, `0.9rem` to `1rem`, `line-height: 1.5`): Card descriptions, rule text, tutorial tooltips, lobby status.
-- **Label** (Medium 500, `0.75rem` to `0.85rem`, `letter-spacing: 0.05em`, uppercase): Elemental badges, timer indicators, stat headers, button labels.
-
-## Layout
-
-- **Spatial Model:** Horizontal arena mat layout engineered strictly for desktop and landscape orientation mobile devices.
-- **Orientation Anchor:** Enforced landscape viewport. Portrait mode activates a rotation directive overlay to preserve table geometry.
-- **Arena Zones:**
-  - **Upper Perimeter:** Player HUD (top-left) and Enemy HUD (top-right) anchored along the top border, displaying HP meters, shield indicators, relic ribbons, and round victory dots.
-  - **Central Dueling Zone:** Confrontational card clash slots ("YOUR PLAY" vs "OPPONENT PLAY") framing the central VS clash indicator and lock-in actuator.
-  - **Lower Field:** Hand tray and inventory drawer presenting cards with ample hit targets for rapid selection.
-- **Spacing Scale:** Built on an 8px base grid (`xs: 4px`, `sm: 8px`, `md: 16px`, `lg: 24px`, `xl: 32px`).
-
-## Elevation & Depth
-
-Element Clash uses a **pure flat tonal layering** philosophy. Surfaces stack through distinct tonal tiers rather than simulated atmospheric elevation or heavy multi-stop shadows.
-
-- **Level 0 (Base Mat):** Clean carbon felt (`--bg-felt: #121620`).
-- **Level 1 (Structural Trays & Cards):** Cardboard backing (`--bg-cardboard: #1c202d`) bordered by mat stroke (`--border-mat: #293245`).
-- **Level 2 (Active/Interactive Focus):** Inset wells and active slots (`--bg-inner-panel: #181c26`) highlighted with warm brass borders (`--border-brass: #a68058`).
-- **State Feedback:** State changes (hover, selection, lock-in) trigger border color shifts and subtle 1-2px vertical transforms rather than swelling drop shadows.
-
-## Shapes
-
-- **Corner Language:** Tight, disciplined radii. Card containers and modal dialogs maintain a subtle, tactile `rounded-sm` (4px) or `rounded-md` (8px). Buttons maintain crisp 4px edges.
-- **Borders & Framing:** 1px to 2px solid strokes form the primary boundary definition. Inactive containers use `#293245`; active cards, selection frames, and brass headers use `#a68058`.
-- **Card Aspect Ratio:** Modeled on traditional standard trading cards (~2.5 : 3.5 ratio) with explicit division between art header, elemental badge, and lower rule typography.
-
-## Components
-
-### Buttons
-- **Shape:** Rounded 4px (`rounded-sm`), uppercase typography, letter-spaced.
-- **Primary:** Warm brass background (`#a68058`), dark ink text (`#0f172a`), solid tactile padding (`12px 24px`).
-- **Secondary:** Dark cardboard background (`#1c202d`), white text (`#f8fafc`), 1px mat border (`#293245`).
-- **Hover / Focus:** Border brightness increase, 1px upward translateY lift, zero blur spread.
-- **Disabled:** Dimmed slate background (`#20242c`), muted text (`#64748b`), cursor not-allowed.
-
-### Playing Cards
-- **Shape:** 4px radius, 1.5px solid border (`#293245` at rest, elemental color or `#a68058` on selection).
-- **Background:** Matte elemental background (`--bg-[element]-matte`) paired with cardboard backing.
-- **States:**
-  - *Resting:* Level 1 cardboard layer.
-  - *Selected / Hovered:* Lifted -8px on the Y-axis with solid brass or elemental highlight border.
-  - *Locked:* Fixed slot drop with confirmation border.
-
-### HUD Panels
-- **Container:** Dark inner panel (`#181c26`), 1.5px mat border (`#293245`), 8px radius.
-- **Health Bar:** Deep inset trough with flat red/green HP fill and numerical overlay in Space Grotesk.
-- **Shield Counter:** Cyan icon badge (`#00bcd4`) updating dynamically on ward changes.
-- **Round Points:** Tri-dot status indicator filled with warm brass for secured rounds.
-
-### Inputs / Fields
-- **Style:** Deep carbon background (`#121620`), 1.5px slate border (`#293245`), 4px radius, crisp white text.
-- **Focus:** Border transitions smoothly to warm brass (`#a68058`).
-
-## Do's and Don'ts
-
-### Do:
-- **Do** maintain crisp, flat contrast between carbon felt mats, inner panels, and card frames.
-- **Do** represent each elemental affinity with its exact canonical solid color and matching dark matte backing.
-- **Do** enforce landscape layout and test readability at tight mobile screen dimensions.
-- **Do** preserve the Space Grotesk and Outfit typographic hierarchy for immediate battle data recognition.
-
-### Don't:
-- **Don't** add diffuse neon glows, bloom filters, or noisy chromatic aberrations around cards or buttons.
-- **Don't** use soft, fuzzy drop-shadows to separate layers; rely strictly on background tonal contrast and crisp borders.
-- **Don't** mix non-canonical element colors; keep Fire, Water, Nature, Neutral, and Chaos clearly distinct and deterministic.
-- **Don't** break the forced landscape orientation model on mobile viewports.
+- **Display & Headings**: `'Anton', sans-serif` — Geometri font kokoh dan tegas.
+- **Body & Rules**: `'Archivo', sans-serif` — Pembacaan jernih dan netral.
+- **Card Titles**: `'Space Grotesk', 'Archivo', sans-serif` — Standar kartu pertempuran.

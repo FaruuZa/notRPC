@@ -1139,9 +1139,14 @@
 }
 
 #compendium-cards-grid .card {
-  width: 148px;
-  height: 206px;
-  flex-shrink: 0;
+  width: 140px;
+  height: 196px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 196px;
+  max-height: 196px;
+  flex: 0 0 140px;
+  aspect-ratio: 5 / 7;
   cursor: pointer;
   transition: transform 0.16s ease;
 }

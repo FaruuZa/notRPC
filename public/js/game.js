@@ -822,6 +822,39 @@ const GameManager = {
       });
     }
 
+    // Central battle menu dropdown toggle & click outside
+    const battleMenuBtn = document.getElementById('battle-menu-btn');
+    const battleMenuDropdown = document.getElementById('battle-menu-dropdown');
+    if (battleMenuBtn && battleMenuDropdown) {
+      battleMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        battleMenuDropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!battleMenuDropdown.classList.contains('hidden') && !battleMenuDropdown.contains(e.target) && e.target !== battleMenuBtn) {
+          battleMenuDropdown.classList.add('hidden');
+        }
+      });
+
+      battleMenuDropdown.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          battleMenuDropdown.classList.add('hidden');
+        });
+      });
+    }
+
+    // Quest tracker collapse toggle
+    const questTrackerHeader = document.getElementById('quest-tracker-header');
+    const battleQuestTracker = document.getElementById('battle-quest-tracker');
+    if (questTrackerHeader && battleQuestTracker) {
+      questTrackerHeader.addEventListener('click', () => {
+        if (window.AudioSynth) window.AudioSynth.playClick();
+        battleQuestTracker.classList.toggle('collapsed');
+      });
+    }
+
     // Deck view button click handler
     const viewDeckBtn = document.getElementById('view-deck-btn');
     const deckModal = document.getElementById('deck-modal');
@@ -881,11 +914,17 @@ const GameManager = {
       });
     }
 
+    const closeInventory = () => {
+      window.AudioSynth.playClick();
+      deckModal.classList.remove('active');
+    };
+
     if (deckCloseBtn && deckModal) {
-      deckCloseBtn.addEventListener('click', () => {
-        window.AudioSynth.playClick();
-        deckModal.classList.remove('active');
-      });
+      deckCloseBtn.addEventListener('click', closeInventory);
+    }
+    const deckTopCloseBtn = document.getElementById('deck-top-close-btn');
+    if (deckTopCloseBtn && deckTopCloseBtn !== deckCloseBtn && deckModal) {
+      deckTopCloseBtn.addEventListener('click', closeInventory);
     }
 
     if (deckModal) {
@@ -1254,8 +1293,7 @@ const GameManager = {
    * Triggers when opponent selects a card (without revealing detail)
    */
   onOpponentSelect(data) {
-    const UI = window.UI;
-    UI.arenaCombatText.innerText = '';
+    // Keep player's combat watermark status intact (e.g. CHOOSE CARD or WAITING)
   },
 
   /**
@@ -1263,7 +1301,12 @@ const GameManager = {
    */
   onOpponentLock(data) {
     const UI = window.UI;
-    UI.arenaCombatText.innerText = '';
+    // Keep player's combat watermark status intact (do not wipe it out)
+    if (UI.isLocked) {
+      if (UI.setCombatStatus) UI.setCombatStatus('WAITING');
+    } else {
+      if (UI.setCombatStatus) UI.setCombatStatus('CHOOSE CARD');
+    }
 
     // Immediately show the opponent's card face-down in their slot (without element border)
     const opponentSlot = UI.enemyPlaySlot;
@@ -1647,7 +1690,7 @@ const GameManager = {
 
     // Wipe arena slots clean
     UI.clearArenaSlots();
-    UI.arenaCombatText.innerText = '';
+    UI.setCombatStatus('CHOOSE CARD');
 
     // Render cards and trigger draw animation
     UI.renderHand(this.hand, true, isNewRound);
@@ -2300,6 +2343,7 @@ const GameManager = {
 
   /**
    * Renders the cards and relics in the player's deck/inventory inside the inspection modal.
+   * Optimized with DocumentFragment and change-detection caching to avoid expensive reflows.
    */
   renderDeckModal() {
     const listContainer = document.getElementById('deck-cards-list');
@@ -2307,16 +2351,20 @@ const GameManager = {
     const cardsCountEl = document.getElementById('tab-cards-count');
     const relicsCountEl = document.getElementById('tab-relics-count');
     
-    // Update card list
-    if (listContainer) {
+    // Compute quick signature of current deck to prevent redundant DOM re-renders
+    const deckHash = (this.deck || []).map(c => c.instanceId || c.id || c.name).join('|');
+    if (listContainer && this._renderedDeckHash !== deckHash) {
+      this._renderedDeckHash = deckHash;
       listContainer.innerHTML = '';
       if (!this.deck || this.deck.length === 0) {
-        listContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">Your deck is empty.</p>';
+        listContainer.innerHTML = '<p style="color: var(--text-secondary); font-style: italic; grid-column: 1/-1; text-align: center; padding: 2rem;">Your deck is empty.</p>';
       } else {
+        const fragment = document.createDocumentFragment();
         this.deck.forEach(card => {
           const cardEl = window.UI.createCardElement(card);
-          listContainer.appendChild(cardEl);
+          fragment.appendChild(cardEl);
         });
+        listContainer.appendChild(fragment);
       }
     }
     
@@ -2325,8 +2373,10 @@ const GameManager = {
       cardsCountEl.innerText = this.deck ? this.deck.length : 0;
     }
     
-    // Render relics list
-    if (relicsContainer) {
+    // Render relics list with signature caching
+    const relicsHash = JSON.stringify(this.myRelics || {});
+    if (relicsContainer && this._renderedRelicsHash !== relicsHash) {
+      this._renderedRelicsHash = relicsHash;
       window.UI.renderRelicsGrid(relicsContainer, this.myRelics);
     }
     

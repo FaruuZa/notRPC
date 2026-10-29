@@ -20,7 +20,11 @@ const ClashPipeline = {
 
     if (window.UI) {
       window.UI.clearArenaSlots();
-      if (window.UI.arenaCombatText) window.UI.arenaCombatText.innerText = '';
+      if (window.UI.setCombatStatus) {
+        window.UI.setCombatStatus('CHOOSE CARD');
+      } else if (window.UI.arenaCombatText) {
+        window.UI.arenaCombatText.innerText = 'CHOOSE CARD';
+      }
     }
 
     const handWrapper = document.querySelector('.hand-container-wrapper');
@@ -42,7 +46,11 @@ const ClashPipeline = {
   async run(gm, reveal, result) {
     // Await any active local card lock flight animation to prevent race conditions
     if (window.cardFlightPromise) {
-      await window.cardFlightPromise;
+      await Promise.race([
+        window.cardFlightPromise,
+        new Promise(r => setTimeout(r, 600))
+      ]);
+      window.cardFlightPromise = null;
     }
 
     const UI = window.UI;
@@ -58,7 +66,11 @@ const ClashPipeline = {
 
 try {
       // Lock controls UI text
-      UI.arenaCombatText.innerText = 'CLASH!';
+      if (UI.setCombatStatus) {
+        UI.setCombatStatus('WAITING');
+      } else {
+        UI.arenaCombatText.innerText = 'WAITING';
+      }
 
     // --- STEP 0: CARD PREPARATION & FLIGHT TO ARENA ---
     const playedCardId = reveal.yourCard.instanceId;
@@ -143,7 +155,10 @@ try {
     if (opponentCardAlreadyInSlot) {
       // Wait for any running arrival animation to finish first!
       if (window.opponentCardArrivalPromise) {
-        await window.opponentCardArrivalPromise;
+        await Promise.race([
+          window.opponentCardArrivalPromise,
+          new Promise(r => setTimeout(r, 600))
+        ]);
         window.opponentCardArrivalPromise = null;
       }
       // Add data-element outline now that it is revealed
@@ -166,7 +181,7 @@ try {
         Animations.animateOpponentCardArrival(opponentCardEl, resolve);
       });
     }
-    UI.vsBadge.style.opacity = '0.2';
+    if (UI.vsBadge) UI.vsBadge.style.opacity = '0.2';
 
     const iconClass = UI.getElementIconClass(reveal.opponentCard.element);
     const frontFace = opponentCardEl.querySelector('.card-front');
@@ -190,15 +205,19 @@ try {
 
 
     // --- STEP 1: REVEAL CARD, Hasil & Sorotan (Combined) ---
-    let outcomeMsg = '';
+    let outcomeMsg = 'TIE';
     if (result.outcome === 'SUPERIOR') {
-      outcomeMsg = `<span class="accent-text" style="color: #2ecc71;">SUPERIOR</span>`;
+      outcomeMsg = 'SUPERIOR';
     } else if (result.outcome === 'INFERIOR') {
-      outcomeMsg = `<span class="accent-text" style="color: #ff3333;">INFERIOR</span>`;
+      outcomeMsg = 'INFERIOR';
     } else {
-      outcomeMsg = `<span class="accent-text" style="color: #a0aec0;">TIE</span>`;
+      outcomeMsg = 'TIE';
     }
-    UI.arenaCombatText.innerHTML = outcomeMsg;
+    if (UI.setCombatStatus) {
+      UI.setCombatStatus(outcomeMsg);
+    } else if (UI.arenaCombatText) {
+      UI.arenaCombatText.innerText = outcomeMsg;
+    }
 
     // Apply outcome highlight immediately together with reveal
     if (playerCard) {
@@ -346,124 +365,149 @@ try {
     const opponentDamaging = (result.opponentDamageDealt > 0);
 
     await new Promise(resolve => {
-      Animations.animateClashImpact(playerCard, opponentCard, result.outcome, playerDamaging, opponentDamaging, () => {
-        window.AudioSynth.playClash(result.outcome);
-
-        // Staggered delay trackers for juicy sequential popups (+70ms each)
-        let delayP1 = 0;
-        let delayP2 = 0;
-
-        // Shield damage popups and absorbs (first line of defense)
-        if (result.shieldDamage > 0) {
-          Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldDamage, 'shield-damage', delayP1);
-          delayP1 += 70;
-          if (playerCard) Animations.animateShieldAbsorb(playerCard);
+      let resolved = false;
+      const safeResolve = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
         }
-        if (result.opponentShieldDamage > 0) {
-          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldDamage, 'shield-damage', delayP2);
-          delayP2 += 70;
-          if (opponentCard) Animations.animateShieldAbsorb(opponentCard);
-        }
+      };
+      // 2.5s safety timeout so the game NEVER hangs even if an animation errors out
+      const safetyTimeout = setTimeout(safeResolve, 2500);
 
-        // Direct Clash HP Damage popups
-        if (result.hpDamage > 0) {
-          Animations.animateDamagePopup(UI.playerPlaySlot, result.hpDamage, 'damage', delayP1);
-          delayP1 += 70;
-        }
-        if (result.opponentHpDamage > 0) {
-          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHpDamage, 'damage', delayP2);
-          delayP2 += 70;
-        }
+      try {
+        Animations.animateClashImpact(playerCard, opponentCard, result.outcome, playerDamaging, opponentDamaging, () => {
+          try {
+            window.AudioSynth.playClash(result.outcome);
 
-        // Self damage / recoil
-        if (result.selfDamage > 0) {
-          Animations.animateDamagePopup(UI.playerPlaySlot, result.selfDamage, 'self-damage', delayP1);
-          delayP1 += 70;
-          if (playerCard) {
-            Animations.animateCardActionOverlay(playerCard, 'self-damage', `-${result.selfDamage} SELF DMG`);
+            // Staggered delay trackers for juicy sequential popups (+70ms each)
+            let delayP1 = 0;
+            let delayP2 = 0;
+
+            // Shield damage popups and absorbs (first line of defense)
+            if (result.shieldDamage > 0) {
+              Animations.animateDamagePopup(UI.playerPlaySlot, result.shieldDamage, 'shield-damage', delayP1);
+              delayP1 += 70;
+              if (playerCard) Animations.animateShieldAbsorb(playerCard);
+            }
+            if (result.opponentShieldDamage > 0) {
+              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentShieldDamage, 'shield-damage', delayP2);
+              delayP2 += 70;
+              if (opponentCard) Animations.animateShieldAbsorb(opponentCard);
+            }
+
+            // Direct Clash HP Damage popups
+            if (result.hpDamage > 0) {
+              Animations.animateDamagePopup(UI.playerPlaySlot, result.hpDamage, 'damage', delayP1);
+              delayP1 += 70;
+            }
+            if (result.opponentHpDamage > 0) {
+              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentHpDamage, 'damage', delayP2);
+              delayP2 += 70;
+            }
+
+            // Self damage / recoil
+            if (result.selfDamage > 0) {
+              Animations.animateDamagePopup(UI.playerPlaySlot, result.selfDamage, 'self-damage', delayP1);
+              delayP1 += 70;
+              if (playerCard) {
+                Animations.animateCardActionOverlay(playerCard, 'self-damage', `-${result.selfDamage} SELF DMG`);
+              }
+            }
+            if (result.opponentSelfDamage > 0) {
+              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentSelfDamage, 'self-damage', delayP2);
+              delayP2 += 70;
+              if (opponentCard) {
+                Animations.animateCardActionOverlay(opponentCard, 'self-damage', `-${result.opponentSelfDamage} SELF DMG`);
+              }
+            }
+
+            // Thorns damage (reflected true damage from Briar Armor)
+            if (result.thornsDamage > 0) {
+              Animations.animateDamagePopup(UI.playerPlaySlot, result.thornsDamage, 'thorns', delayP1);
+              delayP1 += 70;
+              const playerHudEl = document.querySelector('.player-hud');
+              Animations.animateHudDamageShake(playerHudEl);
+            }
+            if (result.opponentThornsDamage > 0) {
+              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentThornsDamage, 'thorns', delayP2);
+              delayP2 += 70;
+              const enemyHudEl = document.querySelector('.enemy-hud');
+              Animations.animateHudDamageShake(enemyHudEl);
+            }
+
+            // Leech heal (siphon on unblocked damage)
+            if (result.leechHeal > 0 && playerCard) {
+              Animations.animateDamagePopup(UI.playerPlaySlot, result.leechHeal, 'leech', delayP1);
+              delayP1 += 70;
+              Animations.animateCardActionOverlay(playerCard, 'leech', `+${result.leechHeal} LEECH`);
+            }
+            if (result.opponentLeechHeal > 0 && opponentCard) {
+              Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentLeechHeal, 'leech', delayP2);
+              delayP2 += 70;
+              Animations.animateCardActionOverlay(opponentCard, 'leech', `+${result.opponentLeechHeal} LEECH`);
+            }
+
+            // Process any queued Purifying Amulet or Briar Armor toasts
+            const onDamageRelics = drainRelicTriggers(t => ['Purifying Amulet', 'Briar Armor', 'Leech', 'Thorn', 'Venomheart Briar'].includes(t.relicName));
+            for (const trig of onDamageRelics) {
+              const isMe = (trig.playerId && trig.playerId === gm.myId);
+              if (UI.showRelicCombatToast) {
+                UI.showRelicCombatToast(isMe, trig.relicName, trig.message);
+              }
+              if (trig.relicName === 'Purifying Amulet') {
+                const targetCard = isMe ? playerCard : opponentCard;
+                const targetContainer = isMe ? UI.playerStatusContainer : UI.enemyStatusContainer;
+                const targetStatuses = isMe ? gm.myStatuses : gm.opponentStatuses;
+                if (targetCard) Animations.animateCleanseSweep(targetCard);
+                targetStatuses.burn = 0;
+                targetStatuses.poison = 0;
+                targetStatuses.weakness = 0;
+                UI.renderStatuses(targetContainer, targetStatuses);
+              }
+            }
+
+            // Calculate HP value after clash strike but before DoT tick damage
+            const p1TickTotal = (result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : (result.statusDamage.burn || 0)) + (result.statusDamage.poison || 0);
+            const p2TickTotal = (result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : (result.opponentStatusDamage.burn || 0)) + (result.opponentStatusDamage.poison || 0);
+
+            const clashEndHp = result.newHp + p1TickTotal;
+            const clashEndHpOpponent = result.opponentNewHp + p2TickTotal;
+
+            const currentHpSelf = Math.min(gm.myMaxHp, gm.myHp + (result.leechHeal || 0));
+            const currentHpOpp = Math.min(gm.opponentMaxHp, gm.opponentHp + (result.opponentLeechHeal || 0));
+
+            Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, currentHpSelf, clashEndHp, gm.myMaxHp);
+            Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, currentHpOpp, clashEndHpOpponent, gm.opponentMaxHp);
+
+            // Update shields post clash (pre-tick) dynamically in HUD
+            gm.myShield = Math.max(0, gm.myShield - result.shieldDamage);
+            gm.opponentShield = Math.max(0, gm.opponentShield - result.opponentShieldDamage);
+            UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, gm.myShield);
+            UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, gm.opponentShield);
+
+            // Deduct opponent hand dot if exists
+            if (UI.enemyCardDots) {
+              const currentDots = UI.enemyCardDots.querySelectorAll('span');
+              if (currentDots.length > 0) {
+                currentDots[0].remove();
+              }
+            }
+
+            gm.myHp = clashEndHp;
+            gm.opponentHp = clashEndHpOpponent;
+          } catch (impactErr) {
+            console.error("Error in clash impact callback:", impactErr);
           }
-        }
-        if (result.opponentSelfDamage > 0) {
-          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentSelfDamage, 'self-damage', delayP2);
-          delayP2 += 70;
-          if (opponentCard) {
-            Animations.animateCardActionOverlay(opponentCard, 'self-damage', `-${result.opponentSelfDamage} SELF DMG`);
-          }
-        }
-
-        // Thorns damage (reflected true damage from Briar Armor)
-        if (result.thornsDamage > 0) {
-          Animations.animateDamagePopup(UI.playerPlaySlot, result.thornsDamage, 'thorns', delayP1);
-          delayP1 += 70;
-          const playerHudEl = document.querySelector('.player-hud');
-          Animations.animateHudDamageShake(playerHudEl);
-        }
-        if (result.opponentThornsDamage > 0) {
-          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentThornsDamage, 'thorns', delayP2);
-          delayP2 += 70;
-          const enemyHudEl = document.querySelector('.enemy-hud');
-          Animations.animateHudDamageShake(enemyHudEl);
-        }
-
-        // Leech heal (siphon on unblocked damage)
-        if (result.leechHeal > 0 && playerCard) {
-          Animations.animateDamagePopup(UI.playerPlaySlot, result.leechHeal, 'leech', delayP1);
-          delayP1 += 70;
-          Animations.animateCardActionOverlay(playerCard, 'leech', `+${result.leechHeal} LEECH`);
-        }
-        if (result.opponentLeechHeal > 0 && opponentCard) {
-          Animations.animateDamagePopup(UI.enemyPlaySlot, result.opponentLeechHeal, 'leech', delayP2);
-          delayP2 += 70;
-          Animations.animateCardActionOverlay(opponentCard, 'leech', `+${result.opponentLeechHeal} LEECH`);
-        }
-
-        // Process any queued Purifying Amulet or Briar Armor toasts
-        const onDamageRelics = drainRelicTriggers(t => ['Purifying Amulet', 'Briar Armor', 'Leech', 'Thorn', 'Venomheart Briar'].includes(t.relicName));
-        for (const trig of onDamageRelics) {
-          const isMe = (trig.playerId && trig.playerId === gm.myId);
-          if (UI.showRelicCombatToast) {
-            UI.showRelicCombatToast(isMe, trig.relicName, trig.message);
-          }
-          if (trig.relicName === 'Purifying Amulet') {
-            const targetCard = isMe ? playerCard : opponentCard;
-            const targetContainer = isMe ? UI.playerStatusContainer : UI.enemyStatusContainer;
-            const targetStatuses = isMe ? gm.myStatuses : gm.opponentStatuses;
-            if (targetCard) Animations.animateCleanseSweep(targetCard);
-            targetStatuses.burn = 0;
-            targetStatuses.poison = 0;
-            targetStatuses.weakness = 0;
-            UI.renderStatuses(targetContainer, targetStatuses);
-          }
-        }
-
-        // Calculate HP value after clash strike but before DoT tick damage
-        const p1TickTotal = (result.statusDamage.burnHpDmg !== undefined ? result.statusDamage.burnHpDmg : (result.statusDamage.burn || 0)) + (result.statusDamage.poison || 0);
-        const p2TickTotal = (result.opponentStatusDamage.burnHpDmg !== undefined ? result.opponentStatusDamage.burnHpDmg : (result.opponentStatusDamage.burn || 0)) + (result.opponentStatusDamage.poison || 0);
-
-        const clashEndHp = result.newHp + p1TickTotal;
-        const clashEndHpOpponent = result.opponentNewHp + p2TickTotal;
-
-        const currentHpSelf = Math.min(gm.myMaxHp, gm.myHp + (result.leechHeal || 0));
-        const currentHpOpp = Math.min(gm.opponentMaxHp, gm.opponentHp + (result.opponentLeechHeal || 0));
-
-        Animations.animateHpReduction(UI.playerHpFill, UI.playerHpVal, currentHpSelf, clashEndHp, gm.myMaxHp);
-        Animations.animateHpReduction(UI.enemyHpFill, UI.enemyHpVal, currentHpOpp, clashEndHpOpponent, gm.opponentMaxHp);
-
-        // Update shields post clash (pre-tick) dynamically in HUD
-        gm.myShield = Math.max(0, gm.myShield - result.shieldDamage);
-        gm.opponentShield = Math.max(0, gm.opponentShield - result.opponentShieldDamage);
-        UI.updateShield(UI.playerShieldBox, UI.playerShieldVal, gm.myShield);
-        UI.updateShield(UI.enemyShieldBox, UI.enemyShieldVal, gm.opponentShield);
-
-        // Deduct opponent hand dot
-        const currentDots = UI.enemyCardDots.querySelectorAll('span');
-        if (currentDots.length > 0) {
-          currentDots[0].remove();
-        }
-
-        gm.myHp = clashEndHp;
-        gm.opponentHp = clashEndHpOpponent;
-      }, resolve);
+        }, () => {
+          clearTimeout(safetyTimeout);
+          safeResolve();
+        });
+      } catch (err) {
+        console.error("Error starting animateClashImpact:", err);
+        clearTimeout(safetyTimeout);
+        safeResolve();
+      }
     });
 
     await new Promise(resolve => setTimeout(resolve, 350));
@@ -865,6 +909,7 @@ try {
       const wasAborted = this._aborted;
       this._aborted = false;
       gm.isVisualPipelineRunning = false;
+      UI.isLocked = false; // ensure lock is cleared so cards can be sent next turn!
       const handWrapper = document.querySelector('.hand-container-wrapper');
       if (handWrapper) handWrapper.classList.remove('clash-dimmed');
       gm.checkAndTriggerEndPhase();

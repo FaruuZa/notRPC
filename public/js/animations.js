@@ -120,6 +120,12 @@ const Animations = {
    * Animates the card collision / clash vibration
    */
   animateClashImpact(cardA, cardB, outcome, playerDamaging, opponentDamaging, onImpact, onComplete) {
+    if (!cardA || !cardB) {
+      if (onImpact) onImpact();
+      if (onComplete) onComplete();
+      return;
+    }
+
     const rectA = cardA.getBoundingClientRect();
     const rectB = cardB.getBoundingClientRect();
     const distanceX = rectB.left - rectA.left;
@@ -127,8 +133,10 @@ const Animations = {
     const timeline = anime.timeline({
       easing: 'easeOutQuad',
       complete: () => {
-        cardA.style.transform = 'none';
-        cardB.style.transform = 'none';
+        try {
+          if (cardA) cardA.style.transform = 'none';
+          if (cardB) cardB.style.transform = 'none';
+        } catch (e) {}
         if (onComplete) onComplete();
       }
     });
@@ -171,7 +179,7 @@ const Animations = {
       timeline
         .add({
           targets: cardA,
-          translateX: distanceX * 0.55,
+          translateX: distanceX * 0.44,
           translateY: -15,
           duration: 150,
           easing: 'easeInBack',
@@ -205,7 +213,7 @@ const Animations = {
       timeline
         .add({
           targets: cardB,
-          translateX: -distanceX * 0.55,
+          translateX: -distanceX * 0.44,
           translateY: -15,
           duration: 150,
           easing: 'easeInBack',

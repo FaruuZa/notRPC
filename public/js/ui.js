@@ -759,17 +759,17 @@ const UI = {
         cardEl.style.zIndex = index + 1;
         if (!this.isLocked) {
           let lastClickTime = 0;
-          cardEl.addEventListener('click', (e) => {
-            const currentTime = new Date().getTime();
+          cardEl.addEventListener('click', () => {
+            if (this.isLocked) return;
+            const currentTime = Date.now();
             const clickDelay = currentTime - lastClickTime;
             lastClickTime = currentTime;
 
-            if (clickDelay < 300) {
-              AudioSynth.playClick();
+            AudioSynth.playClick();
+            if (this.selectedCardInstanceId === card.instanceId || clickDelay < 350) {
               this.selectCard(card.instanceId, true);
               this.lockSelection();
             } else {
-              AudioSynth.playClick();
               this.selectCard(card.instanceId);
             }
           });
@@ -804,16 +804,16 @@ const UI = {
         if (!this.isLocked) {
           let lastClickTime = 0;
           cardEl.addEventListener('click', () => {
-            const currentTime = new Date().getTime();
+            if (this.isLocked) return;
+            const currentTime = Date.now();
             const clickDelay = currentTime - lastClickTime;
             lastClickTime = currentTime;
 
-            if (clickDelay < 300) {
-              AudioSynth.playClick();
+            AudioSynth.playClick();
+            if (this.selectedCardInstanceId === card.instanceId || clickDelay < 350) {
               this.selectCard(card.instanceId, true);
               this.lockSelection();
             } else {
-              AudioSynth.playClick();
               this.selectCard(card.instanceId);
             }
           });
@@ -860,6 +860,7 @@ const UI = {
    * @param {number} size Hand size count
    */
   updateOpponentHandSize(size) {
+    if (!this.enemyCardDots) return;
     this.enemyCardDots.innerHTML = '';
     for (let i = 0; i < size; i++) {
       const dot = document.createElement('span');
@@ -876,10 +877,12 @@ const UI = {
     // Deselect if clicking already selected
     if (!forceSelect && this.selectedCardInstanceId === instanceId) {
       this.selectedCardInstanceId = null;
-      this.lockBtn.classList.add('disabled');
-      this.lockBtn.classList.remove('ready-state', 'locked-state');
-      this.lockBtn.disabled = true;
-      this.lockBtn.innerHTML = '<span class="lock-btn-text">PILIH KARTU</span>';
+      if (this.lockBtn) {
+        this.lockBtn.classList.add('disabled');
+        this.lockBtn.classList.remove('ready-state', 'locked-state');
+        this.lockBtn.disabled = true;
+        this.lockBtn.innerHTML = '<span class="lock-btn-text">CHOOSE CARD</span>';
+      }
       
       const selectedCard = this.playerHand.querySelector('.card.selected');
       if (selectedCard) selectedCard.classList.remove('selected');
@@ -891,10 +894,12 @@ const UI = {
 
     // Set new selection
     this.selectedCardInstanceId = instanceId;
-    this.lockBtn.classList.remove('disabled', 'locked-state');
-    this.lockBtn.classList.add('ready-state');
-    this.lockBtn.disabled = false;
-    this.lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> <span class="lock-btn-text">LOCK IN</span>';
+    if (this.lockBtn) {
+      this.lockBtn.classList.remove('disabled', 'locked-state');
+      this.lockBtn.classList.add('ready-state');
+      this.lockBtn.disabled = false;
+      this.lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> <span class="lock-btn-text">LOCK IN</span>';
+    }
 
     // Remove selection glow from all others
     const cards = this.playerHand.querySelectorAll('.card');
@@ -930,10 +935,13 @@ const UI = {
     if (!this.selectedCardInstanceId || this.isLocked) return;
     
     this.isLocked = true;
-    this.lockBtn.classList.remove('ready-state', 'disabled');
-    this.lockBtn.classList.add('locked-state');
-    this.lockBtn.disabled = true;
-    this.lockBtn.innerHTML = '<span class="lock-waiting-dot"><i class="fa-solid fa-hourglass-half"></i></span> <span class="lock-btn-text">MENUNGGU LAWAN...</span>';
+    this.setCombatStatus('WAITING');
+    if (this.lockBtn) {
+      this.lockBtn.classList.remove('ready-state', 'disabled');
+      this.lockBtn.classList.add('locked-state');
+      this.lockBtn.disabled = true;
+      this.lockBtn.innerHTML = '<span class="lock-waiting-dot"><i class="fa-solid fa-hourglass-half"></i></span> <span class="lock-btn-text">WAITING FOR OPPONENT...</span>';
+    }
     
     // Add locked state border to card and animate it to play slot
     const selectedCard = this.playerHand.querySelector('.card.selected');
@@ -1162,14 +1170,42 @@ const UI = {
     this.enemyPlaySlot.innerHTML = '';
     this.playerPlaySlot.classList.remove('filled');
     this.enemyPlaySlot.classList.remove('filled');
-    this.arenaCombatText.innerText = 'Select your card!';
-    this.vsBadge.style.opacity = '1';
+    this.setCombatStatus('CHOOSE CARD');
+    if (this.vsBadge) this.vsBadge.style.opacity = '1';
     
     // Reset legend button state (but keep panel hidden - round transition)
     const legendBtn = document.getElementById('element-legend-btn');
     if (legendBtn) legendBtn.classList.remove('active');
     const legendPanel = document.getElementById('element-legend-panel');
     if (legendPanel) legendPanel.classList.add('hidden');
+  },
+
+  /**
+   * Updates atmospheric combat status watermark text
+   */
+  setCombatStatus(status) {
+    const el = this.arenaCombatText;
+    if (!el) return;
+    el.className = 'combat-text backdrop-text';
+    const s = (status || '').toUpperCase();
+    if (s.includes('SUPERIOR')) {
+      el.classList.add('superior');
+      el.innerText = 'SUPERIOR';
+    } else if (s.includes('INFERIOR')) {
+      el.classList.add('inferior');
+      el.innerText = 'INFERIOR';
+    } else if (s.includes('TIE') || s.includes('NEUTRAL') || s.includes('SERI') || s.includes('DRAW')) {
+      el.classList.add('neutral');
+      el.innerText = 'TIE';
+    } else if (s.includes('WAITING') || s.includes('MENUNGGU') || s.includes('LOCKED')) {
+      el.classList.add('waiting');
+      el.innerText = 'WAITING';
+    } else if (s.includes('CHOOSE') || s.includes('SELECT') || s.includes('PILIH') || s === '') {
+      el.classList.add('picking');
+      el.innerText = 'CHOOSE CARD';
+    } else {
+      el.innerText = s;
+    }
   },
 
   /**
@@ -1547,6 +1583,11 @@ const UI = {
         progressTextEl.style.fontWeight = '';
       }
     }
+
+    const miniProgressEl = document.getElementById('tracker-mini-progress');
+    if (miniProgressEl) {
+      miniProgressEl.innerText = `${progress}/${target}`;
+    }
     
     if (rewardEl) {
       const tokens = activeQuest.removalTokens !== undefined ? activeQuest.removalTokens : (activeQuest.difficulty === 'HARD' ? 3 : (activeQuest.difficulty === 'MEDIUM' ? 2 : 1));
@@ -1839,11 +1880,64 @@ const UI = {
     }
     const timerBadge = document.getElementById('battle-turn-timer');
     const timerVal = document.getElementById('turn-timer-val');
-    if (!timerBadge || !timerVal) return;
+    const hubArch = document.getElementById('hub-arch-container');
+    const hubArc = document.getElementById('hub-timer-arc');
 
     let remaining = duration;
-    timerVal.innerText = remaining;
-    timerBadge.classList.remove('hidden', 'urgent');
+    if (timerVal) timerVal.innerText = remaining;
+    if (timerBadge) {
+      timerBadge.classList.remove('hidden', 'urgent');
+    }
+
+    const totalLen = (hubArc && typeof hubArc.getTotalLength === 'function') ? hubArc.getTotalLength() : 164;
+    if (hubArc) {
+      hubArc.style.strokeDasharray = `${totalLen}`;
+      hubArc.style.strokeDashoffset = '0';
+    }
+
+    const updateTimerVisuals = (rem, dur) => {
+      if (hubArc) {
+        const ratio = Math.max(0, Math.min(1, rem / dur));
+        if (rem <= 0) {
+          hubArc.style.opacity = '0';
+          hubArc.style.strokeDashoffset = `${totalLen + 30}`;
+        } else {
+          hubArc.style.opacity = '1';
+          hubArc.style.strokeDashoffset = `${totalLen * (1 - ratio)}`;
+          
+          // Smooth color transition: Green (ratio 1.0) -> Yellow (0.5) -> Red (0.0)
+          let hue;
+          if (ratio >= 0.5) {
+            // 48 (yellow) to 145 (green)
+            const norm = (ratio - 0.5) / 0.5;
+            hue = 48 + norm * (145 - 48);
+          } else {
+            // 5 (red) to 48 (yellow)
+            const norm = ratio / 0.5;
+            hue = 5 + norm * (48 - 5);
+          }
+          const strokeColor = `hsl(${Math.round(hue)}, 88%, 50%)`;
+          hubArc.style.stroke = strokeColor;
+          hubArc.style.filter = `drop-shadow(0 0 ${rem <= 5 ? 7 : 3}px ${strokeColor})`;
+        }
+      }
+      if (hubArch) {
+        if (rem <= 5) {
+          hubArch.classList.add('urgent');
+        } else {
+          hubArch.classList.remove('urgent');
+        }
+      }
+    };
+
+    if (hubArch) {
+      hubArch.classList.add('timer-active');
+      hubArch.classList.remove('urgent');
+    }
+    if (hubArc) {
+      hubArc.style.opacity = '1';
+    }
+    updateTimerVisuals(remaining, duration);
 
     this._turnTimerInterval = setInterval(() => {
       remaining -= 1;
@@ -1852,8 +1946,9 @@ const UI = {
         clearInterval(this._turnTimerInterval);
         this._turnTimerInterval = null;
       }
-      timerVal.innerText = remaining;
-      if (remaining <= 5) {
+      if (timerVal) timerVal.innerText = remaining;
+      updateTimerVisuals(remaining, duration);
+      if (timerBadge && remaining <= 5) {
         timerBadge.classList.add('urgent');
       }
     }, 1000);
@@ -1871,6 +1966,15 @@ const UI = {
     if (timerBadge) {
       timerBadge.classList.add('hidden');
       timerBadge.classList.remove('urgent');
+    }
+    const hubArch = document.getElementById('hub-arch-container');
+    const hubArc = document.getElementById('hub-timer-arc');
+    if (hubArch) {
+      hubArch.classList.remove('timer-active', 'urgent');
+    }
+    if (hubArc) {
+      hubArc.style.opacity = '0';
+      hubArc.style.strokeDashoffset = '0';
     }
   },
 
@@ -1931,7 +2035,8 @@ const UI = {
   },
 
   /**
-   * Renders the last 5-10 clash history logs in the drawer
+   * Renders the clash history logs with compact, structured rows
+   * Optimized for zero layout shift on mobile screens.
    */
   updateClashLog(history = []) {
     const list = document.getElementById('clash-log-list');
@@ -1944,30 +2049,52 @@ const UI = {
 
     list.innerHTML = '';
     const reversed = [...history].reverse();
+    const fragment = document.createDocumentFragment();
+
     reversed.forEach(entry => {
       const entryDiv = document.createElement('div');
       entryDiv.className = 'clash-log-entry';
 
-      const p1OutcomeClass = (entry.p1.outcome || '').toLowerCase();
+      const p1Raw = (entry.p1?.outcome || 'NEUTRAL').toUpperCase();
+      let outcomeClass = 'neutral';
+      if (p1Raw.includes('SUPERIOR')) outcomeClass = 'superior';
+      else if (p1Raw.includes('INFERIOR')) outcomeClass = 'inferior';
+
+      const p1Name = entry.p1?.cardName || 'Card';
+      const p1Dmg = entry.p1?.dmgDealt ?? 0;
+      const p1Shd = entry.p1?.shieldGain ?? 0;
+
+      const p2Name = entry.p2?.cardName || 'Card';
+      const p2Dmg = entry.p2?.dmgDealt ?? 0;
+      const p2Shd = entry.p2?.shieldGain ?? 0;
+
       entryDiv.innerHTML = `
         <div class="clash-log-meta">
-          <span class="clash-turn-badge">ROUND ${entry.round} &bull; TURN ${entry.turn}</span>
-          <span class="clash-outcome-badge ${p1OutcomeClass}">${entry.p1.outcome}</span>
+          <span class="clash-turn-badge">R${entry.round}&middot;T${entry.turn}</span>
+          <span class="clash-outcome-badge ${outcomeClass}">${p1Raw}</span>
         </div>
-        <div class="clash-cards-row">
-          <div class="clash-card-side you">
-            <span class="clash-card-name">${entry.p1.cardName} (${entry.p1.element})</span>
-            <div class="clash-stat-line">Dmg: ${entry.p1.dmgDealt} &bull; Shield: +${entry.p1.shieldGain}</div>
+        <div class="clash-duel-grid">
+          <div class="clash-col you">
+            <div class="clash-col-name text-truncate" title="${p1Name}">${p1Name}</div>
+            <div class="clash-col-stats">
+              <span class="stat-pill dmg">${p1Dmg} dmg</span>
+              ${p1Shd > 0 ? `<span class="stat-pill shd">+${p1Shd} shd</span>` : ''}
+            </div>
           </div>
-          <span class="clash-vs-sep">VS</span>
-          <div class="clash-card-side opponent">
-            <span class="clash-card-name">${entry.p2.cardName} (${entry.p2.element})</span>
-            <div class="clash-stat-line">Dmg: ${entry.p2.dmgDealt} &bull; Shield: +${entry.p2.shieldGain}</div>
+          <div class="clash-col-divider">vs</div>
+          <div class="clash-col opp">
+            <div class="clash-col-name text-truncate" title="${p2Name}">${p2Name}</div>
+            <div class="clash-col-stats">
+              <span class="stat-pill dmg">${p2Dmg} dmg</span>
+              ${p2Shd > 0 ? `<span class="stat-pill shd">+${p2Shd} shd</span>` : ''}
+            </div>
           </div>
         </div>
       `;
-      list.appendChild(entryDiv);
+      fragment.appendChild(entryDiv);
     });
+
+    list.appendChild(fragment);
   },
 
   /**

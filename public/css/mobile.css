@@ -185,20 +185,39 @@
   }
 
   /* Battle Screen on Compact Landscape */
-  .battle-top-bar {
-    top: 0.3rem !important;
-    gap: 0.6rem !important;
+  .battle-central-hub {
+    top: 0 !important;
+    gap: 0.35rem !important;
   }
 
-  .btn-surrender, .btn-clash-log {
-    font-size: 0.6rem !important;
-    padding: 0.25rem 0.6rem !important;
+  .hub-arch-container {
+    width: 80px !important;
+    height: 40px !important;
+    border-bottom-left-radius: 40px !important;
+    border-bottom-right-radius: 40px !important;
+  }
+
+  .hub-menu-btn {
+    top: 4px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .hub-score-wing {
+    margin-top: 0.35rem !important;
+  }
+
+  .hub-score-wing .point-dot {
+    width: 7px !important;
+    height: 7px !important;
   }
 
   .hud-panel {
     top: 0.35rem !important;
-    width: 205px !important;
-    padding: 0.35rem 0.55rem !important;
+    width: 175px !important;
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .hud-panel.player-hud {
@@ -216,7 +235,9 @@
 
   .shield-indicator {
     font-size: 0.62rem !important;
-    padding: 0.1rem 0.3rem !important;
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
   }
 
   .hp-bar-container {
@@ -228,17 +249,25 @@
   }
 
   .hud-relics-row {
-    margin-top: 0.25rem !important;
+    margin-top: 0.2rem !important;
     gap: 0.25rem !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .hud-relic-badge {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 0.68rem !important;
+    background: none !important;
+    border: none !important;
   }
 
   .relic-badge {
     font-size: 0.52rem !important;
     padding: 0.1rem 0.3rem !important;
-  }
-
-  .hud-bottom-row {
-    margin-top: 0.3rem !important;
+    border-radius: 0 !important;
   }
 
   .point-dot {
@@ -246,9 +275,11 @@
     height: 8px !important;
   }
 
-  .hud-deck-btn {
-    font-size: 0.58rem !important;
-    padding: 0.15rem 0.45rem !important;
+  .battle-inventory-btn {
+    right: 0.6rem !important;
+    bottom: 0.6rem !important;
+    font-size: 0.62rem !important;
+    padding: 0.25rem 0.55rem !important;
   }
 
   /* Left Quest Tracker on Mobile */
@@ -260,6 +291,11 @@
 
   .quest-tracker-widget {
     padding: 0.4rem 0.6rem !important;
+    border-radius: 0 !important;
+  }
+
+  .quest-tracker-widget.collapsed {
+    padding: 0.25rem 0.45rem !important;
   }
 
   .tracker-header {
@@ -274,6 +310,7 @@
   .tracker-progress-container {
     height: 10px !important;
     margin-top: 0.3rem !important;
+    border-radius: 0 !important;
   }
 
   .tracker-progress-text {
@@ -288,13 +325,17 @@
   /* Central Clash Zone */
   .arena-zone {
     top: 42% !important;
-    gap: clamp(1.2rem, 3.5vw, 2.8rem) !important;
+    gap: clamp(4.5rem, 14vw, 8rem) !important;
   }
 
+  .card-play-slot,
   .play-slot {
     width: 84px !important;
     height: 118px !important;
     border-width: 1.5px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   .slot-label {
@@ -302,30 +343,24 @@
   }
 
   .clash-effects-zone {
-    width: 130px !important;
-    gap: 0.35rem !important;
+    width: 0 !important;
+    gap: 0 !important;
+    pointer-events: none !important;
   }
 
   .vs-badge {
-    width: 34px !important;
-    height: 34px !important;
-    font-size: 0.98rem !important;
+    display: none !important;
   }
 
-  .combat-text, #combat-result-text {
-    font-size: 0.76rem !important;
-    min-height: 1rem !important;
-  }
-
-  .turn-timer-badge {
-    font-size: 0.74rem !important;
-    padding: 0.18rem 0.5rem !important;
+  .combat-text.backdrop-text {
+    font-size: clamp(3.2rem, 11vw, 5.2rem) !important;
+    letter-spacing: 0.04em !important;
+    max-width: 90vw;
+    text-align: center;
   }
 
   .btn-lock {
-    width: 124px !important;
-    height: 32px !important;
-    font-size: 0.72rem !important;
+    display: none !important;
   }
 
   /* Hand Cards */
@@ -333,50 +368,46 @@
     height: 140px !important;
   }
 
-  .game-card, .card {
-    width: 84px !important;
-    height: 118px !important;
-    border-width: 2.5px !important;
-    bottom: 4px !important;
-    padding: 0.25rem !important;
-    transform: translate(calc(-50% + var(--offset) * 18px), calc(var(--offset) * var(--offset) * 1px)) rotate(calc(var(--offset) * 4deg)) !important;
+  .hand-container .game-card,
+  .hand-container .card {
+    width: 140px !important;
+    height: 196px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+    min-height: 196px !important;
+    max-height: 196px !important;
+    flex: 0 0 140px !important;
+    aspect-ratio: 5 / 7 !important;
+    bottom: 5px !important;
+    transform-origin: bottom center;
+    transform: translate(calc(-50% + var(--offset) * 22px), calc(var(--offset) * var(--offset) * 1.5px)) scale(0.65) rotate(calc(var(--offset) * 3.5deg)) !important;
   }
 
   .hand-container:hover .game-card:not(.locked),
   .hand-container:hover .card:not(.locked) {
-    transform: translate(calc(-50% + var(--offset) * 64px), -8px) rotate(calc(var(--offset) * 0.5deg)) !important;
+    transform: translate(calc(-50% + var(--offset) * 88px), -10px) scale(0.65) rotate(calc(var(--offset) * 0.5deg)) !important;
   }
 
-  .game-card.selected, .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 18px), -24px) rotate(0deg) !important;
+  .hand-container .game-card.selected,
+  .hand-container .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 22px), -36px) scale(0.65) rotate(0deg) !important;
+    z-index: 90 !important;
   }
 
   .hand-container:hover .game-card.selected,
   .hand-container:hover .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 64px), -28px) rotate(0deg) !important;
+    transform: translate(calc(-50% + var(--offset) * 88px), -44px) scale(0.65) rotate(0deg) !important;
+    z-index: 90 !important;
   }
 
-  .gc-name, .card-name {
-    font-size: 0.48rem !important;
-  }
-
-  .gc-middle, .card-middle {
-    min-height: 24px !important;
-    margin: 0.15rem 0 !important;
-  }
-
-  .gc-icon, .card-element-icon {
-    font-size: 1.05rem !important;
-  }
-
-  .gc-desc, .card-desc {
-    font-size: 0.44rem !important;
-    height: 36px !important;
-    line-height: 1.15 !important;
-  }
-
-  .gc-elname, .card-element-name {
-    font-size: 0.48rem !important;
+  /* Arena slot cards must be clean and not inherit hand fan transforms */
+  .card-play-slot .card {
+    width: 140px !important;
+    height: 196px !important;
+    bottom: auto !important;
+    left: auto !important;
+    cursor: default !important;
+    transform: none !important;
   }
 
   /* Prep Screens on Mobile */
@@ -741,10 +772,19 @@
   }
 
   /* Modals */
-  #compendium-modal .deck-modal-content, #deck-modal .deck-modal-content {
+  #compendium-modal .deck-modal-content {
     max-height: 94vh !important;
     padding: 1rem !important;
     width: 95% !important;
+  }
+  #deck-modal .inventory-shell {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    padding: 0.6rem 0.75rem !important;
+    border-radius: 0 !important;
+    border: none !important;
   }
 
   .deck-modal-title {

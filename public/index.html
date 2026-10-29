@@ -13,13 +13,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/base.css?v=2.0.20">
-  <link rel="stylesheet" href="css/lobby.css?v=2.0.20">
-  <link rel="stylesheet" href="css/battle.css?v=2.0.20">
-  <link rel="stylesheet" href="css/prep.css?v=2.0.20">
-  <link rel="stylesheet" href="css/overlays.css?v=2.0.20">
-  <link rel="stylesheet" href="css/effects.css?v=2.0.20">
-  <link rel="stylesheet" href="css/mobile.css?v=2.0.20">
+  <link rel="stylesheet" href="css/base.css?v=2.0.32">
+  <link rel="stylesheet" href="css/lobby.css?v=2.0.32">
+  <link rel="stylesheet" href="css/battle.css?v=2.0.32">
+  <link rel="stylesheet" href="css/prep.css?v=2.0.32">
+  <link rel="stylesheet" href="css/overlays.css?v=2.0.32">
+  <link rel="stylesheet" href="css/effects.css?v=2.0.32">
+  <link rel="stylesheet" href="css/mobile.css?v=2.0.32">
   
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -751,14 +751,45 @@
 
   <!-- Screen 2: Battle Screen -->
   <div id="battle-screen" class="screen">
-    <!-- Battle Top Actions Bar -->
-    <div class="battle-top-bar">
-      <button id="surrender-btn" class="btn-surrender" title="Surrender Match">
-        <i class="fa-solid fa-flag"></i> SURRENDER
-      </button>
-      <button id="clash-log-toggle" class="btn-clash-log" title="View Clash History Log">
-        <i class="fa-solid fa-clock-rotate-left"></i> LOG
-      </button>
+    <!-- Battle Top Center Hub: Unified Timer Arch, Score Indicators & Match Menu Dropdown -->
+    <div class="battle-central-hub" id="battle-central-hub">
+      <div class="hub-score-wing player-wing" title="Your Round Wins">
+        <div class="points-indicator" id="player-points">
+          <span class="point-dot"></span>
+          <span class="point-dot"></span>
+          <span class="point-dot"></span>
+        </div>
+      </div>
+
+      <div class="hub-arch-container" id="hub-arch-container">
+        <svg class="hub-arch-svg" viewBox="0 0 120 60" preserveAspectRatio="none">
+          <!-- Background track arc -->
+          <path class="hub-arch-track" d="M 8 0 A 52 52 0 0 0 112 0" />
+          <!-- Depleting timer outline arc -->
+          <path class="hub-arch-progress" id="hub-timer-arc" d="M 8 0 A 52 52 0 0 0 112 0" />
+        </svg>
+
+        <button id="battle-menu-btn" class="hub-menu-btn" aria-label="Battle Menu" title="Match Menu">
+          <i class="fa-solid fa-ellipsis"></i>
+        </button>
+
+        <div id="battle-menu-dropdown" class="hub-dropdown glass hidden">
+          <button id="clash-log-toggle" class="hub-dropdown-item" title="View Clash History Log">
+            <i class="fa-solid fa-clock-rotate-left"></i> CLASH LOG
+          </button>
+          <button id="surrender-btn" class="hub-dropdown-item danger" title="Surrender Match">
+            <i class="fa-solid fa-flag"></i> SURRENDER
+          </button>
+        </div>
+      </div>
+
+      <div class="hub-score-wing enemy-wing" title="Opponent Round Wins">
+        <div class="points-indicator" id="enemy-points">
+          <span class="point-dot"></span>
+          <span class="point-dot"></span>
+          <span class="point-dot"></span>
+        </div>
+      </div>
     </div>
 
     <!-- Opponent Disconnect Countdown Overlay -->
@@ -774,8 +805,8 @@
       <div class="grid-lines"></div>
     </div>
 
-    <!-- HUD Panels: Player (Top-Left) and Enemy (Top-Right) -->
-    <div class="hud-panel player-hud glass">
+    <!-- HUD Panels: Player (Top-Left) and Enemy (Top-Right) - Free-floating without box containers -->
+    <div class="hud-panel player-hud">
       <div class="player-info-row">
         <span class="hud-name" id="player-name" title="Click to view your active status effects">You <i class="fa-solid fa-circle-info hud-info-icon"></i></span>
         <div class="status-container" id="player-status-container"></div>
@@ -792,19 +823,9 @@
       <div class="hud-relics-row" id="player-relics-row">
         <!-- Relic icons will be rendered here dynamically -->
       </div>
-      <div class="hud-bottom-row">
-        <div class="points-indicator" id="player-points">
-          <span class="point-dot"></span>
-          <span class="point-dot"></span>
-          <span class="point-dot"></span>
-        </div>
-        <button id="view-deck-btn" class="hud-deck-btn" title="Inspect your inventory & deck">
-          <i class="fa-solid fa-briefcase"></i> INVENTORY
-        </button>
-      </div>
     </div>
 
-    <div class="hud-panel enemy-hud glass">
+    <div class="hud-panel enemy-hud">
       <div class="player-info-row">
         <span class="hud-name" id="enemy-name" title="Click to view opponent's active status effects">Opponent <i class="fa-solid fa-circle-info hud-info-icon"></i></span>
         <div class="status-container" id="enemy-status-container"></div>
@@ -821,31 +842,28 @@
       <div class="hud-relics-row" id="enemy-relics-row">
         <!-- Relic icons will be rendered here dynamically -->
       </div>
-      <div class="points-indicator" id="enemy-points">
-        <span class="point-dot"></span>
-        <span class="point-dot"></span>
-        <span class="point-dot"></span>
-      </div>
-      <div class="hand-size-indicator">
-        <span class="hand-card-dots" id="enemy-card-dots">
-          <!-- Dots representing cards in enemy hand -->
-        </span>
-      </div>
     </div>
 
     <!-- Left Sidebar Stack (Widgets expand downward and never overlap player HUD) -->
     <div class="battle-left-sidebar" id="battle-left-sidebar">
-      <!-- Active Quest Tracker Widget -->
+      <!-- Active Quest Tracker Widget (Collapsible) -->
       <div id="battle-quest-tracker" class="quest-tracker-widget glass hidden">
-        <div class="tracker-header">
-          <i class="fa-solid fa-scroll"></i> ACTIVE QUEST
+        <div class="tracker-header" id="quest-tracker-header" title="Click to collapse / expand quest">
+          <span class="tracker-header-title">
+            <i class="fa-solid fa-scroll"></i>
+            <span class="tracker-title-text">QUEST</span>
+            <span class="tracker-mini-progress" id="tracker-mini-progress"></span>
+          </span>
+          <i class="fa-solid fa-chevron-up tracker-collapse-icon" id="quest-collapse-icon"></i>
         </div>
-        <div id="tracker-quest-text" class="tracker-text">No active quest</div>
-        <div class="tracker-progress-container">
-          <div id="tracker-progress-fill" class="tracker-progress-fill" style="width: 0%;"></div>
-          <div id="tracker-progress-text" class="tracker-progress-text">0 / 0</div>
+        <div class="tracker-body" id="quest-tracker-body">
+          <div id="tracker-quest-text" class="tracker-text">No active quest</div>
+          <div class="tracker-progress-container">
+            <div id="tracker-progress-fill" class="tracker-progress-fill" style="width: 0%;"></div>
+            <div id="tracker-progress-text" class="tracker-progress-text">0 / 0</div>
+          </div>
         </div>
-        <div id="tracker-reward-text" class="tracker-reward">Reward: -</div>
+        <div id="tracker-reward-text" class="tracker-reward hidden" style="display: none;">Reward: -</div>
       </div>
 
       <!-- Keyword & Status Explanation Popup (anchored to top, grows downwards) -->
@@ -862,15 +880,14 @@
         </div>
       </div>
 
-      <!-- Combat messaging & FX -->
+      <!-- Atmospheric Background Text & Combat messaging -->
       <div class="clash-effects-zone">
-        <div class="vs-badge" id="vs-badge">VS</div>
-        <div class="combat-text" id="arena-combat-text">Select your card!</div>
-        <div id="battle-turn-timer" class="turn-timer-badge hidden" title="Time remaining to select card">
+        <div class="combat-text backdrop-text picking" id="arena-combat-text">CHOOSE CARD</div>
+        <div id="battle-turn-timer" class="turn-timer-badge hidden" style="display: none !important;" title="Time remaining to select card">
           <i class="fa-solid fa-stopwatch"></i> <span id="turn-timer-val">20</span>s
         </div>
-        <button id="lock-btn" class="btn btn-lock disabled" disabled>
-          <span class="lock-btn-text">PILIH KARTU</span>
+        <button id="lock-btn" class="btn btn-lock disabled" style="display: none !important;" disabled>
+          <span class="lock-btn-text">CHOOSE CARD</span>
         </button>
 
         <div id="damage-popup-container"></div>
@@ -915,6 +932,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Bottom Right Inventory Actuator -->
+    <button id="view-deck-btn" class="hud-deck-btn battle-inventory-btn" title="Inspect your inventory & deck">
+      <i class="fa-solid fa-briefcase"></i> INVENTORY
+    </button>
   </div>
 
   <!-- Screen 3: Game Over / Match Result Overlay -->
@@ -1071,11 +1093,11 @@
 
   <!-- Screen 9: Surrender Confirmation Modal -->
   <div id="surrender-modal" class="overlay">
-    <div class="game-over-card glass" style="max-width: 380px; padding: 2.2rem 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1.2rem;">
-      <h2 style="font-family: var(--font-title); font-size: 1.8rem; color: #ff8888; font-weight: 800; margin: 0;"><i class="fa-solid fa-flag"></i> SURRENDER MATCH</h2>
-      <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0; line-height: 1.4;">Are you sure you want to surrender this match? You will immediately lose the game.</p>
-      <div style="display: flex; gap: 1rem; width: 100%; justify-content: center; margin-top: 0.5rem;">
-        <button id="surrender-confirm-btn" class="btn btn-primary" style="background-color: var(--color-fire); border-color: #ff5555; flex: 1;">
+    <div class="minimal-popup-card">
+      <h2 style="font-family: var(--font-title); font-size: 1.6rem; color: #ff8888; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-flag"></i> SURRENDER MATCH</h2>
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.4;">Are you sure you want to surrender this match? You will immediately lose the game.</p>
+      <div style="display: flex; gap: 0.75rem; width: 100%; justify-content: center; margin-top: 0.5rem;">
+        <button id="surrender-confirm-btn" class="btn btn-primary" style="background-color: var(--color-fire); border: 1px solid #ff5555; flex: 1;">
           YES, SURRENDER
         </button>
         <button id="surrender-cancel-btn" class="btn btn-secondary" style="flex: 1;">
@@ -1085,42 +1107,49 @@
     </div>
   </div>
 
-  <!-- Screen 10: Inventory Modal (formerly Deck Inspection) -->
-  <div id="deck-modal" class="overlay">
-    <div class="deck-modal-content game-over-card glass">
-      <!-- Tab Headers -->
-      <div class="modal-tabs">
-        <div class="modal-tab-group">
-          <button class="modal-tab-btn active" id="tab-cards-btn"><i class="fa-solid fa-layer-group"></i> MY CARDS (<span id="tab-cards-count">0</span>)</button>
-          <button class="modal-tab-btn" id="tab-relics-btn"><i class="fa-solid fa-circle-nodes"></i> MY RELICS (<span id="tab-relics-count">0</span>)</button>
+  <!-- Screen 10: Inventory Modal (Full-Screen Geometric Interface) -->
+  <div id="deck-modal" class="inventory-modal">
+    <div class="inventory-shell">
+      <!-- Fixed Minimal Header Bar -->
+      <header class="inventory-header">
+        <div class="inventory-nav-left">
+          <span class="inventory-brand-title">INVENTORY</span>
+          <div class="inventory-tabs">
+            <button class="inventory-tab-btn active" id="tab-cards-btn" aria-label="My Cards Tab">
+              <i class="fa-solid fa-layer-group"></i> CARDS <span class="tab-badge" id="tab-cards-count">0</span>
+            </button>
+            <button class="inventory-tab-btn" id="tab-relics-btn" aria-label="My Relics Tab">
+              <i class="fa-solid fa-circle-nodes"></i> RELICS <span class="tab-badge" id="tab-relics-count">0</span>
+            </button>
+          </div>
         </div>
-        <div class="modal-token-badge" id="player-token-badge" title="Purify Tokens: Burn unwanted cards during Preparation Phase">
-          <i class="fa-solid fa-fire-flame-curved"></i>
-          <span>PURIFY TOKENS: <strong id="player-tokens-val">0</strong></span>
-        </div>
-      </div>
-      
-      <!-- Cards Tab Content -->
-      <div class="tab-content active" id="tab-cards-content">
-        <p class="deck-modal-desc">These are the cards currently in your deck:</p>
-        <div id="deck-cards-list">
-          <!-- Card elements will be dynamically rendered here -->
-        </div>
-      </div>
 
-      <!-- Relics Tab Content -->
-      <div class="tab-content" id="tab-relics-content" style="display: none;">
-        <p class="deck-modal-desc">These are the passive relics you currently own:</p>
-        <div id="deck-relics-list" class="relics-modal-grid">
-          <!-- Relic elements will be dynamically rendered here -->
+        <div class="inventory-nav-right">
+          <div class="inventory-token-tag" id="player-token-badge" title="Purify Tokens: Burn unwanted cards during Preparation Phase">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+            <span>PURIFY <strong id="player-tokens-val">0</strong></span>
+          </div>
+          <button id="deck-close-btn" class="inventory-close-btn" aria-label="Close Inventory">
+            <i class="fa-solid fa-xmark"></i>
+            <span class="close-label">CLOSE</span>
+          </button>
         </div>
-      </div>
-      
-      <div class="deck-modal-footer">
-        <button id="deck-close-btn" class="btn btn-secondary" style="min-width: 140px;">
-          CLOSE
-        </button>
-      </div>
+      </header>
+
+      <!-- Scrollable Main Viewport (Fixed full height, zero layout shift) -->
+      <main class="inventory-main">
+        <div class="inventory-tab-panel active" id="tab-cards-content">
+          <div id="deck-cards-list" class="inventory-grid-cards">
+            <!-- Cards rendered here via DocumentFragment -->
+          </div>
+        </div>
+
+        <div class="inventory-tab-panel" id="tab-relics-content" style="display: none;">
+          <div id="deck-relics-list" class="inventory-grid-relics">
+            <!-- Relics rendered here -->
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 
@@ -1162,14 +1191,14 @@
 
   <!-- Modal: Quest Reward Pool Details -->
   <div id="quest-pool-modal" class="overlay">
-    <div class="deck-modal-content game-over-card glass" style="max-width: 600px;">
-      <h2 class="deck-modal-title" id="quest-pool-modal-title"><i class="fa-solid fa-gift"></i> REWARD POOL DETAILS</h2>
-      <p class="deck-modal-desc" id="quest-pool-modal-subtitle">Potential relics and bonuses for this tier:</p>
-      <div id="quest-pool-modal-content" class="relics-modal-grid" style="max-height: 45vh; overflow-y: auto; padding: 0.5rem; margin-bottom: 1.5rem;">
+    <div class="minimal-popup-card" style="max-width: 580px;">
+      <h2 style="font-family: var(--font-title); font-size: 1.5rem; color: #f5cf70; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.6rem;" id="quest-pool-modal-title"><i class="fa-solid fa-gift"></i> REWARD POOL DETAILS</h2>
+      <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0; line-height: 1.4;" id="quest-pool-modal-subtitle">Potential relics and bonuses for this tier:</p>
+      <div id="quest-pool-modal-content" class="relics-modal-grid" style="max-height: 50vh; overflow-y: auto; padding: 0.35rem 0;">
         <!-- Relic items will be injected dynamically -->
       </div>
-      <div class="deck-modal-footer">
-        <button id="quest-pool-close-btn" class="btn btn-secondary" style="min-width: 140px;">
+      <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+        <button id="quest-pool-close-btn" class="btn btn-secondary" style="min-width: 120px;">
           CLOSE
         </button>
       </div>
@@ -1255,12 +1284,12 @@
   <script src="js/vendor/howler.min.js?v=2.0.18"></script>
   
   <!-- Client Application scripts -->
-  <script src="js/audio.js?v=2.0.20"></script>
-  <script src="js/animations.js?v=2.0.20"></script>
-  <script src="js/card-desc.js?v=2.0.20"></script>
-  <script src="js/ui.js?v=2.0.20"></script>
-  <script src="js/socket.js?v=2.0.20"></script>
-  <script src="js/clash-pipeline.js?v=2.0.20"></script>
-  <script src="js/game.js?v=2.0.20"></script>
+  <script src="js/audio.js?v=2.0.32"></script>
+  <script src="js/animations.js?v=2.0.32"></script>
+  <script src="js/card-desc.js?v=2.0.32"></script>
+  <script src="js/ui.js?v=2.0.32"></script>
+  <script src="js/socket.js?v=2.0.32"></script>
+  <script src="js/clash-pipeline.js?v=2.0.32"></script>
+  <script src="js/game.js?v=2.0.32"></script>
 </body>
 </html>
