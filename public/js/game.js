@@ -1057,6 +1057,16 @@ const GameManager = {
       });
     }
 
+    // Dismiss active status popup when clicking outside
+    document.addEventListener('click', (e) => {
+      if (UI.battleKeywordInfo && !UI.battleKeywordInfo.classList.contains('hidden') && UI.battleKeywordInfo.dataset.source) {
+        if (!e.target.closest('#battle-keyword-info') && !e.target.closest('#player-name') && !e.target.closest('#enemy-name')) {
+          UI.battleKeywordInfo.classList.add('hidden');
+          UI.battleKeywordInfo.dataset.source = '';
+        }
+      }
+    });
+
     // Game Library / Compendium Modal Bindings
     const openCompendiumBtn = document.getElementById('open-compendium-btn');
     const compendiumModal = document.getElementById('compendium-modal');
@@ -1421,9 +1431,6 @@ const GameManager = {
         (tier) => {
           this.selectedTier = tier;
           window.SocketService.pickQuestTier(tier);
-        },
-        (offer) => {
-          UI.showQuestPoolModal(offer, this.compendiumRelics);
         }
       );
     } else {

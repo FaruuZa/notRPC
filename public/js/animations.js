@@ -101,23 +101,68 @@ const Animations = {
   },
 
   /**
-   * Animates the 3D flip reveal of a card (from face-down to face-up)
+   * Animates the physical 3D peel & flip reveal of a card (corner-hinge axis peel)
+   * Rather than rotating symmetrically in-place, the card hinges on its bottom-left corner,
+   * shifts slightly outward, arcs through 3D space, and slaps flat face-up onto the mat.
    */
   animateCardFlip(cardElement, callback) {
-    anime({
-      targets: cardElement,
-      rotateY: [180, 360],
-      duration: 400,
-      easing: 'easeInOutQuad',
+    if (!cardElement) {
+      if (callback) callback();
+      return;
+    }
+
+    try {
+      if (window.AudioSynth && typeof window.AudioSynth.playDraw === 'function') {
+        window.AudioSynth.playDraw();
+      }
+    } catch (e) {}
+
+    // Physical corner hinge axis
+    cardElement.style.transformOrigin = '0% 100%';
+    cardElement.style.backfaceVisibility = 'hidden';
+    cardElement.style.zIndex = '60';
+
+    const timeline = anime.timeline({
       complete: () => {
-        cardElement.style.transform = 'rotateY(0deg)';
+        try {
+          cardElement.style.transformOrigin = 'center center';
+          cardElement.style.transform = 'none';
+          cardElement.style.zIndex = '';
+        } catch (e) {}
         if (callback) callback();
       }
     });
+
+    timeline
+      .add({
+        targets: cardElement,
+        translateX: [-16, -30],
+        translateY: [0, -14],
+        rotateZ: [0, -4],
+        rotateY: [180, 245],
+        scale: [1, 1.06],
+        duration: 180,
+        easing: 'easeInQuad'
+      })
+      .add({
+        targets: cardElement,
+        translateX: 0,
+        translateY: 0,
+        rotateZ: 0,
+        rotateY: [245, 360],
+        scale: 1,
+        duration: 260,
+        easing: 'easeOutBack'
+      });
   },
 
   /**
    * Animates the card collision / clash vibration
+   */
+  /**
+   * Animates card collision / clash vibration with physical contact.
+   * Resolves the visual gap between cards across screen sizes and slot scales,
+   * guaranteeing that attacking cards physically reach and strike the target.
    */
   animateClashImpact(cardA, cardB, outcome, playerDamaging, opponentDamaging, onImpact, onComplete) {
     if (!cardA || !cardB) {
@@ -128,7 +173,22 @@ const Animations = {
 
     const rectA = cardA.getBoundingClientRect();
     const rectB = cardB.getBoundingClientRect();
-    const distanceX = rectB.left - rectA.left;
+
+    // Scale factors of cards inside their parents (e.g. 0.48-0.55 on mobile, 0.72-1.0 on desktop)
+    const scaleA = (cardA.offsetWidth > 0) ? (rectA.width / cardA.offsetWidth) : 1;
+    const scaleB = (cardB.offsetWidth > 0) ? (rectB.width / cardB.offsetWidth) : 1;
+
+    // Physical screen gap between Card A (left) and Card B (right)
+    const screenGap = Math.max(0, rectB.left - rectA.right);
+
+    // Target translation distances in local coordinates to guarantee physical impact
+    const screenHitOverlap = 18;
+    const lungeA = (screenGap + screenHitOverlap) / Math.max(0.1, scaleA);
+    const lungeB = -(screenGap + screenHitOverlap) / Math.max(0.1, scaleB);
+    const mutualLungeA = (screenGap * 0.5 + 12) / Math.max(0.1, scaleA);
+    const mutualLungeB = -(screenGap * 0.5 + 12) / Math.max(0.1, scaleB);
+    const recoilA = -24 / Math.max(0.1, scaleA);
+    const recoilB = 24 / Math.max(0.1, scaleB);
 
     const timeline = anime.timeline({
       easing: 'easeOutQuad',
@@ -142,11 +202,11 @@ const Animations = {
     });
 
     if (playerDamaging && opponentDamaging) {
-      // Both collide in the middle
+      // Both collide in the exact middle with heavy impact
       timeline
         .add({
           targets: cardA,
-          translateX: distanceX * 0.28,
+          translateX: mutualLungeA,
           translateY: -10,
           duration: 150,
           easing: 'easeInBack',
@@ -156,14 +216,14 @@ const Animations = {
         })
         .add({
           targets: cardB,
-          translateX: -distanceX * 0.28,
+          translateX: mutualLungeB,
           translateY: -10,
           duration: 150,
           easing: 'easeInBack'
         }, '-=150')
         .add({
           targets: [cardA, cardB],
-          translateX: (el, i) => i === 0 ? distanceX * 0.28 - 10 : -distanceX * 0.28 + 10,
+          translateX: (el, i) => i === 0 ? mutualLungeA - 10 : mutualLungeB + 10,
           duration: 50,
           easing: 'easeOutQuint'
         })
@@ -175,13 +235,13 @@ const Animations = {
           easing: 'easeOutBack'
         });
     } else if (playerDamaging) {
-      // Player card (cardA) lunges right and hits Opponent card (cardB)
+      // Player card (cardA) lunges right across the gap and directly smacks Opponent card (cardB)
       timeline
         .add({
           targets: cardA,
-          translateX: distanceX * 0.44,
-          translateY: -15,
-          duration: 150,
+          translateX: lungeA,
+          translateY: -14,
+          duration: 160,
           easing: 'easeInBack',
           complete: () => {
             if (onImpact) onImpact();
@@ -189,33 +249,33 @@ const Animations = {
         })
         .add({
           targets: cardB,
-          translateX: 20,
-          rotate: 4,
+          translateX: recoilB,
+          rotate: 5,
           duration: 50,
           easing: 'easeOutQuint'
         }, '-=25')
         .add({
           targets: cardB,
-          translateX: [20, -5, 3, 0],
+          translateX: [recoilB, -5, 3, 0],
           rotate: 0,
-          duration: 150,
+          duration: 160,
           easing: 'linear'
         })
         .add({
           targets: cardA,
           translateX: 0,
           translateY: 0,
-          duration: 150,
+          duration: 160,
           easing: 'easeOutBack'
         }, '-=120');
     } else if (opponentDamaging) {
-      // Opponent card (cardB) lunges left and hits Player card (cardA)
+      // Opponent card (cardB) lunges left across the gap and directly smacks Player card (cardA)
       timeline
         .add({
           targets: cardB,
-          translateX: -distanceX * 0.44,
-          translateY: -15,
-          duration: 150,
+          translateX: lungeB,
+          translateY: -14,
+          duration: 160,
           easing: 'easeInBack',
           complete: () => {
             if (onImpact) onImpact();
@@ -223,23 +283,23 @@ const Animations = {
         })
         .add({
           targets: cardA,
-          translateX: -20,
-          rotate: -4,
+          translateX: recoilA,
+          rotate: -5,
           duration: 50,
           easing: 'easeOutQuint'
         }, '-=25')
         .add({
           targets: cardA,
-          translateX: [-20, 5, -3, 0],
+          translateX: [recoilA, 5, -3, 0],
           rotate: 0,
-          duration: 150,
+          duration: 160,
           easing: 'linear'
         })
         .add({
           targets: cardB,
           translateX: 0,
           translateY: 0,
-          duration: 150,
+          duration: 160,
           easing: 'easeOutBack'
         }, '-=120');
     } else {

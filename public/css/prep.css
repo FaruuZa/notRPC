@@ -670,9 +670,8 @@
 .quest-card {
   width: 250px;
   background: var(--slab-2);
-  border: 1.5px solid var(--slab-4);
-  border-top: 3px solid var(--muted);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
   padding: 1.2rem 1rem;
   display: flex;
   flex-direction: column;
@@ -689,7 +688,7 @@
 .quest-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-hard-lg);
-  border-color: var(--brass);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .quest-card.selected {
@@ -702,22 +701,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--slab-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-bottom: 0.5rem;
-}
-
-/* Difficulty framing (Solid flat tabletop borders, No-Neon Rule) */
-.quest-card.EASY,
-.quest-card.COMMON {
-  border-top-color: var(--nature);
-}
-.quest-card.MEDIUM,
-.quest-card.RARE {
-  border-top-color: var(--water);
-}
-.quest-card.HARD,
-.quest-card.EPIC {
-  border-top-color: var(--chaos);
 }
 
 .quest-card-difficulty {
@@ -749,10 +734,10 @@
 }
 
 .quest-card-reward-box {
-  background: var(--slab);
-  border: 1px solid var(--slab-4);
-  border-radius: 3px;
-  padding: 0.6rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -1003,12 +988,11 @@
 
 .quest-tier-card {
   width: 250px;
-  min-height: 280px;
+  min-height: 270px;
   background: var(--slab-2);
-  border: 1.5px solid var(--slab-4);
-  border-top: 3px solid var(--muted);
-  border-radius: 4px;
-  padding: 1.25rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  padding: 1.35rem 1.15rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1022,39 +1006,23 @@
 .quest-tier-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-hard-lg);
-  border-color: var(--brass);
-}
-
-.quest-tier-card.EASY,
-.quest-tier-card.COMMON,
-.quest-tier-card.TIER_1 {
-  border-top-color: var(--nature);
-}
-.quest-tier-card.MEDIUM,
-.quest-tier-card.RARE,
-.quest-tier-card.TIER_2 {
-  border-top-color: var(--water);
-}
-.quest-tier-card.HARD,
-.quest-tier-card.EPIC,
-.quest-tier-card.TIER_3 {
-  border-top-color: var(--chaos);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .quest-tier-header {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
   align-items: center;
-  min-height: 56px;
+  min-height: 52px;
   justify-content: flex-start;
-  border-bottom: 1px solid var(--slab-4);
-  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.65rem;
 }
 
 .quest-tier-name {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1079,24 +1047,23 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 3px;
-  background: var(--slab);
-  border: 1px solid var(--brass);
-  color: var(--brass-light);
-  font-family: var(--font-display);
-  font-size: 0.72rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: #ff9d66;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .quest-tier-token-badge i {
-  color: var(--fire);
+  color: #ff6b3d;
 }
 
 .quest-tier-token-badge.zero {
-  border-color: var(--slab-4);
   color: var(--muted);
 }
 .quest-tier-token-badge.zero i {
@@ -1107,14 +1074,14 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  padding: 0.75rem 0.7rem;
-  background: var(--slab);
-  border: 1px solid var(--slab-4);
-  border-radius: 3px;
-  min-height: 72px;
+  padding: 0.6rem 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  min-height: 64px;
   justify-content: center;
   box-sizing: border-box;
-  margin: 0.6rem 0;
+  margin: 0.5rem 0;
 }
 
 .quest-tier-perk-item {
@@ -1122,7 +1089,7 @@
   align-items: center;
   gap: 0.55rem;
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--bone);
   text-align: left;
@@ -1131,7 +1098,7 @@
 
 .quest-tier-perk-item i {
   font-size: 0.85rem;
-  color: var(--brass);
+  color: var(--brass-light);
   width: 1rem;
   text-align: center;
   flex-shrink: 0;
@@ -1140,30 +1107,30 @@
 .quest-tier-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  min-height: 68px;
+  gap: 0;
+  min-height: auto;
   justify-content: flex-end;
 }
 
 .btn-tier-pick {
   width: 100%;
-  padding: 0.65rem 0.5rem;
+  padding: 0.75rem 0.6rem;
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  border-radius: 3px;
+  border-radius: 0;
   cursor: pointer;
-  border: 1.5px solid var(--slab-4);
-  background: var(--slab-3);
-  color: var(--ink);
+  border: none;
+  color: #fff;
   box-shadow: var(--shadow-hard-sm);
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease, filter 0.15s ease;
   text-transform: uppercase;
 }
 
 .btn-tier-pick:hover {
   transform: translateY(-2px);
+  filter: brightness(1.15);
   box-shadow: var(--shadow-hard);
 }
 
@@ -1171,62 +1138,18 @@
 .btn-tier-pick.COMMON,
 .btn-tier-pick.TIER_1 {
   background: var(--nature);
-  border-color: var(--nature);
-  color: #fff;
-}
-.btn-tier-pick.EASY:hover,
-.btn-tier-pick.COMMON:hover,
-.btn-tier-pick.TIER_1:hover {
-  background: #247542;
 }
 
 .btn-tier-pick.MEDIUM,
 .btn-tier-pick.RARE,
 .btn-tier-pick.TIER_2 {
   background: var(--water);
-  border-color: var(--water);
-  color: #fff;
-}
-.btn-tier-pick.MEDIUM:hover,
-.btn-tier-pick.RARE:hover,
-.btn-tier-pick.TIER_2:hover {
-  background: #1d539e;
 }
 
 .btn-tier-pick.HARD,
 .btn-tier-pick.EPIC,
 .btn-tier-pick.TIER_3 {
   background: var(--chaos);
-  border-color: var(--chaos);
-  color: #fff;
-}
-.btn-tier-pick.HARD:hover,
-.btn-tier-pick.EPIC:hover,
-.btn-tier-pick.TIER_3:hover {
-  background: #662b82;
-}
-
-.btn-tier-inspect {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  transition: color 0.15s ease;
-  padding: 0.2rem;
-  text-transform: uppercase;
-}
-
-.btn-tier-inspect:hover {
-  color: var(--brass-light);
-  text-decoration: underline;
 }
 
 /* Revealed Quest Card */
@@ -1243,9 +1166,8 @@
   width: 100%;
   min-height: 240px;
   background: var(--slab-2);
-  border: 1.5px solid var(--slab-4);
-  border-top: 3px solid var(--brass);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
   padding: 1.4rem 1.3rem;
   display: flex;
   flex-direction: column;
@@ -1260,19 +1182,6 @@
 @keyframes questCardReveal {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.quest-revealed-card.EASY,
-.quest-revealed-card.COMMON {
-  border-top-color: var(--nature);
-}
-.quest-revealed-card.MEDIUM,
-.quest-revealed-card.RARE {
-  border-top-color: var(--water);
-}
-.quest-revealed-card.HARD,
-.quest-revealed-card.EPIC {
-  border-top-color: var(--chaos);
 }
 
 .quest-revealed-header {
@@ -1329,30 +1238,34 @@
   }
   .quest-tier-card {
     width: 160px;
-    min-height: 230px;
-    padding: 0.75rem 0.6rem;
-    border-radius: 3px;
+    min-height: 200px;
+    padding: 0.85rem 0.65rem;
+    border-radius: 0;
   }
   .quest-tier-header {
-    min-height: 48px;
-    padding-bottom: 0.4rem;
+    min-height: 44px;
+    padding-bottom: 0.35rem;
   }
   .quest-tier-name {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     letter-spacing: 0.05em;
   }
   .quest-tier-token-badge {
-    padding: 0.18rem 0.45rem;
-    font-size: 0.62rem;
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 0.65rem;
   }
   .quest-tier-perks {
-    padding: 0.45rem 0.4rem;
+    padding: 0.35rem 0;
     gap: 0.3rem;
-    min-height: 58px;
-    margin: 0.4rem 0;
+    min-height: 52px;
+    margin: 0.35rem 0;
+    background: none;
+    border: none;
   }
   .quest-tier-perk-item {
-    font-size: 0.64rem;
+    font-size: 0.66rem;
     gap: 0.35rem;
     line-height: 1.15;
   }
@@ -1361,16 +1274,13 @@
     width: 0.85rem;
   }
   .quest-tier-actions {
-    min-height: 54px;
-    gap: 0.3rem;
+    min-height: auto;
+    gap: 0;
   }
   .btn-tier-pick {
-    padding: 0.45rem 0.3rem;
-    font-size: 0.72rem;
-  }
-  .btn-tier-inspect {
-    font-size: 0.62rem;
-    padding: 0.1rem;
+    border-radius: 0;
+    padding: 0.5rem 0.4rem;
+    font-size: 0.75rem;
   }
   .quest-revealed-card {
     padding: 1.1rem 0.9rem;

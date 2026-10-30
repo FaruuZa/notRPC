@@ -324,18 +324,21 @@
 
   /* Central Clash Zone */
   .arena-zone {
-    top: 42% !important;
-    gap: clamp(4.5rem, 14vw, 8rem) !important;
+    top: 34% !important;
+    gap: clamp(3.2rem, 11vw, 5.8rem) !important;
   }
 
   .card-play-slot,
   .play-slot {
-    width: 84px !important;
-    height: 118px !important;
+    width: 140px !important;
+    height: 196px !important;
+    transform: scale(0.55);
+    transform-origin: center center;
     border-width: 1.5px !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
+    overflow: visible !important;
   }
 
   .slot-label {
@@ -365,7 +368,8 @@
 
   /* Hand Cards */
   .hand-container-wrapper {
-    height: 140px !important;
+    height: 125px !important;
+    bottom: 0px !important;
   }
 
   .hand-container .game-card,
@@ -378,36 +382,39 @@
     max-height: 196px !important;
     flex: 0 0 140px !important;
     aspect-ratio: 5 / 7 !important;
-    bottom: 5px !important;
+    bottom: 0px !important;
     transform-origin: bottom center;
-    transform: translate(calc(-50% + var(--offset) * 22px), calc(var(--offset) * var(--offset) * 1.5px)) scale(0.65) rotate(calc(var(--offset) * 3.5deg)) !important;
+    transform: translate(calc(-50% + var(--offset) * 22px), calc(var(--offset) * var(--offset) * 1.5px)) scale(0.6) rotate(calc(var(--offset) * 3deg)) !important;
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
 
   .hand-container:hover .game-card:not(.locked),
   .hand-container:hover .card:not(.locked) {
-    transform: translate(calc(-50% + var(--offset) * 88px), -10px) scale(0.65) rotate(calc(var(--offset) * 0.5deg)) !important;
+    transform: translate(calc(-50% + var(--offset) * 78px), -10px) scale(0.6) rotate(calc(var(--offset) * 0.5deg)) !important;
   }
 
   .hand-container .game-card.selected,
   .hand-container .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 22px), -36px) scale(0.65) rotate(0deg) !important;
+    transform: translate(calc(-50% + var(--offset) * 22px), -26px) scale(0.6) rotate(0deg) !important;
     z-index: 90 !important;
   }
 
   .hand-container:hover .game-card.selected,
   .hand-container:hover .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 88px), -44px) scale(0.65) rotate(0deg) !important;
+    transform: translate(calc(-50% + var(--offset) * 78px), -32px) scale(0.6) rotate(0deg) !important;
     z-index: 90 !important;
   }
 
   /* Arena slot cards must be clean and not inherit hand fan transforms */
   .card-play-slot .card {
-    width: 140px !important;
-    height: 196px !important;
+    width: 100% !important;
+    height: 100% !important;
     bottom: auto !important;
     left: auto !important;
     cursor: default !important;
-    transform: none !important;
+    position: relative !important;
   }
 
   /* Prep Screens on Mobile */
@@ -677,16 +684,17 @@
 
   #quest-cards-grid .quest-tier-card {
     width: 140px !important;
-    min-height: 200px !important;
-    height: 205px !important;
-    padding: 0.5rem 0.45rem !important;
+    min-height: 175px !important;
+    height: auto !important;
+    padding: 0.6rem 0.5rem !important;
     gap: 0.25rem !important;
+    border-radius: 0 !important;
   }
 
   #quest-cards-grid .quest-tier-header {
-    min-height: 38px !important;
-    padding-bottom: 0.25rem !important;
-    gap: 0.2rem !important;
+    min-height: 34px !important;
+    padding-bottom: 0.2rem !important;
+    gap: 0.15rem !important;
   }
 
   #quest-cards-grid .quest-tier-name {
@@ -694,15 +702,19 @@
   }
 
   #quest-cards-grid .quest-tier-token-badge {
-    padding: 0.15rem 0.35rem !important;
+    padding: 0 !important;
     font-size: 0.58rem !important;
+    background: none !important;
+    border: none !important;
   }
 
   #quest-cards-grid .quest-tier-perks {
-    min-height: 48px !important;
-    padding: 0.3rem 0.25rem !important;
-    margin: 0.2rem 0 !important;
+    min-height: 40px !important;
+    padding: 0.2rem 0 !important;
+    margin: 0.15rem 0 !important;
     gap: 0.2rem !important;
+    background: none !important;
+    border: none !important;
   }
 
   #quest-cards-grid .quest-tier-perk-item {
@@ -717,18 +729,14 @@
   }
 
   #quest-cards-grid .quest-tier-actions {
-    min-height: 46px !important;
-    gap: 0.2rem !important;
+    min-height: auto !important;
+    gap: 0 !important;
   }
 
   #quest-cards-grid .btn-tier-pick {
-    padding: 0.35rem 0.2rem !important;
+    padding: 0.45rem 0.2rem !important;
     font-size: 0.68rem !important;
-  }
-
-  #quest-cards-grid .btn-tier-inspect {
-    font-size: 0.58rem !important;
-    padding: 0.1rem !important;
+    border-radius: 0 !important;
   }
 
   #quest-cards-grid .quest-revealed-container {

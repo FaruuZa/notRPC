@@ -13,13 +13,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/base.css?v=2.0.32">
-  <link rel="stylesheet" href="css/lobby.css?v=2.0.32">
-  <link rel="stylesheet" href="css/battle.css?v=2.0.32">
-  <link rel="stylesheet" href="css/prep.css?v=2.0.32">
-  <link rel="stylesheet" href="css/overlays.css?v=2.0.32">
-  <link rel="stylesheet" href="css/effects.css?v=2.0.32">
-  <link rel="stylesheet" href="css/mobile.css?v=2.0.32">
+  <link rel="stylesheet" href="css/base.css?v=2.0.42">
+  <link rel="stylesheet" href="css/lobby.css?v=2.0.42">
+  <link rel="stylesheet" href="css/battle.css?v=2.0.42">
+  <link rel="stylesheet" href="css/prep.css?v=2.0.42">
+  <link rel="stylesheet" href="css/overlays.css?v=2.0.42">
+  <link rel="stylesheet" href="css/effects.css?v=2.0.42">
+  <link rel="stylesheet" href="css/mobile.css?v=2.0.42">
   
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -714,41 +714,6 @@
     </div>
   </div>
 
-  <!-- Screen 1.5: Draft Screen (Secret Draft Mode) -->
-  <div id="draft-screen" class="screen">
-    <div class="stars-bg"></div>
-    <div class="draft-container">
-      <header class="draft-header animate-logo">
-        <span class="logo-sub">PREPARE FOR BATTLE</span>
-        <h2 class="draft-title">DECK <span class="accent-text">DRAFT</span></h2>
-        <p class="draft-subtitle">Select exactly <strong>5 cards</strong> to form your battle deck</p>
-        
-        <div class="draft-meta-row">
-          <div class="draft-meta-badge glass" id="draft-counter-box">
-            <i class="fa-solid fa-clone"></i>
-            <span>SELECTED: <strong id="draft-counter-val">0</strong> / 5</span>
-          </div>
-          <div class="draft-meta-badge glass" id="draft-elemental-box">
-            <i class="fa-solid fa-fire-flame-curved"></i>
-            <span>ELEMENTS: <strong id="draft-elemental-val">4</strong> / 4 min</span>
-          </div>
-        </div>
-      </header>
-      
-      <div class="draft-grid" id="draft-cards-grid">
-        <!-- 8 cards will be rendered dynamically here -->
-      </div>
-      
-      <div id="draft-keyword-info" class="keyword-info-box glass hidden"></div>
-      
-      <footer class="draft-footer">
-        <button id="draft-lock-btn" class="btn btn-primary disabled" disabled>
-          LOCK DECK
-        </button>
-      </footer>
-    </div>
-  </div>
-
   <!-- Screen 2: Battle Screen -->
   <div id="battle-screen" class="screen">
     <!-- Battle Top Center Hub: Unified Timer Arch, Score Indicators & Match Menu Dropdown -->
@@ -1189,22 +1154,6 @@
     </div>
   </div>
 
-  <!-- Modal: Quest Reward Pool Details -->
-  <div id="quest-pool-modal" class="overlay">
-    <div class="minimal-popup-card" style="max-width: 580px;">
-      <h2 style="font-family: var(--font-title); font-size: 1.5rem; color: #f5cf70; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.6rem;" id="quest-pool-modal-title"><i class="fa-solid fa-gift"></i> REWARD POOL DETAILS</h2>
-      <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0; line-height: 1.4;" id="quest-pool-modal-subtitle">Potential relics and bonuses for this tier:</p>
-      <div id="quest-pool-modal-content" class="relics-modal-grid" style="max-height: 50vh; overflow-y: auto; padding: 0.35rem 0;">
-        <!-- Relic items will be injected dynamically -->
-      </div>
-      <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-        <button id="quest-pool-close-btn" class="btn btn-secondary" style="min-width: 120px;">
-          CLOSE
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Screen 12: Card Removal Screen -->
   <div id="card-removal-screen" class="screen">
     <div class="stars-bg"></div>
@@ -1284,12 +1233,12 @@
   <script src="js/vendor/howler.min.js?v=2.0.18"></script>
   
   <!-- Client Application scripts -->
-  <script src="js/audio.js?v=2.0.32"></script>
-  <script src="js/animations.js?v=2.0.32"></script>
-  <script src="js/card-desc.js?v=2.0.32"></script>
-  <script src="js/ui.js?v=2.0.32"></script>
-  <script src="js/socket.js?v=2.0.32"></script>
-  <script src="js/clash-pipeline.js?v=2.0.32"></script>
-  <script src="js/game.js?v=2.0.32"></script>
+  <script src="js/audio.js?v=2.0.42"></script>
+  <script src="js/animations.js?v=2.0.42"></script>
+  <script src="js/card-desc.js?v=2.0.42"></script>
+  <script src="js/ui.js?v=2.0.42"></script>
+  <script src="js/socket.js?v=2.0.42"></script>
+  <script src="js/clash-pipeline.js?v=2.0.42"></script>
+  <script src="js/game.js?v=2.0.42"></script>
 </body>
 </html>

@@ -120,6 +120,14 @@ Element Clash mengadopsi bahasa visual **geometri murni yang ditumpuk-tumpuk**:
    - **Larangan mutlak mengubah ukuran font, padding, tinggi, atau margin internal kartu** di media query atau file CSS lainnya.
    - Pengecilan/pembesaran ukuran kartu di mana pun (hand, slot arena, inventori landscape, kompendium, draft) dilakukan strictly menggunakan `transform: scale(...)` sehingga seluruh tipografi, border, dan proporsi internal terskala secara vektor murni (100% presisi dan tidak pernah gepeng/melar).
    - Tampilan koleksi kartu di Inventori dan Kompendium menggunakan `display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem;` alih-alih CSS Grid kolom `1fr`, memastikan kartu selalu mempertahankan bentuk aslinya berapapun jumlah kartu yang dimiliki.
+11. **Wordmark Main Menu & Gate Screen**:
+   - Mempertahankan identitas wordmark vertikal bertumpuk khas Atlus/Persona di Main Menu (`ELEMENT` / `CLASH` merah, subteks `Realtime Card Duel`, dan spektrum 5 elemen) serta tampilan layar awal gate yang bersih (`AUTHENTICATING COMBATANT` / `ELEMENT CLASH`).
+12. **Quest Tier Selection (Pure Rectangular Geometry & No-Box Tokens/Rewards)**:
+   - Kartu Quest Tier (`.quest-tier-card`, `.quest-card`, `.quest-revealed-card`) murni bersudut siku (`border-radius: 0px`) dengan border tunggal netral rendah-kontras (`rgba(255, 255, 255, 0.08)`), tanpa aksen garis tebal di sisi atas box (`border-top: none`).
+   - Removal Token ditampilkan sebagai teks polos bergaya flat (`color: #ff9d66`) bersama ikon api tanpa kotak outline/background.
+   - Daftar Rewards/Perks mengalir langsung di latar belakang kartu tanpa kotak pembungkus (`background: none; border: none; padding: 0`).
+   - Tombol pemilihan tier (`CHOOSE EASY/MEDIUM/HARD`) berbentuk blok penuh bersudut siku murni (`0px radius`).
+   - Tombol dan popup pool details dihilangkan sepenuhnya demi kesederhanaan dan kebersihan tampilan visual.
 
 ---
 
@@ -140,3 +148,25 @@ Element Clash mengadopsi bahasa visual **geometri murni yang ditumpuk-tumpuk**:
 - **Display & Headings**: `'Anton', sans-serif` — Geometri font kokoh dan tegas.
 - **Body & Rules**: `'Archivo', sans-serif` — Pembacaan jernih dan netral.
 - **Card Titles**: `'Space Grotesk', 'Archivo', sans-serif` — Standar kartu pertempuran.
+
+
+---
+
+## Interaksi Kartu & Fisika Pertempuran
+
+1. **Drag-and-Drop ke Play Slot**:
+   - Kartu di tangan dapat ditarik (*drag*) langsung menuju `#player-play-slot`.
+   - Ketika mendekati slot, slot memicu status `.snap-active` dengan efek magnetic highlight dan pembesaran halus.
+   - Melepas kartu di atas slot memicu konfirmasi kartu (*play card*).
+   - Melepas di luar slot mengembalikan kartu secara mulus (*snap back*) ke formasi kipas tangan menggunakan kurva `easeOutQuad`.
+   - Tap tunggal dan *double-tap* tetap didukung secara penuh untuk kenyamanan pemain di perangkat layar sentuh dan desktop.
+
+2. **Fisika Animasi Pembalikan Kartu (Corner Hinge Peel & Flip)**:
+   - Kartu tidak berputar simetris di tengah (*in-place*), melainkan menirukan dealer kartu fisik:
+   - Sumbu rotasi (*transform-origin*) berada di pojok kiri bawah (`0% 100%`).
+   - Kartu bergeser ke samping (`translateX`), sedikit terangkat dari meja (`translateY` & `scale`), dan berputar melewati sumbu sudut kiri sebelum mendarat mantap dengan easing `easeOutBack`.
+
+3. **Proporsi Skala Kartu Arena di Mobile**:
+   - Kontainer arena slot menggunakan skala fisik terpusat (`transform: scale(0.55)`), dengan kartu di dalamnya mengisi 100% dimensi slot.
+   - Posisi `.arena-zone` dinaikkan ke `top: 36%` untuk menghindari tumpang tindih dengan kipas kartu tangan.
+   - Atribut CSS `!important` dilarang digunakan pada `transform` elemen kartu agar anime.js dapat mengeksekusi animasi transformatif secara bebas.

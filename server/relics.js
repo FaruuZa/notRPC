@@ -13,7 +13,7 @@ const RELIC_POOL = {
     name: 'Nature Affinity',
     description: 'All Nature cards: +2 Heal per stack.',
     quality: 'COMMON',
-    icon: 'fa-heart-pulse',
+    icon: 'fa-seedling',
     effect: { type: 'element_heal', element: 'NATURE', value: 2 }
   },
   frozen_shield: {
@@ -34,30 +34,6 @@ const RELIC_POOL = {
   },
 
   // RARE
-  fire_mastery: {
-    id: 'fire_mastery',
-    name: 'Fire Mastery',
-    description: 'All Fire cards: +2 Damage per stack.',
-    quality: 'RARE',
-    icon: 'fa-fire',
-    effect: { type: 'element_damage', element: 'FIRE', value: 2 }
-  },
-  water_mastery: {
-    id: 'water_mastery',
-    name: 'Water Mastery',
-    description: 'All Water cards: +2 Damage per stack.',
-    quality: 'RARE',
-    icon: 'fa-droplet',
-    effect: { type: 'element_damage', element: 'WATER', value: 2 }
-  },
-  nature_mastery: {
-    id: 'nature_mastery',
-    name: 'Nature Mastery',
-    description: 'All Nature cards: +2 Damage per stack.',
-    quality: 'RARE',
-    icon: 'fa-leaf',
-    effect: { type: 'element_damage', element: 'NATURE', value: 2 }
-  },
   ember_spark: {
     id: 'ember_spark',
     name: 'Ember Spark',
@@ -95,32 +71,24 @@ const RELIC_POOL = {
   aggressive_momentum: {
     id: 'aggressive_momentum',
     name: 'Aggressive Momentum',
-    description: 'When obtaining Superior outcome: deal 2 extra damage per stack.',
+    description: 'When obtaining Superior outcome: deal 4 extra damage per stack.',
     quality: 'EPIC',
-    icon: 'fa-bolt',
-    effect: { type: 'outcome_damage', outcome: 'SUPERIOR', value: 2 }
+    icon: 'fa-forward-fast',
+    effect: { type: 'outcome_damage', outcome: 'SUPERIOR', value: 4 }
   },
   elemental_harmony: {
     id: 'elemental_harmony',
     name: 'Elemental Harmony',
-    description: 'All Fire, Water, and Nature cards: +1 Damage per stack.',
+    description: 'All Fire, Water, and Nature cards: +2 Damage per stack.',
     quality: 'EPIC',
     icon: 'fa-circle-nodes',
-    effect: { type: 'multi_element_damage', elements: ['FIRE', 'WATER', 'NATURE'], value: 1 }
+    effect: { type: 'multi_element_damage', elements: ['FIRE', 'WATER', 'NATURE'], value: 2 }
   },
 
   // LEGENDARY
-  chaos_engine: {
-    id: 'chaos_engine',
-    name: 'Chaos Engine',
-    description: 'Chaos cards: +3 Damage per stack. Inferior outcome: take 3 self damage per stack.',
-    quality: 'LEGENDARY',
-    icon: 'fa-gear',
-    effect: { type: 'chaos_engine_double', damageVal: 3, selfDamageVal: 3 }
-  },
-  last_stand: {
-    id: 'last_stand',
-    name: 'Last Stand',
+  defiant_heart: {
+    id: 'defiant_heart',
+    name: 'Defiant Heart',
     description: 'When obtaining Inferior outcome: gain <span class="kw-buff">BUFF [2]</span> per stack.',
     quality: 'LEGENDARY',
     icon: 'fa-shield-heart',
@@ -147,7 +115,7 @@ const RELIC_POOL = {
     name: 'Iron Vitality',
     description: 'Permanent +25 Max HP and HP per stack.',
     quality: 'RARE',
-    icon: 'fa-heart-circle-plus',
+    icon: 'fa-heart-pulse',
     effect: { type: 'max_hp', value: 25 }
   },
   relic_shield_regen_rare: {
@@ -155,7 +123,7 @@ const RELIC_POOL = {
     name: 'Bastion Shield',
     description: 'At the start of each turn: gain 5 Shield per stack.',
     quality: 'RARE',
-    icon: 'fa-shield-halved',
+    icon: 'fa-shield',
     effect: { type: 'start_round_shield', value: 5 }
   },
   relic_vitality_epic: {
@@ -163,7 +131,7 @@ const RELIC_POOL = {
     name: 'Godly Vitality',
     description: 'Permanent +40 Max HP and HP per stack.',
     quality: 'EPIC',
-    icon: 'fa-heart-circle-bolt',
+    icon: 'fa-heart-pulse',
     effect: { type: 'max_hp', value: 40 }
   },
   relic_shield_regen_legendary: {
@@ -171,49 +139,52 @@ const RELIC_POOL = {
     name: 'Aegis Shield',
     description: 'At the start of each turn: gain 10 Shield per stack.',
     quality: 'LEGENDARY',
+    icon: 'fa-shield',
     effect: { type: 'start_round_shield', value: 10 }
   },
   relic_focused_soul: {
     id: 'relic_focused_soul',
-    name: 'Focused Soul',
+    name: 'First Spark',
     description: 'At the start of each round: gain 5 Attack Buff per stack.',
     quality: 'EPIC',
     icon: 'fa-bolt',
     effect: { type: 'start_round_buff', value: 5 }
   },
 
-  // NEW RELICS
-
-  // Prep Phase Reroll
+  // Prep Phase Reroll (Hourglass Family)
   relic_prep_reroll_common: {
     id: 'relic_prep_reroll_common',
     name: 'Temporal Hourglass',
     description: 'Gain +1 Prep Phase Reroll charge each preparation phase per stack.',
     quality: 'COMMON',
+    icon: 'fa-hourglass-start',
     effect: { type: 'prep_reroll_bonus', value: 1 }
   },
-
-  // Shield Piercers
-  relic_shield_piercer_rare: {
-    id: 'relic_shield_piercer_rare',
-    name: 'Shield Piercer',
-    description: 'When dealing clash damage to an opponent with Shield: deal +4 extra damage per stack.',
+  relic_prep_reroll_rare: {
+    id: 'relic_prep_reroll_rare',
+    name: 'Temporal Hourglass',
+    description: 'Gain +2 Prep Phase Reroll charge each preparation phase per stack.',
     quality: 'RARE',
-    effect: { type: 'shield_piercer', value: 4 }
+    icon: 'fa-hourglass-start',
+    effect: { type: 'prep_reroll_bonus', value: 2 }
   },
+
+  // Shield Piercers (Piercer Blade Family)
   relic_shield_piercer_epic: {
     id: 'relic_shield_piercer_epic',
     name: 'Shard Piercer',
-    description: 'When dealing clash damage to an opponent with Shield: deal +8 extra damage per stack.',
+    description: 'When dealing clash damage to an opponent with Shield: deal +5 extra damage per stack.',
     quality: 'EPIC',
-    effect: { type: 'shield_piercer', value: 8 }
+    icon: 'fa-khanda',
+    effect: { type: 'shield_piercer', value: 5 }
   },
   relic_shield_piercer_legendary: {
     id: 'relic_shield_piercer_legendary',
     name: 'Nullifier Edge',
-    description: 'When dealing clash damage to an opponent with Shield: deal +15 extra damage per stack.',
+    description: 'When dealing clash damage to an opponent with Shield: deal +10 extra damage per stack.',
     quality: 'LEGENDARY',
-    effect: { type: 'shield_piercer', value: 15 }
+    icon: 'fa-khanda',
+    effect: { type: 'shield_piercer', value: 10 }
   },
 
   // Reactive Cleanse
@@ -222,7 +193,7 @@ const RELIC_POOL = {
     name: 'Purifying Amulet',
     description: 'When you take HP damage from a card clash: instantly cleanse all your Poison, Burn, and Weakness stacks. (Unique - max 1)',
     quality: 'LEGENDARY',
-    icon: 'fa-hands-holding',
+    icon: 'fa-hand-sparkles',
     unique: true,
     maxStacks: 1,
     effect: { type: 'reactive_cleanse' }
@@ -234,6 +205,7 @@ const RELIC_POOL = {
     name: 'Briar Armor',
     description: 'When you take HP damage (clash or status tick): deal 3 true damage to your opponent per stack.',
     quality: 'EPIC',
+    icon: 'fa-shield-virus',
     effect: { type: 'spite_thorns', value: 3 }
   },
 
@@ -243,6 +215,7 @@ const RELIC_POOL = {
     name: 'Desperation',
     description: 'Deal +1 bonus damage for every 10 HP missing from your Max HP.',
     quality: 'RARE',
+    icon: 'fa-skull',
     effect: { type: 'desperation_scaling', value: 1 }
   },
 
@@ -252,6 +225,7 @@ const RELIC_POOL = {
     name: 'Chaos Affinity',
     description: 'Increase damage dealt by your Chaos cards by +2 per stack.',
     quality: 'RARE',
+    icon: 'fa-burst',
     effect: { type: 'element_mastery', element: 'CHAOS', value: 2 }
   },
 
@@ -261,7 +235,7 @@ const RELIC_POOL = {
     name: 'Phoenix Heart',
     description: 'Once per round: when your HP would drop to 0 or below, restore your HP to 30 and inflict <span class="kw-burn">BURN [2]</span> on opponent. (Unique - max 1)',
     quality: 'LEGENDARY',
-    icon: 'fa-fire-flame-simple',
+    icon: 'fa-feather-pointed',
     unique: true,
     maxStacks: 1,
     effect: { type: 'phoenix_resurrection', value: 30 }
@@ -272,7 +246,7 @@ const RELIC_POOL = {
     id: 'relic_venomheart_briar_legendary',
     name: 'Venomheart Briar',
     quality: 'LEGENDARY',
-    icon: 'fa-heart-circle-bolt',
+    icon: 'fa-heart-crack',
     unique: true,
     maxStacks: 1,
     description: 'Your Thorns no longer deal instant damage. Instead, attackers are Poisoned equal to the Thorns damage (max 3 stacks per trigger).',

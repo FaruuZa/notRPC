@@ -9,6 +9,9 @@
   grid-template-rows: 1fr auto; /* Arena top, Hand bottom */
   padding: 1.5rem;
   height: 100dvh;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .arena-background {
@@ -904,15 +907,17 @@
   transform: translate(calc(-50% + var(--offset) * 130px), -15px) rotate(calc(var(--offset) * 0.5deg));
 }
 
-/* Selected lift offset: applied stably */
-.hand-container .card.selected {
-  transform: translate(calc(-50% + var(--offset) * 32px), -45px) rotate(0deg) !important;
-  z-index: 90 !important;
-}
+@media (min-width: 769px) and (min-height: 551px) {
+  /* Selected lift offset: applied cleanly on desktop */
+  .hand-container .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 32px), -45px) rotate(0deg);
+    z-index: 90 !important;
+  }
 
-.hand-container:hover .card.selected {
-  transform: translate(calc(-50% + var(--offset) * 130px), -55px) rotate(0deg) !important;
-  z-index: 90 !important;
+  .hand-container:hover .card.selected {
+    transform: translate(calc(-50% + var(--offset) * 130px), -55px) rotate(0deg);
+    z-index: 90 !important;
+  }
 }
 
 
@@ -1019,9 +1024,8 @@
   }
   
   .card-play-slot .card {
-    width: 140px !important;
-    height: 196px !important;
-    transform: none !important;
+    width: 100% !important;
+    height: 100% !important;
     position: relative !important;
     cursor: default !important;
   }
@@ -1108,29 +1112,63 @@
     max-width: 380px;
   }
   
-  /* Mobile fanning transforms (Canonical 140x196 card scaled by 0.65 cleanly) */
+  .hand-container-wrapper {
+    height: 125px !important;
+    bottom: 0px !important;
+  }
+
+  /* Mobile fanning transforms (Canonical 140x196 card scaled stably to 0.6) */
   .hand-container .card {
     width: 140px !important;
     height: 196px !important;
-    bottom: 5px;
+    bottom: 0px;
     transform-origin: bottom center;
-    transform: translate(calc(-50% + var(--offset) * 22px), calc(var(--offset) * var(--offset) * 1.5px)) scale(0.65) rotate(calc(var(--offset) * 3.5deg)) !important;
+    transform: translate(calc(-50% + var(--offset) * 22px), calc(var(--offset) * var(--offset) * 1.5px)) scale(0.6) rotate(calc(var(--offset) * 3deg)) !important;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
   
   /* Spread flatly on mobile hover */
   .hand-container:hover .card:not(.locked) {
-    transform: translate(calc(-50% + var(--offset) * 88px), -10px) scale(0.65) rotate(calc(var(--offset) * 0.5deg)) !important;
+    transform: translate(calc(-50% + var(--offset) * 78px), -10px) scale(0.6) rotate(calc(var(--offset) * 0.5deg)) !important;
   }
   
-  /* Stable lift parameters on mobile */
+  /* Stable lift parameters on mobile - EXACT SAME 0.6 SCALE */
   .hand-container .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 22px), -36px) scale(0.65) rotate(0deg) !important;
+    transform: translate(calc(-50% + var(--offset) * 22px), -26px) scale(0.6) rotate(0deg) !important;
     z-index: 90 !important;
   }
   
   .hand-container:hover .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 88px), -44px) scale(0.65) rotate(0deg) !important;
+    transform: translate(calc(-50% + var(--offset) * 78px), -32px) scale(0.6) rotate(0deg) !important;
     z-index: 90 !important;
+  }
+}
+
+/* Card Drag and Drop Interactivity */
+.card.card-dragging {
+  transition: none !important;
+  z-index: 1000 !important;
+  cursor: grabbing !important;
+  touch-action: none !important;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.65));
+}
+
+.card-play-slot.snap-active {
+  border-color: #f5cf70 !important;
+  border-style: solid !important;
+  background: rgba(245, 207, 112, 0.14) !important;
+  outline: 2px solid rgba(245, 207, 112, 0.6) !important;
+  outline-offset: 4px !important;
+  transform: scale(0.62) !important;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease !important;
+}
+
+@media (min-width: 769px) {
+  .card-play-slot.snap-active {
+    transform: scale(1.05) !important;
   }
 }
 

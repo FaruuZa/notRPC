@@ -836,12 +836,14 @@ function resolveRound(roomId, io) {
     }
   }
 
-  // Apply outcome Buffs from relics: Last Stand (Inferior outcome gives Buff(2))
-  if (result.outcomeA === 'INFERIOR' && (p1.relics.last_stand || 0) > 0) {
-    p1.statuses.attackBuff = (p1.statuses.attackBuff || 0) + (p1.relics.last_stand || 0) * 2;
+  // Apply outcome Buffs from relics: Defiant Heart / Last Stand (Inferior outcome gives Buff(2))
+  const p1Defiant = (p1.relics.defiant_heart || p1.relics.last_stand || 0);
+  if (result.outcomeA === 'INFERIOR' && p1Defiant > 0) {
+    p1.statuses.attackBuff = (p1.statuses.attackBuff || 0) + p1Defiant * 2;
   }
-  if (result.outcomeB === 'INFERIOR' && (p2.relics.last_stand || 0) > 0) {
-    p2.statuses.attackBuff = (p2.statuses.attackBuff || 0) + (p2.relics.last_stand || 0) * 2;
+  const p2Defiant = (p2.relics.defiant_heart || p2.relics.last_stand || 0);
+  if (result.outcomeB === 'INFERIOR' && p2Defiant > 0) {
+    p2.statuses.attackBuff = (p2.statuses.attackBuff || 0) + p2Defiant * 2;
   }
 
   // Update Quest Progress for both players
@@ -1246,7 +1248,7 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
 
         [p1, p2].forEach(p => {
           p.prepQueue = [];
-          p.prepRerollsLeft = 1 + (p.relics.relic_prep_reroll_common || 0);
+          p.prepRerollsLeft = 1 + (p.relics.relic_prep_reroll_common || 0) + 2 * (p.relics.relic_prep_reroll_rare || 0);
 
           // 1. Relic Choice
           if (p.pendingRelicChoice) {

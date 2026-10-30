@@ -31,9 +31,8 @@ const QUEST_TEMPLATES = [
     category: 'outcome',
     tags: ['outcome', 'superior'],
     tiers: {
-      EASY:   { target: 3, text: 'Superior outcome 3 times' },
+      EASY:   { target: 2, text: 'Superior outcome 2 times' },
       MEDIUM: { target: 4, text: 'Superior outcome 4 times' },
-      HARD:   { target: 5, text: 'Superior outcome 5 times' }
     }
   },
 
@@ -43,9 +42,8 @@ const QUEST_TEMPLATES = [
     category: 'outcome',
     tags: ['outcome', 'neutral'],
     tiers: {
-      EASY:   { target: 3, text: 'Neutral outcome 3 times' },
+      EASY:   { target: 2, text: 'Neutral outcome 2 times' },
       MEDIUM: { target: 4, text: 'Neutral outcome 4 times' },
-      HARD:   { target: 5, text: 'Neutral outcome 5 times' }
     }
   },
 
@@ -55,8 +53,8 @@ const QUEST_TEMPLATES = [
     category: 'burn',
     tags: ['burn'],
     tiers: {
-      EASY:   { target: 3, text: 'Apply Burn 3 times' },
-      MEDIUM: { target: 5, text: 'Apply Burn 5 times' },
+      EASY:   { target: 2, text: 'Apply Burn 2 times' },
+      MEDIUM: { target: 4, text: 'Apply Burn 4 times' },
       HARD:   { target: 7, text: 'Apply Burn 7 times' }
     }
   },
@@ -67,8 +65,8 @@ const QUEST_TEMPLATES = [
     category: 'poison',
     tags: ['poison'],
     tiers: {
-      EASY:   { target: 3, text: 'Apply Poison 3 times' },
-      MEDIUM: { target: 5, text: 'Apply Poison 5 times' },
+      EASY:   { target: 2, text: 'Apply Poison 2 times' },
+      MEDIUM: { target: 4, text: 'Apply Poison 4 times' },
       HARD:   { target: 7, text: 'Apply Poison 7 times' }
     }
   },
@@ -79,8 +77,8 @@ const QUEST_TEMPLATES = [
     category: 'shield',
     tags: ['shield'],
     tiers: {
-      EASY:   { target: 20, text: 'Gain 20 Shield in battle' },
-      MEDIUM: { target: 40, text: 'Gain 40 Shield in battle' },
+      EASY:   { target: 10, text: 'Gain 10 Shield in battle' },
+      MEDIUM: { target: 30, text: 'Gain 30 Shield in battle' },
       HARD:   { target: 60, text: 'Gain 60 Shield in battle' }
     }
   },
@@ -91,8 +89,8 @@ const QUEST_TEMPLATES = [
     category: 'heal',
     tags: ['heal'],
     tiers: {
-      EASY:   { target: 10, text: 'Heal 10 HP in battle' },
-      MEDIUM: { target: 20, text: 'Heal 20 HP in battle' },
+      EASY:   { target: 5, text: 'Heal 5 HP in battle' },
+      MEDIUM: { target: 10, text: 'Heal 10 HP in battle' },
       HARD:   { target: 30, text: 'Heal 30 HP in battle' }
     }
   },
@@ -103,8 +101,8 @@ const QUEST_TEMPLATES = [
     category: 'buff',
     tags: ['buff'],
     tiers: {
-      EASY:   { target: 3, text: 'Gain Buff 3 times' },
-      MEDIUM: { target: 5, text: 'Gain Buff 5 times' },
+      EASY:   { target: 2, text: 'Gain Buff 2 times' },
+      MEDIUM: { target: 4, text: 'Gain Buff 4 times' },
       HARD:   { target: 7, text: 'Gain Buff 7 times' }
     }
   },
@@ -115,8 +113,8 @@ const QUEST_TEMPLATES = [
     category: 'weak',
     tags: ['weak'],
     tiers: {
-      EASY:   { target: 3, text: 'Apply Weakness 3 times' },
-      MEDIUM: { target: 5, text: 'Apply Weakness 5 times' },
+      EASY:   { target: 2, text: 'Apply Weakness 2 times' },
+      MEDIUM: { target: 4, text: 'Apply Weakness 4 times' },
       HARD:   { target: 7, text: 'Apply Weakness 7 times' }
     }
   },
@@ -127,9 +125,8 @@ const QUEST_TEMPLATES = [
     category: 'element',
     tags: ['fire'],
     tiers: {
-      EASY:   { target: 3, text: 'Play 3 Fire cards' },
-      MEDIUM: { target: 4, text: 'Play 4 Fire cards' },
-      HARD:   { target: 5, text: 'Play 5 Fire cards' }
+      EASY:   { target: 2, text: 'Play 2 Fire cards' },
+      MEDIUM: { target: 5, text: 'Play 5 Fire cards' },
     }
   },
   {
@@ -137,9 +134,8 @@ const QUEST_TEMPLATES = [
     category: 'element',
     tags: ['water'],
     tiers: {
-      EASY:   { target: 3, text: 'Play 3 Water cards' },
-      MEDIUM: { target: 4, text: 'Play 4 Water cards' },
-      HARD:   { target: 5, text: 'Play 5 Water cards' }
+      EASY:   { target: 2, text: 'Play 2 Water cards' },
+      MEDIUM: { target: 5, text: 'Play 5 Water cards' },
     }
   },
   {
@@ -147,9 +143,8 @@ const QUEST_TEMPLATES = [
     category: 'element',
     tags: ['nature'],
     tiers: {
-      EASY:   { target: 3, text: 'Play 3 Nature cards' },
-      MEDIUM: { target: 4, text: 'Play 4 Nature cards' },
-      HARD:   { target: 5, text: 'Play 5 Nature cards' }
+      EASY:   { target: 2, text: 'Play 2 Nature cards' },
+      MEDIUM: { target: 5, text: 'Play 5 Nature cards' },
     }
   },
 
@@ -159,29 +154,29 @@ const QUEST_TEMPLATES = [
 
   // Streak Outcomes (HARD only)
   {
-    id: 'superior_2_row',
+    id: 'superior_4_row',
     category: 'streak',
     tags: ['outcome', 'superior', 'row'],
     tiers: {
-      HARD: { target: 2, text: 'Superior 2 times in a row' }
+      HARD: { target: 4, text: 'Superior 4 times in a row' }
     }
   },
   {
-    id: 'neutral_3_row',
+    id: 'neutral_4_row',
     category: 'streak',
     tags: ['outcome', 'neutral', 'row'],
     tiers: {
-      HARD: { target: 3, text: 'Neutral 3 times in a row' }
+      HARD: { target: 4, text: 'Neutral 4 times in a row' }
     }
   },
 
   // Inferior Survival (MEDIUM only)
   {
-    id: 'inferior_3',
+    id: 'inferior_4',
     category: 'outcome',
     tags: ['outcome', 'inferior'],
     tiers: {
-      MEDIUM: { target: 3, text: 'Inferior outcome 3 times' }
+      HARD: { target: 4, text: 'Inferior 4 times in a row' }
     }
   },
 
@@ -205,14 +200,12 @@ const QUEST_TEMPLATES = [
     }
   },
 
-  // Chaos Cards (MEDIUM & HARD only - Chaos cards are rare and not in starter decks)
   {
     id: 'play_chaos',
     category: 'element',
     tags: ['chaos'],
     tiers: {
-      MEDIUM: { target: 2, text: 'Play 2 Chaos cards' },
-      HARD:   { target: 3, text: 'Play 3 Chaos cards' }
+      MEDIUM: { target: 4, text: 'Play 4 Chaos cards' },
     }
   },
 
@@ -223,7 +216,7 @@ const QUEST_TEMPLATES = [
     tags: ['neutral'],
     tiers: {
       EASY:   { target: 2, text: 'Play 2 Neutral cards' },
-      MEDIUM: { target: 3, text: 'Play 3 Neutral cards' }
+      MEDIUM: { target: 4, text: 'Play 4 Neutral cards' }
     }
   }
 ];
@@ -237,7 +230,7 @@ const DIFFICULTY_RANK = { EASY: 1, MEDIUM: 2, HARD: 3 };
 function getRemovalTokenReward(difficulty) {
   if (difficulty === 'EASY') return 1;
   if (difficulty === 'MEDIUM') return 2;
-  if (difficulty === 'HARD') return 3;
+  if (difficulty === 'HARD') return 4;
   return 1;
 }
 
@@ -247,28 +240,31 @@ function getRemovalTokenReward(difficulty) {
 const TIER_REWARD_POOLS = {
   EASY: {
     relicChance: 0.80,
-    relicQualities: [{ quality: 'COMMON', weight: 1.0 }],
+    relicQualities: [
+      { quality: 'COMMON', weight: 0.9 },
+      { quality: 'RARE', weight: 0.1 }
+    ],
     nonRelicType: 'bonus_draft',
     nonRelicChance: 0.20,
     nonRelicText: 'Bonus Draft Pick (1 Card)',
     removalTokens: 1,
-    summaryText: '80% Common Relic · 20% Bonus Draft Pick',
+    summaryText: '80% Common / Rare Relic · 20% Bonus Draft Pick',
     perks: [
-      { icon: 'fa-gift', label: '80% Common Relic' },
+      { icon: 'fa-gift', label: '80% Common / Rare Relic' },
       { icon: 'fa-layer-group', label: '20% Bonus Draft Pick' }
     ]
   },
   MEDIUM: {
     relicChance: 0.70,
     relicQualities: [
-      { quality: 'RARE', weight: 0.85 },
-      { quality: 'EPIC', weight: 0.15 }
+      { quality: 'RARE', weight: 0.8 },
+      { quality: 'EPIC', weight: 0.2 }
     ],
     nonRelicType: 'bonus_draft',
     nonRelicChance: 0.30,
     nonRelicText: 'Bonus Draft Pick (1 Card)',
     removalTokens: 2,
-    summaryText: '70% Rare/Epic Relic · 30% Bonus Draft Pick',
+    summaryText: '70% Rare / Epic Relic · 30% Bonus Draft Pick',
     perks: [
       { icon: 'fa-gift', label: '70% Rare / Epic Relic' },
       { icon: 'fa-layer-group', label: '30% Bonus Draft Pick' }
@@ -283,8 +279,8 @@ const TIER_REWARD_POOLS = {
     nonRelicType: 'bonus_pack',
     nonRelicChance: 0.30,
     nonRelicText: 'Bonus 4-Card Pack',
-    removalTokens: 3,
-    summaryText: '70% Epic/Legendary Relic · 30% Bonus Pack',
+    removalTokens: 4,
+    summaryText: '70% Epic / Legendary Relic · 30% Bonus Pack',
     perks: [
       { icon: 'fa-gift', label: '70% Epic / Legendary Relic' },
       { icon: 'fa-box-open', label: '30% Bonus 4-Card Pack' }
