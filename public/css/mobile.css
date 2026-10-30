@@ -902,3 +902,27 @@
     min-height: auto !important;
   }
 }
+
+
+/* ==========================================================================
+   TOUCH HAND LAYOUT
+   On touch devices :hover is "sticky" and the hover-spread of the fan shifts cards
+   under the finger mid-gesture. Keep the fan static, but space the cards out wider
+   so each one has a tappable strip (~26-52px) instead of the old 22px sliver.
+   ========================================================================== */
+@media (hover: none) and ((max-width: 768px) or (max-height: 550px)) {
+  .hand-container .card {
+    --step: clamp(26px, calc((min(100vw, 460px) - 120px) / var(--total, 5)), 52px);
+  }
+
+  .hand-container .card,
+  .hand-container:hover .card:not(.locked) {
+    transform: translate(calc(-50% + var(--offset) * var(--step)), calc(var(--offset) * var(--offset) * 1.5px)) scale(0.6) rotate(calc(var(--offset) * 3deg)) !important;
+  }
+
+  .hand-container .card.selected,
+  .hand-container:hover .card.selected {
+    transform: translate(calc(-50% + var(--offset) * var(--step)), -26px) scale(0.6) rotate(0deg) !important;
+    z-index: 90 !important;
+  }
+}

@@ -742,10 +742,27 @@ const UI = {
    * @param {boolean} animate Whether to stagger draw animations
    */
   renderHand(hand, animate = false, isNewRound = false) {
+    if (window.HandGesture) HandGesture.bind(this);
+
+    // Never rebuild the hand underneath a finger. A new round, or the dragged card
+    // disappearing from the hand, cancels the drag; anything else waits for drop.
+    if (window.HandGesture && HandGesture.isActive()) {
+      const dragId = HandGesture.activeId();
+      if (isNewRound || hand.length === 0 || !hand.some(c => c.instanceId === dragId)) {
+        HandGesture.abort();
+      } else if (HandGesture.isDragging()) {
+        this._pendingHandRender = { hand, animate, isNewRound };
+        return;
+      }
+    }
+
     if (hand.length === 0) {
       this.playerHand.innerHTML = '';
       return;
     }
+
+    hand = this.applyHandOrder(hand);
+    this.handOrder = hand.map(c => c.instanceId);
 
     // If it's a new round, clear hand completely and animate drawing
     if (isNewRound) {
@@ -757,9 +774,6 @@ const UI = {
         cardEl.style.setProperty('--index', index);
         cardEl.style.setProperty('--total', total);
         cardEl.style.zIndex = index + 1;
-        if (!this.isLocked) {
-          this.attachCardInteractions(cardEl, card);
-        }
       });
       if (animate) {
         const cardEls = this.playerHand.querySelectorAll('.card');
@@ -787,9 +801,6 @@ const UI = {
       if (!currentDomIds.includes(card.instanceId)) {
         const cardEl = this.createCardElement(card);
         this.playerHand.appendChild(cardEl);
-        if (!this.isLocked) {
-          this.attachCardInteractions(cardEl, card);
-        }
       }
     });
 
@@ -815,255 +826,38 @@ const UI = {
   },
 
   /**
-   * Attaches tap, double-tap, and drag-to-play interactions to a hand card element
-   * @param {HTMLElement} cardEl 
-   * @param {Object} card 
+   * Client-side hand arrangement. The server owns WHICH cards are in hand; the
+   * player owns the ORDER. Cards the player has not placed yet are appended in
+   * server order.
    */
-  attachCardInteractions(cardEl, card) {
-    let startX = 0;
-    let startY = 0;
-    let isDragging = false;
-    const dragThreshold = 8;
-    let lastTapTime = 0;
-    let isPointerDown = false;
-    let activePointerId = null;
-    let dragClone = null;
-    let grabOffsetX = 0;
-    let grabOffsetY = 0;
-    let initialRect = null;
-    let snapActive = false;
+  applyHandOrder(hand) {
+    const pref = this.handOrder || [];
+    const byId = new Map(hand.map(c => [c.instanceId, c]));
+    const out = [];
+    pref.forEach(id => {
+      if (byId.has(id)) { out.push(byId.get(id)); byId.delete(id); }
+    });
+    hand.forEach(c => { if (byId.has(c.instanceId)) out.push(c); });
+    return out;
+  },
 
-    const onPointerDown = (e) => {
-      if (this.isLocked) return;
-      if (e.button !== undefined && e.button !== 0) return;
+  /** Re-numbers --index/--total/z-index of every visible hand card from DOM order. */
+  realignHand() {
+    const cards = Array.from(this.playerHand.querySelectorAll('.card')).filter(c => c.style.display !== 'none');
+    const total = cards.length;
+    cards.forEach((cardEl, index) => {
+      cardEl.style.setProperty('--index', index);
+      cardEl.style.setProperty('--total', total);
+      cardEl.style.zIndex = index + 1;
+    });
+  },
 
-      // Prevent default to prevent mobile scrolling, panning or text selection during card touch
-      if (e.cancelable) e.preventDefault();
-
-      isPointerDown = true;
-      activePointerId = e.pointerId;
-      startX = e.clientX;
-      startY = e.clientY;
-      isDragging = false;
-      snapActive = false;
-
-      // Capture exact unscaled rendered bounding rect before any dragging starts
-      initialRect = cardEl.getBoundingClientRect();
-      grabOffsetX = e.clientX - initialRect.left;
-      grabOffsetY = e.clientY - initialRect.top;
-
-      try {
-        cardEl.setPointerCapture(e.pointerId);
-      } catch (err) {}
-    };
-
-    const onPointerMove = (e) => {
-      if (!isPointerDown || activePointerId !== e.pointerId || this.isLocked) return;
-
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
-      const dist = Math.hypot(deltaX, deltaY);
-
-      if (!isDragging && dist > dragThreshold) {
-        isDragging = true;
-
-        // Clean up any stale clone if it somehow existed
-        const oldClone = document.getElementById('active-drag-clone');
-        if (oldClone) oldClone.remove();
-
-        // Create a fixed floating clone on document.body for flawless 1:1 drag tracking
-        dragClone = cardEl.cloneNode(true);
-        dragClone.id = 'active-drag-clone';
-        dragClone.classList.add('card-dragging');
-        dragClone.classList.remove('selected', 'hovered');
-        
-        // Disable internal transitions and fan transforms on the clone
-        dragClone.style.cssText = `
-          position: fixed !important;
-          left: 0 !important;
-          top: 0 !important;
-          width: ${initialRect.width}px !important;
-          height: ${initialRect.height}px !important;
-          margin: 0 !important;
-          bottom: auto !important;
-          right: auto !important;
-          z-index: 9999 !important;
-          pointer-events: none !important;
-          touch-action: none !important;
-          cursor: grabbing !important;
-          filter: drop-shadow(0 14px 28px rgba(0,0,0,0.75));
-          transform: translate3d(${initialRect.left}px, ${initialRect.top}px, 0) !important;
-          transition: none !important;
-        `;
-        document.body.appendChild(dragClone);
-
-        // Hide original card cleanly in hand while picked up
-        cardEl.style.opacity = '0';
-
-        if (window.AudioSynth && typeof window.AudioSynth.playDraw === 'function') {
-          window.AudioSynth.playDraw();
-        }
-      }
-
-      if (isDragging && dragClone) {
-        // Move clone with 1:1 pixel precision directly under touch/cursor
-        const currentLeft = e.clientX - grabOffsetX;
-        const currentTop = e.clientY - grabOffsetY;
-        dragClone.style.transform = `translate3d(${currentLeft}px, ${currentTop}px, 0)`;
-
-        const slot = this.playerPlaySlot;
-        if (slot) {
-          const slotRect = slot.getBoundingClientRect();
-          
-          // Card geometry (either from dragClone or initialRect)
-          const cardLeft = currentLeft;
-          const cardTop = currentTop;
-          const cardRight = cardLeft + initialRect.width;
-          const cardBottom = cardTop + initialRect.height;
-          const cardCenterX = cardLeft + initialRect.width / 2;
-          const cardCenterY = cardTop + initialRect.height / 2;
-
-          // Generous magnetic touch buffer (80px horizontal, 90px vertical)
-          const marginX = 80;
-          const marginY = 90;
-
-          // 1. Pointer or touch coordinates inside generous slot box
-          const pointerInSlot = (
-            e.clientX >= slotRect.left - marginX &&
-            e.clientX <= slotRect.right + marginX &&
-            e.clientY >= slotRect.top - marginY &&
-            e.clientY <= slotRect.bottom + marginY
-          );
-
-          // 2. Card center inside generous slot box
-          const cardCenterInSlot = (
-            cardCenterX >= slotRect.left - marginX &&
-            cardCenterX <= slotRect.right + marginX &&
-            cardCenterY >= slotRect.top - marginY &&
-            cardCenterY <= slotRect.bottom + marginY
-          );
-
-          // 3. Any significant bounding-box intersection between Card and Slot
-          const cardOverlapsSlot = (
-            cardLeft <= slotRect.right + 25 &&
-            cardRight >= slotRect.left - 25 &&
-            cardTop <= slotRect.bottom + 25 &&
-            cardBottom >= slotRect.top - 25
-          );
-
-          // 4. Mobile flick/drag upward gesture detection:
-          // If on a compact/mobile screen, card is dragged above the hand zone (top < 58% of screen)
-          // and roughly horizontally aligned with the player side (left < 65% of screen)
-          const isMobileFlickToPlay = (
-            window.innerWidth <= 768 || window.innerHeight <= 550
-          ) && (cardTop < window.innerHeight * 0.58 && cardCenterX < window.innerWidth * 0.65);
-
-          const isOverSlot = pointerInSlot || cardCenterInSlot || cardOverlapsSlot || isMobileFlickToPlay;
-
-          if (isOverSlot && !snapActive) {
-            snapActive = true;
-            slot.classList.add('snap-active');
-          } else if (!isOverSlot && snapActive) {
-            snapActive = false;
-            slot.classList.remove('snap-active');
-          }
-        }
-      }
-    };
-
-    const cleanupDrag = () => {
-      isPointerDown = false;
-      activePointerId = null;
-      snapActive = false;
-      if (this.playerPlaySlot) {
-        this.playerPlaySlot.classList.remove('snap-active');
-      }
-    };
-
-    const onPointerUp = (e) => {
-      if (!isPointerDown || activePointerId !== e.pointerId) return;
-      try {
-        cardEl.releasePointerCapture(e.pointerId);
-      } catch (err) {}
-
-      const slot = this.playerPlaySlot;
-      const wasSnapped = snapActive || (slot && slot.classList.contains('snap-active'));
-      cleanupDrag();
-
-      if (isDragging) {
-        isDragging = false;
-        const clone = dragClone;
-        dragClone = null;
-
-        if (wasSnapped && !this.isLocked) {
-          if (clone) clone.remove();
-          cardEl.style.opacity = '';
-          this.selectCard(card.instanceId, true);
-          this.lockSelection();
-        } else {
-          // Snap back smoothly to hand card's exact current screen position
-          if (clone) {
-            const currentRect = cardEl.getBoundingClientRect();
-            const startXPos = e.clientX - grabOffsetX;
-            const startYPos = e.clientY - grabOffsetY;
-            anime({
-              targets: { x: startXPos, y: startYPos },
-              x: currentRect.left,
-              y: currentRect.top,
-              duration: 200,
-              easing: 'easeOutQuad',
-              update: (anim) => {
-                const cur = anim.animatables[0].target;
-                if (clone && clone.parentNode) {
-                  clone.style.transform = `translate3d(${cur.x}px, ${cur.y}px, 0)`;
-                }
-              },
-              complete: () => {
-                if (clone && clone.parentNode) clone.remove();
-                cardEl.style.opacity = '';
-              }
-            });
-          } else {
-            cardEl.style.opacity = '';
-          }
-        }
-      } else {
-        // Pure tap / click (no clone was made)
-        if (this.isLocked) return;
-        const now = Date.now();
-        const doubleTapDelay = now - lastTapTime;
-        lastTapTime = now;
-
-        if (window.AudioSynth && typeof window.AudioSynth.playClick === 'function') {
-          window.AudioSynth.playClick();
-        }
-
-        if (this.selectedCardInstanceId === card.instanceId || doubleTapDelay < 350) {
-          this.selectCard(card.instanceId, true);
-          this.lockSelection();
-        } else {
-          this.selectCard(card.instanceId);
-        }
-      }
-    };
-
-    const onPointerCancel = (e) => {
-      if (!isPointerDown || activePointerId !== e.pointerId) return;
-      try {
-        cardEl.releasePointerCapture(e.pointerId);
-      } catch (err) {}
-      if (dragClone) {
-        dragClone.remove();
-        dragClone = null;
-      }
-      cardEl.style.opacity = '';
-      cleanupDrag();
-    };
-
-    cardEl.addEventListener('pointerdown', onPointerDown, { passive: false });
-    cardEl.addEventListener('pointermove', onPointerMove, { passive: false });
-    cardEl.addEventListener('pointerup', onPointerUp);
-    cardEl.addEventListener('pointercancel', onPointerCancel);
+  /** Runs a hand render that arrived while the player was mid-drag. */
+  flushPendingHandRender() {
+    const p = this._pendingHandRender;
+    if (!p) return;
+    this._pendingHandRender = null;
+    this.renderHand(p.hand, p.animate, p.isNewRound);
   },
 
   /**
@@ -1155,7 +949,9 @@ const UI = {
   /**
    * Locks player selection
    */
-  lockSelection() {
+  lockSelection(from) {
+    // A lock coming from the timer/server must not leave a card floating under a finger.
+    if (window.HandGesture && HandGesture.isActive()) HandGesture.abort();
     if (!this.selectedCardInstanceId || this.isLocked) return;
     
     this.isLocked = true;
@@ -1176,19 +972,32 @@ const UI = {
       const slotRect = this.playerPlaySlot.getBoundingClientRect();
 
       if (cardRect.width > 0 && slotRect.width > 0) {
-        // Create flight clone
+        // Create flight clone. It uses the card's real layout size + a CSS scale (not the
+        // rotated bounding box), so its content looks exactly like the card in hand / in the
+        // player's finger and doesn't pop when the flight starts.
+        const lw = selectedCard.offsetWidth || cardRect.width;
+        const lh = selectedCard.offsetHeight || cardRect.height;
+        let f = from;
+        if (!f) {
+          const m = window.HandGesture ? HandGesture.measureCard(selectedCard) : null;
+          f = m
+            ? { cx: m.cx, cy: m.cy, scale: m.scale }
+            : { cx: cardRect.left + cardRect.width / 2, cy: cardRect.top + cardRect.height / 2, scale: cardRect.width / lw };
+        }
         const clone = selectedCard.cloneNode(true);
         clone.removeAttribute('id');
+        clone.classList.remove('drag-placeholder');
         clone.style.cssText = `
           position: fixed;
-          left: ${cardRect.left}px;
-          top: ${cardRect.top}px;
-          width: ${cardRect.width}px;
-          height: ${cardRect.height}px;
+          left: ${f.cx - lw / 2}px;
+          top: ${f.cy - lh / 2}px;
+          width: ${lw}px;
+          height: ${lh}px;
           margin: 0;
           z-index: 200;
           pointer-events: none;
-          transform: none;
+          transform-origin: 50% 50%;
+          transform: scale(${f.scale});
           transition: none;
         `;
         document.body.appendChild(clone);
@@ -1199,16 +1008,16 @@ const UI = {
         selectedCard.style.display = 'none';
         this.realignRemainingHand(selectedCard);
 
-        const targetX = slotRect.left + slotRect.width / 2 - cardRect.left - cardRect.width / 2;
-        const targetY = slotRect.top + slotRect.height / 2 - cardRect.top - cardRect.height / 2;
-        const scaleVal = Math.min(slotRect.width / cardRect.width, slotRect.height / cardRect.height);
+        const targetX = slotRect.left + slotRect.width / 2 - f.cx;
+        const targetY = slotRect.top + slotRect.height / 2 - f.cy;
+        const scaleVal = Math.min(slotRect.width / lw, slotRect.height / lh);
 
         window.cardFlightPromise = new Promise(resolve => {
           anime({
             targets: clone,
-            translateX: targetX,
-            translateY: targetY,
-            scale: scaleVal,
+            translateX: [0, targetX],
+            translateY: [0, targetY],
+            scale: [f.scale, scaleVal],
             duration: 300,
             easing: 'easeOutQuint',
             complete: () => {

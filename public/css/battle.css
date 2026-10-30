@@ -1147,13 +1147,41 @@
 }
 
 /* Card Drag and Drop Interactivity */
+
+/* Hand cards must never be scrolled/panned by the browser. NOTE: the wildcard is
+   required: .card-desc is itself a scroll container, and touch-action on an ancestor
+   is NOT inherited through a scroll container. Without this, touching the middle of a
+   card makes the browser start a pan and fire pointercancel, killing the drag. */
+.hand-container,
+.hand-container .card,
+.hand-container .card * {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+/* The real card stays in the hand as an invisible placeholder while its floating copy is dragged */
+.hand-container .card.drag-placeholder {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Floating copy. Note: no transition rule here on purpose, hand-gesture.js animates rotate/scale/translate inline. */
 .card.card-dragging {
-  transition: none !important;
   z-index: 1000 !important;
   cursor: grabbing !important;
   touch-action: none !important;
   pointer-events: none;
+  will-change: translate, scale, rotate;
   filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.65));
+}
+
+/* Drop target feedback. The slot never changes size/transform, so the hit area stays stable. */
+.card-play-slot.drop-target {
+  border-color: rgba(245, 207, 112, 0.55) !important;
+  border-style: dashed !important;
 }
 
 .card-play-slot.snap-active {
@@ -1162,15 +1190,9 @@
   background: rgba(245, 207, 112, 0.14) !important;
   outline: 2px solid rgba(245, 207, 112, 0.6) !important;
   outline-offset: 4px !important;
-  transform: scale(0.62) !important;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease !important;
+  transition: border-color 0.15s ease, background 0.15s ease !important;
 }
 
-@media (min-width: 769px) {
-  .card-play-slot.snap-active {
-    transform: scale(1.05) !important;
-  }
-}
 
 
 /* =============================================================================
