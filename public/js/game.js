@@ -448,6 +448,9 @@ const GameManager = {
     const hudTokensVal = document.getElementById('player-tokens-val');
     if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
 
+    const prepDeckBadge = document.getElementById('prep-deck-count-badge');
+    if (prepDeckBadge) prepDeckBadge.innerText = (this.deck || []).length;
+
     const deckCountEl = document.getElementById('deck-count-val');
     if (deckCountEl && this.deck) deckCountEl.innerText = this.deck.length;
 
@@ -499,7 +502,7 @@ const GameManager = {
           UI.lockBtn.classList.add('disabled');
           UI.lockBtn.classList.remove('ready-state', 'locked-state');
           UI.lockBtn.disabled = true;
-          UI.lockBtn.innerHTML = '<span class="lock-btn-text">PILIH KARTU</span>';
+          UI.lockBtn.innerHTML = '<span class="lock-btn-text">CHOOSE CARD</span>';
         }
       }
 
@@ -774,7 +777,13 @@ const GameManager = {
     if (UI.goLobbyBtn) {
       UI.goLobbyBtn.addEventListener('click', () => {
         if (window.AudioSynth) window.AudioSynth.playClick();
-        this.resetLobby();
+        if (UI.triggerSlashTransition) {
+          UI.triggerSlashTransition(() => {
+            this.resetLobby();
+          });
+        } else {
+          this.resetLobby();
+        }
       });
     }
 
@@ -885,34 +894,30 @@ const GameManager = {
       });
     }
 
+    const openInventoryModal = () => {
+      window.AudioSynth.playClick();
+      if (tabCardsBtn && tabRelicsBtn && tabCardsContent && tabRelicsContent) {
+        tabCardsBtn.classList.add('active');
+        tabRelicsBtn.classList.remove('active');
+        tabCardsContent.style.display = 'block';
+        tabRelicsContent.style.display = 'none';
+      }
+      this.renderDeckModal();
+      deckModal.classList.add('active');
+    };
+
     if (viewDeckBtn && deckModal) {
-      viewDeckBtn.addEventListener('click', () => {
-        window.AudioSynth.playClick();
-        // Reset tabs to Cards active
-        if (tabCardsBtn && tabRelicsBtn && tabCardsContent && tabRelicsContent) {
-          tabCardsBtn.classList.add('active');
-          tabRelicsBtn.classList.remove('active');
-          tabCardsContent.style.display = 'block';
-          tabRelicsContent.style.display = 'none';
-        }
-        this.renderDeckModal();
-        deckModal.classList.add('active');
-      });
+      viewDeckBtn.addEventListener('click', openInventoryModal);
     }
 
     const questViewDeckBtn = document.getElementById('quest-view-deck-btn');
     if (questViewDeckBtn && deckModal) {
-      questViewDeckBtn.addEventListener('click', () => {
-        window.AudioSynth.playClick();
-        if (tabCardsBtn && tabRelicsBtn && tabCardsContent && tabRelicsContent) {
-          tabCardsBtn.classList.add('active');
-          tabRelicsBtn.classList.remove('active');
-          tabCardsContent.style.display = 'block';
-          tabRelicsContent.style.display = 'none';
-        }
-        this.renderDeckModal();
-        deckModal.classList.add('active');
-      });
+      questViewDeckBtn.addEventListener('click', openInventoryModal);
+    }
+
+    const prepInventoryBtn = document.getElementById('prep-inventory-btn');
+    if (prepInventoryBtn && deckModal) {
+      prepInventoryBtn.addEventListener('click', openInventoryModal);
     }
 
     const closeInventory = () => {
@@ -931,8 +936,7 @@ const GameManager = {
     if (deckModal) {
       deckModal.addEventListener('click', (e) => {
         if (e.target === deckModal) {
-          window.AudioSynth.playClick();
-          deckModal.classList.remove('active');
+          closeInventory();
         }
       });
     }
@@ -1173,11 +1177,27 @@ const GameManager = {
     UI.isLocked = false;
     
     // Reset inputs and HUD panels
-    UI.usernameInput.disabled = false;
+    if (typeof this.resetMatchmakingUI === 'function') {
+      this.resetMatchmakingUI();
+    }
+    const quickplayBtn = document.getElementById('quickplay-btn');
+    const codeGoBtn = document.getElementById('code-go-btn');
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const usernameInput = document.getElementById('username-input');
+    if (quickplayBtn) quickplayBtn.disabled = false;
+    if (codeGoBtn) codeGoBtn.disabled = false;
+    if (createRoomBtn) createRoomBtn.disabled = false;
+    if (usernameInput) usernameInput.disabled = false;
     
-    UI.leaveQueueBtn.classList.add('hidden');
-    UI.queueStatusSub.classList.add('hidden');
-    UI.statusText.innerText = 'Ready to enter the arena...';
+    const leaveQueueBtn = document.getElementById('leave-queue-btn');
+    const queueStatusSub = document.getElementById('queue-status-sub');
+    const statusText = document.getElementById('status-text');
+    if (leaveQueueBtn) leaveQueueBtn.classList.add('hidden');
+    if (queueStatusSub) queueStatusSub.classList.add('hidden');
+    if (statusText) {
+      statusText.classList.remove('hidden');
+      statusText.innerText = 'Ready to enter the arena...';
+    }
     
     UI.lockBtn.classList.add('disabled');
     UI.lockBtn.disabled = true;
@@ -1407,11 +1427,15 @@ const GameManager = {
     if (data.deck) this.deck = data.deck;
     if (data.relics) this.myRelics = data.relics;
     
-    // Hide prep timers
+    // Hide prep timers, tracker, and inventory actuator
     const globalTimer = document.getElementById('global-prep-timer');
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    const prepInvBtn = document.getElementById('prep-inventory-btn');
+    const prepTracker = document.getElementById('prep-header-tracker');
     if (globalTimer) globalTimer.classList.add('hidden');
     if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+    if (prepInvBtn) prepInvBtn.classList.add('hidden');
+    if (prepTracker) prepTracker.classList.add('hidden');
     if (this._prepTimerClientInterval) {
       clearInterval(this._prepTimerClientInterval);
       this._prepTimerClientInterval = null;
@@ -1492,6 +1516,7 @@ const GameManager = {
   onCardRemovalStart(data) {
     const UI = window.UI;
     UI.showScreen('cardRemoval');
+    this.updatePrepTracker('CARD_REMOVAL');
     
     this.deck = data.deck || [];
     this.myRemovalTokens = data.removalTokens !== undefined ? data.removalTokens : (this.myRemovalTokens || 0);
@@ -1506,6 +1531,9 @@ const GameManager = {
 
     const hudTokensVal = document.getElementById('player-tokens-val');
     if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
+
+    const prepDeckBadge = document.getElementById('prep-deck-count-badge');
+    if (prepDeckBadge) prepDeckBadge.innerText = (this.deck || []).length;
 
     const confirmBtn = document.getElementById('removal-confirm-btn');
     if (confirmBtn) {
@@ -1551,10 +1579,12 @@ const GameManager = {
 
   onWaitingForOpponentRemoval() {
     const UI = window.UI;
-    const waitingText = document.querySelector('#waiting-screen p');
+    const waitingText = document.getElementById('waiting-status-msg') || document.querySelector('#waiting-screen p');
     if (waitingText) {
-      waitingText.innerText = 'Waiting for opponent to complete their card removal phase...';
+      waitingText.innerText = 'Waiting for opponent to complete deck purification...';
     }
+    this.syncWaitingTimer();
+    this.updatePrepTracker('WAITING');
     UI.showScreen('waiting');
   },
 
@@ -1566,6 +1596,7 @@ const GameManager = {
   onRelicChoiceStart(data) {
     const UI = window.UI;
     UI.showScreen('relicSelection');
+    this.updatePrepTracker('RELIC_CHOICE');
     
     this.selectedRelicId = null;
     
@@ -1587,11 +1618,18 @@ const GameManager = {
     }
 
     const subtitleEl = document.getElementById('relic-selection-subtitle');
+    const tier = data.tier || data.quality || 'EASY';
+    const tierChanceText = tier === 'HARD' ? '80% Epic / 20% Legendary'
+                         : tier === 'MEDIUM' ? '80% Rare / 20% Epic'
+                         : '90% Common / 10% Rare';
     if (subtitleEl && data.questText) {
-      subtitleEl.innerHTML = `QUEST REWARD FOR: <span class="accent-text" style="color: #ffd700;">${data.questText}</span>`;
+      subtitleEl.innerHTML = `QUEST REWARD (${tier} TIER • ${tierChanceText}): <span class="accent-text" style="color: #ffd700;">${data.questText}</span>`;
     } else if (subtitleEl) {
-      subtitleEl.innerText = `QUEST REWARD`;
+      subtitleEl.innerHTML = `QUEST REWARD (${tier} TIER • ${tierChanceText})`;
     }
+
+    const prepDeckBadge = document.getElementById('prep-deck-count-badge');
+    if (prepDeckBadge) prepDeckBadge.innerText = (this.deck || []).length;
     
     UI.renderRelicChoices(data.options, (relicId) => {
       this.selectedRelicId = relicId;
@@ -1625,10 +1663,12 @@ const GameManager = {
 
   onWaitingForOpponentRelicChoice() {
     const UI = window.UI;
-    const waitingText = document.querySelector('#waiting-screen p');
+    const waitingText = document.getElementById('waiting-status-msg') || document.querySelector('#waiting-screen p');
     if (waitingText) {
       waitingText.innerText = 'Waiting for opponent to complete their relic choice...';
     }
+    this.syncWaitingTimer();
+    this.updatePrepTracker('WAITING');
     UI.showScreen('waiting');
   },
 
@@ -1638,11 +1678,15 @@ const GameManager = {
   onRoundStart(data) {
     const UI = window.UI;
     
-    // Hide prep timers
+    // Hide prep timers, tracker, and inventory actuator
     const globalTimer = document.getElementById('global-prep-timer');
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    const prepInvBtn = document.getElementById('prep-inventory-btn');
+    const prepTracker = document.getElementById('prep-header-tracker');
     if (globalTimer) globalTimer.classList.add('hidden');
     if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+    if (prepInvBtn) prepInvBtn.classList.add('hidden');
+    if (prepTracker) prepTracker.classList.add('hidden');
     if (this._prepTimerClientInterval) {
       clearInterval(this._prepTimerClientInterval);
       this._prepTimerClientInterval = null;
@@ -1690,7 +1734,7 @@ const GameManager = {
     UI.lockBtn.classList.add('disabled');
     UI.lockBtn.classList.remove('ready-state', 'locked-state');
     UI.lockBtn.disabled = true;
-    UI.lockBtn.innerHTML = '<span class="lock-btn-text">PILIH KARTU</span>';
+    UI.lockBtn.innerHTML = '<span class="lock-btn-text">CHOOSE CARD</span>';
     
     // Undim hand container
     const handWrapper = document.querySelector('.hand-container-wrapper');
@@ -1821,22 +1865,37 @@ const GameManager = {
 
     const roundTitle = UI.roundResultOverlay.querySelector('#round-winner-title');
     const roundDesc = UI.roundResultOverlay.querySelector('#round-winner-desc');
+    const verdictBadge = document.getElementById('round-verdict-badge');
+    const watermarkEl = document.getElementById('round-result-watermark');
     const scoreP1Val = UI.roundResultOverlay.querySelector('#score-p1-val');
     const scoreP2Val = UI.roundResultOverlay.querySelector('#score-p2-val');
 
-    if (roundTitle) roundTitle.innerHTML = `ROUND <span class="accent-text">${data.round}</span> COMPLETED`;
+    if (watermarkEl) watermarkEl.innerText = `ROUND ${data.round}`;
+    if (roundTitle) roundTitle.innerHTML = `ROUND <span class="accent-text">${data.round}</span>`;
     
     if (isRoundWinner) {
+      if (verdictBadge) {
+        verdictBadge.className = 'round-verdict-badge victory';
+        verdictBadge.innerText = 'VICTORY';
+      }
       if (roundDesc) {
         roundDesc.innerText = 'You won this round!';
         roundDesc.style.color = 'var(--color-nature)';
       }
     } else if (isRoundDraw) {
+      if (verdictBadge) {
+        verdictBadge.className = 'round-verdict-badge draw';
+        verdictBadge.innerText = 'ROUND DRAW';
+      }
       if (roundDesc) {
         roundDesc.innerText = 'It was a Draw!';
         roundDesc.style.color = 'var(--color-primary)';
       }
     } else {
+      if (verdictBadge) {
+        verdictBadge.className = 'round-verdict-badge defeat';
+        verdictBadge.innerText = 'DEFEAT';
+      }
       if (roundDesc) {
         roundDesc.innerText = `${this.opponentName || 'Opponent'} won this round!`;
         roundDesc.style.color = 'var(--color-fire)';
@@ -1852,9 +1911,15 @@ const GameManager = {
     if (scoreP1Name) scoreP1Name.innerText = this.myName || 'You';
     if (scoreP2Name) scoreP2Name.innerText = this.opponentName || 'Opponent';
 
-    // Show / hide quest reward banner
+    // Show / hide quest reward banner and reveal rewards
     const isPlayer1 = data.p1Id === this.myId;
     const myQuest = isPlayer1 ? data.p1Quest : data.p2Quest;
+
+    const questRewardBanner = document.getElementById('round-quest-reward-banner');
+    const questFailedBanner = document.getElementById('round-quest-failed-banner');
+    const questTextEl = document.getElementById('round-quest-text');
+    const questFailedText = document.getElementById('round-quest-failed-text');
+    const rewardsShowcase = document.getElementById('round-quest-rewards-showcase');
 
     if (myQuest && myQuest.completed) {
       if (myQuest.removalTokens !== undefined) {
@@ -1863,46 +1928,67 @@ const GameManager = {
         if (hudTokensVal) hudTokensVal.innerText = this.myRemovalTokens;
       }
 
-      if (UI.roundQuestRewardBanner) {
-        UI.roundQuestRewardBanner.classList.remove('hidden');
-        UI.roundQuestRewardBanner.style.borderColor = 'var(--border-brass)';
-        UI.roundQuestRewardBanner.style.background = 'rgba(166, 128, 88, 0.12)';
+      if (questRewardBanner) questRewardBanner.classList.remove('hidden');
+      if (questFailedBanner) questFailedBanner.classList.add('hidden');
+      if (questTextEl) questTextEl.innerText = myQuest.text || '-';
+
+      if (rewardsShowcase) {
+        rewardsShowcase.innerHTML = '';
+        if (myQuest.tokensEarned && myQuest.tokensEarned > 0) {
+          const tokenPill = document.createElement('div');
+          tokenPill.className = 'reward-badge-pill token';
+          tokenPill.innerHTML = `<i class="fa-solid fa-fire-flame-curved"></i> +${myQuest.tokensEarned} PURIFY TOKEN${myQuest.tokensEarned > 1 ? 'S' : ''}`;
+          rewardsShowcase.appendChild(tokenPill);
+        }
+        const rewardType = myQuest.rewardType;
+        const rewardTier = myQuest.rewardTier || 'CHANCE';
+        const mainPill = document.createElement('div');
+        if (rewardType === 'bonus_pack') {
+          mainPill.className = 'reward-badge-pill pack';
+          mainPill.innerHTML = `<i class="fa-solid fa-box-open"></i> BONUS 4-CARD PACK`;
+        } else if (rewardType === 'bonus_draft') {
+          mainPill.className = 'reward-badge-pill draft';
+          mainPill.innerHTML = `<i class="fa-solid fa-layer-group"></i> BONUS DRAFT PICK`;
+        } else {
+          // Relic choice with tier chances
+          mainPill.className = 'reward-badge-pill relic';
+          const tierLabel = rewardTier === 'HARD' ? 'EPIC / LEGENDARY' : rewardTier === 'MEDIUM' ? 'RARE / EPIC' : 'COMMON / RARE';
+          mainPill.innerHTML = `<i class="fa-solid fa-gem"></i> RELIC CHOICE (${tierLabel})`;
+        }
+        rewardsShowcase.appendChild(mainPill);
       }
-      const titleEl = UI.roundQuestRewardBanner.querySelector('div');
-      if (titleEl) {
-        titleEl.style.color = 'var(--color-primary)';
-        titleEl.innerHTML = '<i class="fa-solid fa-trophy" style="margin-right: 0.35rem;"></i> QUEST COMPLETED!';
-      }
-      if (UI.roundQuestRewardText) {
-        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br>Reward: <strong style="color: var(--color-primary);">${myQuest.reward}</strong>`;
-      }
+
       if (window.AudioSynth && window.AudioSynth.playQuestComplete) {
         window.AudioSynth.playQuestComplete();
       }
     } else if (myQuest && myQuest.text) {
       // Quest was active but NOT completed by round end (failed)
-      if (UI.roundQuestRewardBanner) {
-        UI.roundQuestRewardBanner.classList.remove('hidden');
-        UI.roundQuestRewardBanner.style.borderColor = 'var(--color-fire)';
-        UI.roundQuestRewardBanner.style.background = 'rgba(217, 56, 56, 0.1)';
-      }
-      const titleEl = UI.roundQuestRewardBanner.querySelector('div');
-      if (titleEl) {
-        titleEl.style.color = 'var(--color-fire)';
-        titleEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="margin-right: 0.35rem;"></i> QUEST NOT COMPLETED';
-      }
-      if (UI.roundQuestRewardText) {
-        UI.roundQuestRewardText.innerHTML = `Quest: <strong>${myQuest.text}</strong><br><span style="color: var(--color-fire); font-weight: 600;">Failed to complete requirements this round</span>`;
+      if (questRewardBanner) questRewardBanner.classList.add('hidden');
+      if (questFailedBanner) questFailedBanner.classList.remove('hidden');
+      if (questFailedText) {
+        questFailedText.innerText = `Quest "${myQuest.text}" was not completed this round.`;
       }
     } else {
-      if (UI.roundQuestRewardBanner) {
-        UI.roundQuestRewardBanner.classList.add('hidden');
-      }
+      if (questRewardBanner) questRewardBanner.classList.add('hidden');
+      if (questFailedBanner) questFailedBanner.classList.add('hidden');
     }
 
-    // Show round result overlay with animation
-    const cardEl = UI.roundResultOverlay.querySelector('.round-result-card');
-    Animations.animateOverlayReveal(UI.roundResultOverlay, cardEl);
+    // Display Full-Screen Round Result Stage
+    UI.roundResultOverlay.classList.add('active');
+    UI.roundResultOverlay.style.display = 'flex';
+    UI.roundResultOverlay.style.opacity = '1';
+
+    const contentEl = UI.roundResultOverlay.querySelector('.round-result-content');
+    if (contentEl && typeof anime !== 'undefined') {
+      anime.remove(contentEl);
+      anime({
+        targets: contentEl,
+        opacity: [0, 1],
+        translateX: [-25, 0],
+        easing: 'easeOutQuart',
+        duration: 450
+      });
+    }
 
     // Play round-finished sound if we didn't play a quest completion sound
     if (window.AudioSynth && !(myQuest && myQuest.completed)) {
@@ -1923,15 +2009,36 @@ const GameManager = {
       return;
     }
 
-    // Keep round completed overlay visible for a minimum of 2.2 seconds (or 3.7 seconds if a quest is completed)
-    const displayDuration = (myQuest && myQuest.completed) ? 3700 : 2200;
+    // Countdown before entering prep phase
+    const displayDuration = (myQuest && myQuest.completed) ? 4000 : 2600;
+    const countdownVal = document.getElementById('round-countdown-val');
+    if (countdownVal) countdownVal.innerText = Math.ceil(displayDuration / 1000);
+
+    if (this._roundCountdownInterval) {
+      clearInterval(this._roundCountdownInterval);
+      this._roundCountdownInterval = null;
+    }
+    const countdownEndTime = Date.now() + displayDuration;
+    this._roundCountdownInterval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((countdownEndTime - Date.now()) / 1000));
+      if (countdownVal) countdownVal.innerText = remaining;
+      if (remaining <= 0) {
+        clearInterval(this._roundCountdownInterval);
+        this._roundCountdownInterval = null;
+      }
+    }, 250);
+
     this.roundFinishedShowing = true;
     if (this._roundFinishTimeout) clearTimeout(this._roundFinishTimeout);
     this._roundFinishTimeout = setTimeout(() => {
       this._roundFinishTimeout = null;
       this.roundFinishedShowing = false;
+      if (this._roundCountdownInterval) {
+        clearInterval(this._roundCountdownInterval);
+        this._roundCountdownInterval = null;
+      }
 
-      // Hide round overlay
+      // Hide round stage
       if (UI.roundResultOverlay) {
         if (typeof anime !== 'undefined') anime.remove(UI.roundResultOverlay);
         UI.roundResultOverlay.classList.remove('active');
@@ -1980,15 +2087,16 @@ const GameManager = {
     const bonusSub = document.getElementById('bonus-pick-logo-sub');
     const bonusDesc = document.getElementById('bonus-pick-subtitle');
 
-    if (data.isQuestBonus) {
-      if (bonusSub) bonusSub.innerText = 'QUEST REWARD';
-      if (bonusTitle) bonusTitle.innerHTML = 'QUEST <span class="accent-text">BONUS PICK</span>';
-      if (bonusDesc) bonusDesc.innerHTML = 'Choose exactly <strong>1 card</strong> to add directly to your deck as a quest reward.';
-    } else {
-      if (bonusSub) bonusSub.innerText = 'COMEBACK MECHANIC';
-      if (bonusTitle) bonusTitle.innerHTML = 'LOSER <span class="accent-text">BONUS PICK</span>';
-      if (bonusDesc) bonusDesc.innerHTML = 'Choose exactly <strong>1 card</strong> to add directly to your deck.';
+    if (bonusTitle) {
+      bonusTitle.innerHTML = data.isQuestBonus ? 'QUEST <span class="accent-text">BONUS PICK</span>' : 'COMEBACK <span class="accent-text">BONUS PICK</span>';
     }
+    if (bonusSub) bonusSub.innerText = '';
+    if (bonusDesc) bonusDesc.style.display = 'none';
+
+    this.updatePrepTracker('BONUS_PICK');
+
+    const prepDeckBadge = document.getElementById('prep-deck-count-badge');
+    if (prepDeckBadge) prepDeckBadge.innerText = (this.deck || []).length;
 
     // Clear and render bonus cards fanned
     UI.bonusCardsFan.innerHTML = '';
@@ -2036,6 +2144,12 @@ const GameManager = {
   },
 
   triggerWaitingForOpponentBonus() {
+    const waitingText = document.getElementById('waiting-status-msg') || document.querySelector('#waiting-screen p');
+    if (waitingText) {
+      waitingText.innerText = 'Waiting for opponent to complete their bonus pick...';
+    }
+    this.syncWaitingTimer();
+    this.updatePrepTracker('WAITING');
     window.UI.showScreen('waiting');
   },
 
@@ -2066,13 +2180,19 @@ const GameManager = {
     UI.packsSelectionGrid.innerHTML = '';
 
     const subtitle = document.querySelector('#pack-selection-screen .draft-subtitle');
-    if (subtitle) {
-      if (data.isQuestBonus) {
-        subtitle.innerHTML = '<strong>Bonus Quest Reward:</strong> Select <strong>1 Card Pack</strong> (you will receive all 4 cards in the pack)';
-      } else {
-        subtitle.innerHTML = 'Select <strong>1 Card Pack</strong> (you will receive all 4 cards in the pack)';
-      }
+    const title = document.getElementById('pack-selection-title');
+    const logoSub = document.getElementById('pack-selection-logo-sub');
+
+    if (title) {
+      title.innerHTML = data.isQuestBonus ? 'QUEST <span class="accent-text">BONUS PACK</span>' : 'ROUND <span class="accent-text">PACKS</span>';
     }
+    if (logoSub) logoSub.innerText = '';
+    if (subtitle) subtitle.style.display = 'none';
+
+    this.updatePrepTracker('PACK_SELECTION');
+
+    const prepDeckBadge = document.getElementById('prep-deck-count-badge');
+    if (prepDeckBadge) prepDeckBadge.innerText = (this.deck || []).length;
 
     const rerollsVal = document.getElementById('pack-rerolls-val');
     const rerollBtn = document.getElementById('pack-reroll-btn');
@@ -2134,6 +2254,20 @@ const GameManager = {
     UI.revealedPackName.innerText = data.packName;
     UI.revealedPackCard.style.background = `linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.35) 100%), ${data.packColor || 'linear-gradient(135deg, #1f2533, #3a4763)'}`;
     document.getElementById('pack-graphic-wrapper').style.display = 'block';
+
+    const revealSub = document.getElementById('pack-reveal-logo-sub');
+    const revealTitle = document.getElementById('pack-reveal-title');
+    const revealSubtitle = document.getElementById('pack-reveal-subtitle');
+    if (revealTitle) {
+      revealTitle.innerHTML = data.isQuestBonus ? 'QUEST <span class="accent-text">BONUS CARDS</span>' : 'NEW <span class="accent-text">ACQUISITIONS</span>';
+    }
+    if (revealSub) revealSub.innerText = '';
+    if (revealSubtitle) revealSubtitle.style.display = 'none';
+
+    this.updatePrepTracker('PACK_REVEAL');
+
+    const prepDeckBadge = document.getElementById('prep-deck-count-badge');
+    if (prepDeckBadge) prepDeckBadge.innerText = (this.deck || []).length;
 
     // Show screen
     UI.showScreen('packReveal');
@@ -2198,46 +2332,57 @@ const GameManager = {
       UI.roundResultOverlay.style.opacity = '0';
     }
 
-    // Hide prep timers
+    // Hide prep timers, tracker, and inventory actuator
     const globalTimer = document.getElementById('global-prep-timer');
     const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    const prepInvBtn = document.getElementById('prep-inventory-btn');
+    const prepTracker = document.getElementById('prep-header-tracker');
     if (globalTimer) globalTimer.classList.add('hidden');
     if (waitingTimerContainer) waitingTimerContainer.classList.add('hidden');
+    if (prepInvBtn) prepInvBtn.classList.add('hidden');
+    if (prepTracker) prepTracker.classList.add('hidden');
 
     const isWinner = data.winnerId === this.myId;
     const isDraw = data.winnerId === null;
+    const watermarkEl = document.getElementById('game-over-watermark');
     
     if (isWinner) {
       window.AudioSynth.playVictory();
-      UI.gameOverTitle.style.color = '#2d9a59';
       UI.gameOverTitle.innerText = 'VICTORY';
+      UI.gameOverTitle.className = 'round-verdict-badge victory';
+      if (watermarkEl) watermarkEl.innerText = 'VICTORY';
       UI.gameOverMsg.innerText = data.reason === 'opponent_disconnected' 
         ? 'Your opponent fled the field. You win by default!' 
         : 'You have out-scored and defeated your opponent!';
-      UI.gameOverScreen.className = 'overlay active victory';
+      UI.gameOverScreen.className = 'overlay game-over-fullscreen active victory';
     } else if (isDraw) {
       window.AudioSynth.playVictory(); 
-      UI.gameOverTitle.style.color = '#f5cf70';
       UI.gameOverTitle.innerText = 'DRAW MATCH';
+      UI.gameOverTitle.className = 'round-verdict-badge draw';
+      if (watermarkEl) watermarkEl.innerText = 'DRAW';
       UI.gameOverMsg.innerText = 'A double knockout! Tie game.';
-      UI.gameOverScreen.className = 'overlay active';
+      UI.gameOverScreen.className = 'overlay game-over-fullscreen active draw';
     } else {
       window.AudioSynth.playDefeat();
-      UI.gameOverTitle.style.color = '#d93838';
       UI.gameOverTitle.innerText = 'DEFEAT';
+      UI.gameOverTitle.className = 'round-verdict-badge defeat';
+      if (watermarkEl) watermarkEl.innerText = 'DEFEAT';
       UI.gameOverMsg.innerText = 'You were out-drafted and defeated!';
-      UI.gameOverScreen.className = 'overlay active defeat';
+      UI.gameOverScreen.className = 'overlay game-over-fullscreen active defeat';
     }
 
     // Set stats info in screen modal
     const p1Points = data.score ? (data.score[this.myId] || 0) : this.myPoints;
     const p2Points = data.score ? (data.score[this.opponentId] || 0) : this.opponentPoints;
-    UI.goFinalScore.innerText = `${p1Points} - ${p2Points}`;
-    UI.goRounds.innerText = this.round;
+    if (UI.goFinalScore) UI.goFinalScore.innerText = `${p1Points} - ${p2Points}`;
+    const p1ValEl = document.getElementById('go-p1-val');
+    const p2ValEl = document.getElementById('go-p2-val');
+    if (p1ValEl) p1ValEl.innerText = p1Points;
+    if (p2ValEl) p2ValEl.innerText = p2Points;
+    if (UI.goRounds) UI.goRounds.innerText = this.round;
 
-    // Display modal card
-    const cardEl = UI.gameOverScreen.querySelector('.game-over-card');
-    Animations.animateOverlayReveal(UI.gameOverScreen, cardEl);
+    UI.gameOverScreen.style.display = 'flex';
+    UI.gameOverScreen.style.opacity = '1';
   },
 
   /**
@@ -2401,17 +2546,133 @@ const GameManager = {
     }
   },
 
+  syncWaitingTimer() {
+    const waitingTimerContainer = document.getElementById('waiting-timer-container');
+    const waitingTimerVal = document.getElementById('waiting-timer-val');
+    if (this._prepTimerEndsAt) {
+      const remaining = Math.max(0, Math.round((this._prepTimerEndsAt - Date.now()) / 1000));
+      if (waitingTimerVal) waitingTimerVal.innerText = remaining;
+      if (waitingTimerContainer) {
+        waitingTimerContainer.classList.remove('hidden');
+        waitingTimerContainer.classList.toggle('urgent', remaining <= 10);
+      }
+    } else if (waitingTimerContainer) {
+      waitingTimerContainer.classList.add('hidden');
+    }
+  },
+
+  onPrepQueueInit(data) {
+    if (data && Array.isArray(data.steps)) {
+      this._prepSteps = data.steps.map(step => ({
+        type: step.type,
+        isQuestBonus: !!step.isQuestBonus,
+        isComeback: !!step.isComeback,
+        label: this.getStepLabel(step),
+        icon: this.getStepIcon(step.type),
+        completed: false,
+        active: false
+      }));
+    }
+    const trackerContainer = document.getElementById('prep-header-tracker');
+    if (trackerContainer) trackerContainer.classList.remove('hidden');
+  },
+
+  onPrepStepActive(data) {
+    if (data && data.stepType) {
+      this.updatePrepTracker(data.stepType, data);
+    }
+  },
+
+  getStepIcon(type) {
+    switch (type) {
+      case 'RELIC_CHOICE': return 'fa-award';
+      case 'PACK_SELECTION': return 'fa-box-open';
+      case 'PACK_REVEAL': return 'fa-box-open';
+      case 'BONUS_PICK': return 'fa-gift';
+      case 'CARD_REMOVAL': return 'fa-fire-flame-curved';
+      case 'WAITING': return 'fa-hourglass-half';
+      default: return 'fa-circle-notch';
+    }
+  },
+
+  getStepLabel(step) {
+    if (step.label) return step.label;
+    switch (step.type) {
+      case 'RELIC_CHOICE': return 'RELIC CHOICE';
+      case 'PACK_SELECTION': return step.isQuestBonus ? 'QUEST BONUS PACK' : 'ROUND PACK';
+      case 'PACK_REVEAL': return 'PACK REVEAL';
+      case 'BONUS_PICK': return step.isComeback ? 'COMEBACK DRAFT' : 'QUEST BONUS DRAFT';
+      case 'CARD_REMOVAL': return 'DECK PURIFICATION';
+      case 'WAITING': return 'WAITING FOR OPPONENT';
+      default: return 'PREPARATION';
+    }
+  },
+
+  updatePrepTracker(currentStepType, context = {}) {
+    const trackerContainer = document.getElementById('prep-header-tracker');
+    const trackEl = document.getElementById('prep-checkpoints-track');
+    if (!trackerContainer || !trackEl) return;
+
+    trackerContainer.classList.remove('hidden');
+
+    if (!this._prepSteps || this._prepSteps.length === 0) {
+      this._prepSteps = [
+        { type: 'PACK_SELECTION', label: 'ROUND PACK', icon: 'fa-box-open', completed: false, active: true },
+        { type: 'WAITING', label: 'WAITING FOR OPPONENT', icon: 'fa-hourglass-half', completed: false, active: false }
+      ];
+    }
+
+    const normalizedType = currentStepType;
+    let activeFound = false;
+    this._prepSteps.forEach((step) => {
+      const match = (step.type === normalizedType) || (normalizedType === 'PACK_REVEAL' && step.type === 'PACK_SELECTION');
+      if (match && !activeFound) {
+        step.active = true;
+        step.completed = false;
+        activeFound = true;
+      } else if (!activeFound) {
+        step.completed = true;
+        step.active = false;
+      } else {
+        step.completed = false;
+        step.active = false;
+      }
+    });
+
+    trackEl.innerHTML = '';
+    this._prepSteps.forEach(step => {
+      const nodeEl = document.createElement('div');
+      nodeEl.className = 'prep-step-checkpoint';
+      if (step.active) nodeEl.classList.add('active');
+      if (step.completed) nodeEl.classList.add('completed');
+
+      const dotEl = document.createElement('span');
+      dotEl.className = 'checkpoint-dot';
+      const iconEl = document.createElement('i');
+      iconEl.className = `fa-solid ${step.icon || this.getStepIcon(step.type)} checkpoint-icon`;
+      dotEl.appendChild(iconEl);
+      nodeEl.appendChild(dotEl);
+
+      const tooltipEl = document.createElement('div');
+      tooltipEl.className = 'checkpoint-tooltip';
+      tooltipEl.innerText = step.label || this.getStepLabel(step);
+      nodeEl.appendChild(tooltipEl);
+
+      trackEl.appendChild(nodeEl);
+    });
+  },
+
   onPrepFinished() {
     const UI = window.UI;
     const globalTimer = document.getElementById('global-prep-timer');
     if (globalTimer) globalTimer.classList.add('hidden');
-    const waitingTimerContainer = document.getElementById('waiting-timer-container');
-    if (waitingTimerContainer) waitingTimerContainer.classList.remove('hidden');
 
-    const waitingText = document.querySelector('#waiting-screen p');
+    const waitingText = document.getElementById('waiting-status-msg') || document.querySelector('#waiting-screen p');
     if (waitingText) {
       waitingText.innerText = 'Waiting for opponent to complete their preparation...';
     }
+    this.syncWaitingTimer();
+    this.updatePrepTracker('WAITING');
     UI.showScreen('waiting');
   },
 

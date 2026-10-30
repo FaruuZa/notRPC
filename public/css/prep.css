@@ -293,34 +293,44 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 2rem;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  width: 100%;
   max-width: 900px;
-  margin: 3rem auto;
-  padding: 1rem;
+  margin: clamp(0.5rem, 2vh, 1.5rem) auto;
+  box-sizing: border-box;
 }
 
-/* Booster Pack Items */
-.pack-item {
-  width: 220px;
-  height: 310px;
+/* Booster Pack Items & Booster Graphics (Canonical Card Dimensions: 140px x 196px, Fixed 5/7 Aspect Ratio) */
+.pack-item,
+.pack-graphic {
+  width: 140px;
+  height: 196px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 196px;
+  max-height: 196px;
+  flex: 0 0 140px;
+  aspect-ratio: 5 / 7;
   border-radius: 8px;
-  border: 2px solid rgba(255,255,255,0.25);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   cursor: pointer;
-  transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.28s ease, border-color 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.22s ease, border-color 0.2s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 1.8rem 1.2rem;
+  padding: 16px 10px 14px 10px;
   position: relative;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255,255,255,0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.08);
   text-align: center;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
-.pack-item:hover {
-  transform: translateY(-10px) scale(1.03);
-  border-color: rgba(255, 255, 255, 0.65);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.15) !important;
+.pack-item:hover,
+.pack-graphic:hover {
+  transform: translateY(-8px) scale(1.04);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75), inset 0 0 14px rgba(255, 255, 255, 0.16) !important;
 }
 
 .pack-item::before, .pack-graphic::before {
@@ -329,7 +339,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 14px;
+  height: 10px;
   background: repeating-linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,0,0,0.5) 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px);
   border-bottom: 1px solid rgba(255,255,255,0.25);
   z-index: 3;
@@ -341,7 +351,7 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 14px;
+  height: 10px;
   background: repeating-linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,0,0,0.5) 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px);
   border-top: 1px solid rgba(255,255,255,0.25);
   z-index: 3;
@@ -350,47 +360,55 @@
 .pack-header-info {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 2px;
+  margin-top: 2px;
 }
 
 .pack-theme {
-  font-family: var(--font-title);
-  font-size: 0.72rem;
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.06em;
   color: #ffd700;
   text-transform: uppercase;
+  line-height: 1.1;
+  word-break: break-word;
 }
 
 .pack-title {
-  font-family: var(--font-title);
-  font-size: 1.35rem;
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 0.95rem;
   font-weight: 800;
   color: #fff;
-  line-height: 1.2;
+  line-height: 1.15;
+  margin: 0;
+  word-break: break-word;
 }
 
 .pack-desc {
-  font-size: 0.78rem;
+  font-size: 0.62rem;
   color: rgba(255, 255, 255, 0.95);
-  line-height: 1.4;
-  margin-top: 1rem;
-  background: rgba(10, 12, 18, 0.5); /* Semi-transparent dark glass backing */
-  padding: 0.6rem 0.8rem;
+  line-height: 1.25;
+  margin: auto 0;
+  background: rgba(10, 12, 18, 0.55);
+  padding: 0.35rem 0.45rem;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .pack-action-hint {
-  font-family: var(--font-title);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   color: #fff;
   border-radius: 4px;
-  padding: 0.4rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  padding: 0.25rem 0.4rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   margin-top: auto;
+  margin-bottom: 2px;
+  text-transform: uppercase;
 }
 
 /* Pack Reveal & Booster Graphic */
@@ -399,26 +417,34 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 280px;
+  min-height: 0;
+  height: auto;
   width: 100%;
   position: relative;
+  margin: clamp(0.25rem, 1vh, 0.75rem) 0;
 }
 
 .pack-graphic {
-  width: 220px;
-  height: 310px;
+  width: 140px;
+  height: 196px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 196px;
+  max-height: 196px;
+  aspect-ratio: 5 / 7;
   border-radius: 8px;
-  border: 2px solid rgba(255,255,255,0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 1.8rem 1.2rem;
+  padding: 12px 10px;
   cursor: pointer;
   position: relative;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255,255,255,0.1);
-  transition: transform 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .pack-graphic:hover {
@@ -935,88 +961,362 @@
 
 }
 
-/* Relic Choice Selection Highlight */
-#relic-choices-grid .relic-card-item {
+/* Relic Choice Selection Highlight (Game Library Slab Style) */
+#relic-choices-grid .relic-choice-item {
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1.5px solid var(--border-mat);
-  max-width: 220px;
-  width: 100%;
-  margin: 0 auto;
 }
 
-#relic-choices-grid .relic-card-item:hover {
+#relic-choices-grid .relic-choice-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-  border-color: #ffd700;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
-#relic-choices-grid .relic-card-item.selected {
+#relic-choices-grid .relic-choice-item.selected {
   border-color: #ffd700 !important;
-  box-shadow: 0 0 6px rgba(245, 207, 112, 0.4) !important;
-  background: rgba(245, 207, 112, 0.08) !important;
-  transform: translateY(-4px) scale(1.02);
+  outline: 2px solid #ffd700 !important;
+  box-shadow: 0 8px 28px rgba(255, 215, 0, 0.25) !important;
+  transform: translateY(-4px);
 }
 
 
-/* Prep Timer Banner Styling */
-.prep-timer-banner {
-  position: fixed;
-  top: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 18, 26, 0.9);
-  color: #f5cf70;
-  padding: 0.6rem 1.5rem;
-  border-radius: 30px;
-  font-family: var(--font-title);
+/* ==========================================================================
+   PREPARATION PHASE: CORNER MINIMAL TIMER & PERSISTENT INVENTORY ACTUATOR
+   ========================================================================== */
+
+/* Sleek Minimalist Timer in Top-Right Corner (Non-Intrusive, No Pill Overlap) */
+.prep-timer-corner {
+  position: fixed !important;
+  top: 1rem !important;
+  right: 1.5rem !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+  line-height: 1 !important;
+  user-select: none;
+}
+
+.prep-timer-corner.hidden {
+  display: none !important;
+}
+
+.prep-timer-label {
+  font-family: var(--font-label, 'Anton', sans-serif);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.prep-timer-val {
+  font-family: var(--font-display, 'Anton', sans-serif);
+  font-size: 2.2rem;
   font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: 1px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-  z-index: 9999;
+  color: #fff;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+  transition: color 0.3s ease;
+  line-height: 1;
+}
+
+.prep-timer-corner.urgent .prep-timer-val {
+  color: var(--color-fire, #d93838) !important;
+  animation: urgentTimerPulse 0.8s infinite alternate ease-in-out;
+}
+
+.prep-timer-corner.urgent .prep-timer-label {
+  color: var(--color-fire, #d93838) !important;
+}
+
+@keyframes urgentTimerPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+/* Persistent Prep Phase Deck Peek / Inventory Actuator in Bottom Right */
+.prep-inventory-actuator {
+  position: fixed !important;
+  bottom: 1.25rem !important;
+  right: 1.5rem !important;
+  z-index: 999 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.55rem !important;
+  padding: 0.55rem 1.15rem !important;
+  background: var(--bg-surface, #181c26) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-primary, #f8fafc) !important;
+  font-family: var(--font-title, 'Anton', sans-serif) !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6) !important;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease !important;
+}
+
+.prep-inventory-actuator:hover {
+  background: #202634 !important;
+  border-color: var(--color-primary, #a68058) !important;
+  color: #fff !important;
+  transform: translateY(-2px) !important;
+}
+
+.prep-inventory-actuator.hidden {
+  display: none !important;
+}
+
+.prep-deck-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary, #a68058);
+}
+
+/* Unified Prep Phase Header Tag & Context Badges */
+.prep-phase-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-label, 'Anton', sans-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--color-primary, #a68058);
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   TOP-LEFT PREPARATION HEADER & CHECKPOINT TRACKER
+   ========================================================================== */
+.prep-header-tracker {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.5rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.prep-header-tracker.hidden {
+  display: none !important;
+}
+
+.prep-header-brand {
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary, #a68058);
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  border: 1.5px solid var(--border-brass, rgba(245, 207, 112, 0.4));
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  gap: 0.4rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-.prep-timer-banner.urgent {
-  background: rgba(231, 76, 60, 0.95);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(231, 76, 60, 0.5);
-  animation: pulseTimer 1s infinite alternate ease-in-out;
+.prep-checkpoints-track {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  padding: 6px 0;
+  min-height: 28px;
 }
 
-.prep-timer-banner i {
-  color: inherit;
-  font-size: 1.2rem;
+.prep-checkpoints-track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-50%);
+  z-index: 1;
 }
 
-.prep-timer-banner.urgent i {
-  color: #fff;
-  animation: rotateClock 5s infinite linear;
+.prep-step-checkpoint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  padding: 0 9px;
+  cursor: pointer;
+}
+
+.checkpoint-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: #0d111a;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.checkpoint-icon {
+  opacity: 0;
+  font-size: 9px;
+  color: #f5cf70;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.prep-step-checkpoint.completed .checkpoint-dot {
+  border-color: #55b382;
+  background: #55b382;
+}
+
+.prep-step-checkpoint.active .checkpoint-dot {
+  border-color: #f5cf70;
+  background: #19202f;
+  box-shadow: 0 0 8px rgba(245, 207, 112, 0.6);
+}
+
+/* On hover / focus: expands circle, reveals icon inside, shows tooltip */
+.prep-step-checkpoint:hover .checkpoint-dot,
+.prep-step-checkpoint:focus .checkpoint-dot {
+  width: 24px;
+  height: 24px;
+  margin: -7px;
+  border-color: #f5cf70;
+  background: #141824;
+  box-shadow: 0 0 12px rgba(245, 207, 112, 0.45);
+}
+
+.prep-step-checkpoint:hover .checkpoint-icon,
+.prep-step-checkpoint:focus .checkpoint-icon {
+  opacity: 1;
+}
+
+.checkpoint-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #121620;
+  border: 1px solid rgba(166, 128, 88, 0.5);
+  color: #f3f4f6;
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+  z-index: 100;
+}
+
+.prep-step-checkpoint:hover .checkpoint-tooltip,
+.prep-step-checkpoint:focus .checkpoint-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Sleek Typographic Draft Eyebrow (No pill box) */
+.draft-eyebrow {
+  display: block;
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary, #a68058);
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+/* Minimalist Custom Scrollbar */
+#removal-cards-grid,
+.inventory-main,
+.relics-modal-grid,
+.deck-grid {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(166, 128, 88, 0.4) transparent;
+}
+
+#removal-cards-grid::-webkit-scrollbar,
+.inventory-main::-webkit-scrollbar,
+.relics-modal-grid::-webkit-scrollbar,
+.deck-grid::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+#removal-cards-grid::-webkit-scrollbar-track,
+.inventory-main::-webkit-scrollbar-track,
+.relics-modal-grid::-webkit-scrollbar-track,
+.deck-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#removal-cards-grid::-webkit-scrollbar-thumb,
+.inventory-main::-webkit-scrollbar-thumb,
+.relics-modal-grid::-webkit-scrollbar-thumb,
+.deck-grid::-webkit-scrollbar-thumb {
+  background: rgba(166, 128, 88, 0.35);
+  border-radius: 0px;
+}
+
+#removal-cards-grid::-webkit-scrollbar-thumb:hover,
+.inventory-main::-webkit-scrollbar-thumb:hover,
+.relics-modal-grid::-webkit-scrollbar-thumb:hover,
+.deck-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 207, 112, 0.75);
+}
+
+/* Deprecated Banner fallback */
+.prep-timer-banner {
+  display: none !important;
 }
 
 /* Waiting Timer Container */
 .waiting-timer-container {
-  margin-top: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: bold;
+  margin-top: 0.85rem;
+  font-family: var(--font-title, 'Anton', sans-serif);
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
   color: #f5cf70;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+  text-align: center;
+  display: block;
+  width: 100%;
 }
 
 .waiting-timer-container.urgent {
   color: #e74c3c;
-  animation: pulseTimer 1s infinite alternate ease-in-out;
+  text-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
+  animation: waitingGlowUrgent 1s infinite alternate ease-in-out;
 }
 
-@keyframes pulseTimer {
-  from { transform: translateX(-50%) scale(1); }
-  to { transform: translateX(-50%) scale(1.06); }
+@keyframes waitingGlowUrgent {
+  from { opacity: 0.85; filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.4)); }
+  to { opacity: 1; filter: drop-shadow(0 0 8px rgba(231, 76, 60, 0.9)); }
 }
 
 @keyframes rotateClock {

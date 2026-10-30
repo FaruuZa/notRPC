@@ -171,7 +171,11 @@ function recordMatchToDb(room, winnerId, endReason) {
  * Returns true if player is already inside an active room
  */
 function isPlayerInActiveRoom(socketId, userId) {
-  if (playerToRoom[socketId]) return true;
+  if (playerToRoom[socketId]) {
+    const roomId = playerToRoom[socketId];
+    const room = rooms[roomId];
+    return room && room.state !== 'OVER';
+  }
   if (userId && userToRoom[userId]) {
     const roomId = userToRoom[userId];
     const room = rooms[roomId];

@@ -1,7 +1,7 @@
 const { MAX_HP, PREP_PHASE_DURATION_SEC, PREP_STEP_TIMEOUT_SEC } = require('./constants');
 const { PACK_POOL } = require('./packs');
 const { RELIC_POOL } = require('./relics');
-const { generatePlayerQuests, getTierOffers, drawQuestForTier } = require('./quests');
+const { generatePlayerQuests, getTierOffers, drawQuestForTier, generateRelicChoicesForTier } = require('./quests');
 const { generatePackCards, generateBonusPickCards, generatePacks } = require('./gameLogic');
 const { rooms, playerToRoom } = require('./roomState');
 
@@ -211,7 +211,8 @@ function handleSelectPack(socket, packId, io) {
   player.prepQueue[0] = {
     type: 'PACK_REVEAL',
     packId: packId,
-    cards: cards
+    cards: cards,
+    isQuestBonus: !!currentStep.isQuestBonus
   };
 
   socket.emit('packRevealStart', {
@@ -436,16 +437,12 @@ function handleRerollPrep(socket, io) {
   player.prepRerollsLeft -= 1;
   
   if (currentStep.type === 'RELIC_CHOICE') {
-    const relicsOfQuality = Object.values(RELIC_POOL).filter(r => {
-      if (r.quality !== currentStep.quality) return false;
-      if ((r.unique || r.maxStacks === 1) && (player.relics[r.id] || 0) >= 1) return false;
-      return true;
-    });
-    const shuffled = [...relicsOfQuality].sort(() => 0.5 - Math.random());
-    const options = shuffled.slice(0, Math.min(3, shuffled.length));
+    const tier = currentStep.tier || currentStep.quality || 'EASY';
+    const options = generateRelicChoicesForTier(tier, player.relics, 3);
     currentStep.options = options.map(o => o.id);
     player.socket.emit('relicChoiceStart', {
-      quality: currentStep.quality,
+      tier: tier,
+      quality: tier,
       options: options,
       questText: currentStep.questText,
       prepRerollsLeft: player.prepRerollsLeft
@@ -572,6 +569,7 @@ function handlePlayerPrepTimeout(player, room, io) {
 function advancePlayerPrepQueue(player, room, io) {
   if (!player.prepQueue || player.prepQueue.length === 0) {
     player.prepFinished = true;
+    player.socket.emit('prepStepActive', { stepType: 'WAITING' });
     player.socket.emit('prepFinished');
     
     // Check if both players are finished
@@ -588,15 +586,26 @@ function advancePlayerPrepQueue(player, room, io) {
   }
 
   const nextStep = player.prepQueue[0];
+  player.socket.emit('prepStepActive', {
+    stepType: nextStep.type,
+    isQuestBonus: !!nextStep.isQuestBonus,
+    isComeback: !!nextStep.isComeback
+  });
 
   if (nextStep.type === 'RELIC_CHOICE') {
     player.socket.emit('relicChoiceStart', {
-      quality: nextStep.quality,
+      tier: nextStep.tier || nextStep.quality || 'EASY',
+      quality: nextStep.quality || nextStep.tier || 'EASY',
       options: nextStep.options.map(id => RELIC_POOL[id]),
       questText: nextStep.questText,
       prepRerollsLeft: player.prepRerollsLeft
     });
   } else if (nextStep.type === 'CARD_REMOVAL') {
+    if ((player.removalTokens || 0) <= 0 || player.deck.length <= 4) {
+      player.prepQueue.shift();
+      advancePlayerPrepQueue(player, room, io);
+      return;
+    }
     player.socket.emit('cardRemovalStart', {
       deck: player.deck,
       removalTokens: player.removalTokens || 0,
@@ -605,19 +614,21 @@ function advancePlayerPrepQueue(player, room, io) {
   } else if (nextStep.type === 'BONUS_PICK') {
     player.socket.emit('bonusPickStart', {
       cards: nextStep.options,
-      isQuestBonus: nextStep.isQuestBonus
+      isQuestBonus: !!nextStep.isQuestBonus,
+      isComeback: !!nextStep.isComeback
     });
   } else if (nextStep.type === 'PACK_SELECTION') {
     player.socket.emit('packSelectionStart', {
       packs: nextStep.options.map(p => ({ id: p, ...PACK_POOL[p] })),
       prepRerollsLeft: player.prepRerollsLeft,
-      isQuestBonus: nextStep.isQuestBonus || false
+      isQuestBonus: !!nextStep.isQuestBonus
     });
   } else if (nextStep.type === 'PACK_REVEAL') {
     player.socket.emit('packRevealStart', {
       packName: PACK_POOL[nextStep.packId].name,
       packColor: PACK_POOL[nextStep.packId].color,
-      cards: nextStep.cards
+      cards: nextStep.cards,
+      isQuestBonus: !!nextStep.isQuestBonus
     });
   }
 }

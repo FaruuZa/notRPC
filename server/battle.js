@@ -2,7 +2,7 @@ const { nanoid } = require('nanoid');
 const { MAX_HP, TURN_DURATION_SEC, AFK_TURN_DURATION_SEC, AFK_STREAK_THRESHOLD, PREP_PHASE_DURATION_SEC, CLASH_WINDOW_MS } = require('./constants');
 const { evaluateClash, generateBonusPickCards, generatePacks } = require('./gameLogic');
 const { RELIC_POOL } = require('./relics');
-const { updateQuestProgress, generateReward, getRemovalTokenReward } = require('./quests');
+const { updateQuestProgress, generateReward, getRemovalTokenReward, generateRelicChoicesForTier } = require('./quests');
 const { rooms, playerToRoom, recordMatchToDb } = require('./roomState');
 
 // Late-bound delegate helpers to avoid circular evaluation issues
@@ -1176,30 +1176,25 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
 
           // Hand out rewards (roll now if not pre-rolled)
           const reward = p.activeQuest.reward || generateReward(questTier);
+          p.pendingRewardType = reward.type;
+          p.pendingRewardTier = questTier;
           
           if (reward.type === 'relic') {
-            const relicsOfQuality = Object.values(RELIC_POOL).filter(r => {
-              if (r.quality !== reward.quality) return false;
-              if ((r.unique || r.maxStacks === 1) && (p.relics[r.id] || 0) >= 1) return false;
-              return true;
-            });
-            if (relicsOfQuality.length > 0) {
-              // Pick 3 unique random relic options to choose from
-              const shuffled = [...relicsOfQuality].sort(() => 0.5 - Math.random());
-              const options = shuffled.slice(0, Math.min(3, shuffled.length));
-              
+            const options = generateRelicChoicesForTier(questTier, p.relics, 3);
+            if (options.length > 0) {
               p.pendingRelicChoice = {
-                quality: reward.quality,
+                tier: questTier,
                 options: options.map(o => o.id),
                 questText: p.activeQuest.text
               };
+              const chanceSub = reward.text.includes('(') ? reward.text.slice(reward.text.indexOf('(')) : '';
               p.pendingRewardNotification = tokensEarned > 0 
-                ? `Unlocked: Choose a ${reward.quality} Relic & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}!`
-                : `Unlocked: Choose a ${reward.quality} Relic!`;
+                ? `Unlocked: Choose 1 Relic ${chanceSub} & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}!`
+                : `Unlocked: Choose 1 Relic ${chanceSub}!`;
             } else {
               p.pendingRewardNotification = tokensEarned > 0
-                ? `Unlocked ${reward.quality} Relic & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}`
-                : `Unlocked ${reward.quality} Relic`;
+                ? `Unlocked ${questTier} Relic & +${tokensEarned} Removal Token${tokensEarned > 1 ? 's' : ''}`
+                : `Unlocked ${questTier} Relic`;
             }
           } else if (reward.type === 'bonus_draft') {
             p.pendingBonusDraft = true;
@@ -1220,6 +1215,26 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
       }
     });
 
+    // If match is won/over (score limit reached), transition straight to gameOver without showing roundFinished overlay
+    if (matchOver) {
+      room.state = 'OVER';
+      const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
+      const matchWinnerName = room.players[matchWinnerId].username;
+
+      recordMatchToDb(room, matchWinnerId, 'match_finished');
+
+      io.to(roomId).emit('gameOver', {
+        winnerId: matchWinnerId,
+        winnerName: matchWinnerName,
+        reason: 'match_finished',
+        score: {
+          [p1.id]: p1.points,
+          [p2.id]: p2.points
+        }
+      });
+      return;
+    }
+
     // Emit roundFinished with quest updates
     io.to(roomId).emit('roundFinished', {
       round: room.round,
@@ -1233,6 +1248,8 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         completed: p1.questCompletedThisRound,
         text: p1.completedQuestText,
         reward: p1.pendingRewardNotification,
+        rewardType: p1.pendingRewardType || null,
+        rewardTier: p1.pendingRewardTier || null,
         removalTokens: p1.removalTokens || 0,
         tokensEarned: p1.tokensEarnedThisRound || 0
       },
@@ -1240,6 +1257,8 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         completed: p2.questCompletedThisRound,
         text: p2.completedQuestText,
         reward: p2.pendingRewardNotification,
+        rewardType: p2.pendingRewardType || null,
+        rewardTier: p2.pendingRewardTier || null,
         removalTokens: p2.removalTokens || 0,
         tokensEarned: p2.tokensEarnedThisRound || 0
       },
@@ -1252,25 +1271,8 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
 
     // After a delay for the roundFinished overlay, trigger next phase
     room.nextRoundTimeout = setTimeout(() => {
-      if (matchOver) {
-        room.state = 'OVER';
-        const matchWinnerId = p1.points >= 3 ? p1.id : p2.id;
-        const matchWinnerName = room.players[matchWinnerId].username;
-
-        recordMatchToDb(room, matchWinnerId, 'match_finished');
-
-        io.to(roomId).emit('gameOver', {
-          winnerId: matchWinnerId,
-          winnerName: matchWinnerName,
-          reason: 'match_finished',
-          score: {
-            [p1.id]: p1.points,
-            [p2.id]: p2.points
-          }
-        });
-      } else {
-        // Transition to PREPARATION_PHASE
-        room.state = 'PREPARATION_PHASE';
+      // Transition to PREPARATION_PHASE
+      room.state = 'PREPARATION_PHASE';
         
         // Clean up any prep timer in room
         clearPrepTimer(room);
@@ -1287,7 +1289,8 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
           if (p.pendingRelicChoice) {
             p.prepQueue.push({
               type: 'RELIC_CHOICE',
-              quality: p.pendingRelicChoice.quality,
+              tier: p.pendingRelicChoice.tier,
+              quality: p.pendingRelicChoice.tier, // backwards compatibility
               options: p.pendingRelicChoice.options,
               questText: p.pendingRelicChoice.questText
             });
@@ -1305,6 +1308,7 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
           }
           p.prepQueue.push({
             type: 'PACK_SELECTION',
+            isQuestBonus: false,
             options: generatePacks(3)
           });
 
@@ -1314,6 +1318,7 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
             p.prepQueue.push({
               type: 'BONUS_PICK',
               isQuestBonus: false,
+              isComeback: true,
               options: generateBonusPickCards()
             });
           }
@@ -1321,13 +1326,14 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
             p.prepQueue.push({
               type: 'BONUS_PICK',
               isQuestBonus: true,
+              isComeback: false,
               options: generateBonusPickCards()
             });
             p.pendingBonusDraft = false;
           }
 
-          // 4. Card Removal (terakhir: keputusan memangkas setelah melihat seluruh kartu baru)
-          if ((p.removalTokens || 0) > 0 && p.deck.length > 4) {
+          // 4. Card Removal (decision after seeing all newly acquired cards)
+          if ((p.removalTokens || 0) > 0) {
             p.prepQueue.push({
               type: 'CARD_REMOVAL',
               tokensAvailable: p.removalTokens,
@@ -1342,11 +1348,21 @@ function proceedAfterClash(roomId, io, roundOver, roundWinnerId, loserId, matchO
         clearPrepPhaseTimer(room);
         startPrepPhaseTimer(room, io, PREP_PHASE_DURATION_SEC);
 
+        // Notify clients of their prep step sequence for the top-left checkpoint tracker
+        [p1, p2].forEach(p => {
+          const stepsSummary = p.prepQueue.map(s => ({
+            type: s.type,
+            isQuestBonus: !!s.isQuestBonus,
+            isComeback: !!s.isComeback
+          }));
+          stepsSummary.push({ type: 'WAITING' });
+          p.socket.emit('prepQueueInit', { steps: stepsSummary });
+        });
+
         // Start processing prep queues for both players
         [p1, p2].forEach(p => {
           advancePlayerPrepQueue(p, room, io);
         });
-      }
     }, displayDuration);
   } else {
     // Round is not over, start next card clash turn immediately!

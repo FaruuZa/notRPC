@@ -275,6 +275,18 @@ socket.on('waitingForOpponentRelicChoice', () => {
   }
 });
 
+socket.on('prepQueueInit', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onPrepQueueInit(data);
+  }
+});
+
+socket.on('prepStepActive', (data) => {
+  if (window.gameManager) {
+    window.gameManager.onPrepStepActive(data);
+  }
+});
+
 socket.on('prepFinished', () => {
   if (window.gameManager) {
     window.gameManager.onPrepFinished();

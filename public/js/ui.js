@@ -167,7 +167,11 @@ const UI = {
       return;
     }
 
-    this.triggerSlashTransition(() => {
+    const isPrepScreen = ['bonusPick', 'waiting', 'packSelection', 'packReveal', 'cardRemoval', 'relicSelection'].includes(screenName);
+    const activeScreen = document.querySelector('.screen.active');
+    const isCurrentlyInPrep = activeScreen && activeScreen.classList.contains('prep-phase-screen');
+
+    const activateScreen = () => {
       document.querySelectorAll('.screen').forEach(s => {
         s.classList.remove('active');
       });
@@ -182,6 +186,21 @@ const UI = {
         if (this.roundResultOverlay) anime.remove(this.roundResultOverlay);
       }
       this.hideAuthScreen();
+
+      const prepInvBtn = document.getElementById('prep-inventory-btn');
+      if (prepInvBtn) {
+        if (isPrepScreen) {
+          prepInvBtn.classList.remove('hidden');
+          const badge = document.getElementById('prep-deck-count-badge');
+          if (badge && window.gameManager?.deck) badge.innerText = window.gameManager.deck.length;
+        } else {
+          prepInvBtn.classList.add('hidden');
+        }
+      }
+      const globalTimer = document.getElementById('global-prep-timer');
+      if (globalTimer && !isPrepScreen) {
+        globalTimer.classList.add('hidden');
+      }
 
       if (screenName === 'lobby') {
         if (this.matchmakingScreen) this.matchmakingScreen.classList.add('active');
@@ -210,7 +229,15 @@ const UI = {
       } else if (screenName === 'relicSelection') {
         if (this.relicSelectionScreen) this.relicSelectionScreen.classList.add('active');
       }
-    });
+    };
+
+    // If transitioning within the unified Preparation Phase, switch seamlessly without slash animations!
+    if (isCurrentlyInPrep && isPrepScreen) {
+      activateScreen();
+      return;
+    }
+
+    this.triggerSlashTransition(activateScreen);
     return;
   },
   _origShowScreen(screenName) {
@@ -1252,7 +1279,7 @@ const UI = {
     } else if (s.includes('WAITING') || s.includes('MENUNGGU') || s.includes('LOCKED')) {
       el.classList.add('waiting');
       el.innerText = 'WAITING';
-    } else if (s.includes('CHOOSE') || s.includes('SELECT') || s.includes('PILIH') || s === '') {
+    } else if (s.includes('CHOOSE') || s.includes('SELECT') || s === '') {
       el.classList.add('picking');
       el.innerText = 'CHOOSE CARD';
     } else {
@@ -1643,32 +1670,38 @@ const UI = {
 
     relicOptions.forEach(relic => {
       const itemEl = document.createElement('div');
-      itemEl.className = `relic-card-item ${relic.quality}`;
+      itemEl.className = `relic-choice-item compendium-relic-item ${relic.quality}`;
       itemEl.dataset.relicId = relic.id;
 
       const isUnique = relic.unique || relic.maxStacks === 1;
       const tagText = isUnique ? `${relic.quality} • UNIQUE` : `${relic.quality} RELIC`;
 
       itemEl.innerHTML = `
-        <div class="relic-header-row">
-          <div class="relic-title-name">
-            <i class="fa-solid ${relic.icon || 'fa-gem'}" style="margin-right: 0.5rem;"></i>
-            ${relic.name}
+        <div class="relic-choice-top">
+          <div class="compendium-relic-name">
+            <i class="fa-solid ${relic.icon || 'fa-gem'}"></i>
+            <span>${relic.name}</span>
           </div>
+          <div class="compendium-relic-quality ${relic.quality}">${tagText}</div>
         </div>
-        <div class="relic-quality-tag ${relic.quality}">${tagText}</div>
-        <p class="relic-card-desc">${relic.description}</p>
+        <div class="compendium-relic-desc">${relic.description}</div>
+        <div class="relic-choice-action-badge">CHOOSE RELIC</div>
       `;
 
       itemEl.addEventListener('click', () => {
         window.AudioSynth.playClick();
-        this.relicChoicesGrid.querySelectorAll('.relic-card-item').forEach(el => {
+        this.relicChoicesGrid.querySelectorAll('.relic-choice-item').forEach(el => {
           el.classList.remove('selected');
         });
         itemEl.classList.add('selected');
+        if (this.relicConfirmBtn) {
+          this.relicConfirmBtn.disabled = false;
+          this.relicConfirmBtn.classList.remove('disabled');
+        }
         onRelicClick(relic.id);
       });
 
+      this.bindTooltip(itemEl, relic.name, relic.description, `Quality: ${relic.quality}`);
       this.relicChoicesGrid.appendChild(itemEl);
     });
   },

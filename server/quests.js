@@ -326,29 +326,86 @@ const TIER_REWARD_POOLS = {
  * Generates a main reward matched to a quest tier / difficulty.
  * Used upon quest completion (or during legacy preview).
  */
+/**
+ * Generates relic options for a quest tier, rolling each option's quality
+ * independently based on the tier's chance weights (e.g. EASY has 90% Common, 10% Rare).
+ */
+function generateRelicChoicesForTier(difficulty, playerRelics = {}, count = 3) {
+  const pool = TIER_REWARD_POOLS[difficulty] || TIER_REWARD_POOLS.EASY;
+  const qualities = pool.relicQualities || [{ quality: 'COMMON', weight: 1.0 }];
+  const chosenOptions = [];
+  const chosenIds = new Set();
+
+  for (let i = 0; i < count; i++) {
+    // 1. Roll quality for this slot based on weights
+    const qRoll = Math.random();
+    let cumulative = 0;
+    let targetQuality = qualities[0].quality;
+    for (const q of qualities) {
+      cumulative += q.weight;
+      if (qRoll < cumulative) {
+        targetQuality = q.quality;
+        break;
+      }
+    }
+
+    // 2. Filter available relics of target quality
+    let candidates = Object.values(RELIC_POOL).filter(r => {
+      if (r.quality !== targetQuality) return false;
+      if (chosenIds.has(r.id)) return false;
+      if ((r.unique || r.maxStacks === 1) && (playerRelics[r.id] || 0) >= 1) return false;
+      return true;
+    });
+
+    // 3. Fallback to any quality in this tier's reward pool if none available
+    if (candidates.length === 0) {
+      candidates = Object.values(RELIC_POOL).filter(r => {
+        if (!qualities.some(q => q.quality === r.quality)) return false;
+        if (chosenIds.has(r.id)) return false;
+        if ((r.unique || r.maxStacks === 1) && (playerRelics[r.id] || 0) >= 1) return false;
+        return true;
+      });
+    }
+
+    // 4. Absolute fallback to any valid unowned unique relic
+    if (candidates.length === 0) {
+      candidates = Object.values(RELIC_POOL).filter(r => {
+        if (chosenIds.has(r.id)) return false;
+        if ((r.unique || r.maxStacks === 1) && (playerRelics[r.id] || 0) >= 1) return false;
+        return true;
+      });
+    }
+
+    if (candidates.length > 0) {
+      const selected = candidates[Math.floor(Math.random() * candidates.length)];
+      chosenOptions.push(selected);
+      chosenIds.add(selected.id);
+    }
+  }
+
+  return chosenOptions;
+}
+
+/**
+ * Generates a main reward matched to a quest tier / difficulty.
+ * Used upon quest completion (or during legacy preview).
+ */
 function generateReward(difficulty) {
   const pool = TIER_REWARD_POOLS[difficulty] || TIER_REWARD_POOLS.EASY;
   const roll = Math.random();
 
   if (roll < pool.relicChance) {
-    let quality = pool.relicQualities[0].quality;
-    if (pool.relicQualities.length > 1) {
-      const qRoll = Math.random();
-      let cumulative = 0;
-      for (const q of pool.relicQualities) {
-        cumulative += q.weight;
-        if (qRoll < cumulative) {
-          quality = q.quality;
-          break;
-        }
-      }
-    }
-    return { type: 'relic', quality, text: `${quality} Relic` };
+    const chanceDesc = (pool.relicQualities || []).map(q => `${Math.round(q.weight * 100)}% ${q.quality}`).join(' / ');
+    return { 
+      type: 'relic', 
+      tier: difficulty, 
+      text: `${difficulty} Relic Choice (${chanceDesc})` 
+    };
   } else {
     if (pool.nonRelicType === 'bonus_pack') {
-      return { type: 'bonus_pack', text: pool.nonRelicText };
+      return { type: 'bonus_pack', tier: difficulty, text: pool.nonRelicText };
     } else {
-      return { type: 'bonus_draft', text: pool.nonRelicText };
+      return { type: 'bonus_draft', tier: difficulty, text: pool.nonRelicText };
     }
   }
 }
@@ -741,5 +798,6 @@ module.exports = {
   generatePlayerQuests,
   getRemovalTokenReward,
   generateReward,
+  generateRelicChoicesForTier,
   updateQuestProgress
 };

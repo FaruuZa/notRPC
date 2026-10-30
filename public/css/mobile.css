@@ -936,3 +936,465 @@
     z-index: 90 !important;
   }
 }
+
+/* ==========================================================================
+   MOBILE & LANDSCAPE: FULL-SCREEN ROUND RESULT & UNIFIED PREP PHASE
+   ========================================================================== */
+@media (max-width: 900px), (max-height: 550px) {
+  /* Round Result Screen */
+  .round-result-content {
+    padding: 0.8rem 1.25rem !important;
+    gap: 0.4rem !important;
+    justify-content: flex-start !important;
+  }
+  .round-title-heading {
+    font-size: 1.85rem !important;
+  }
+  .round-verdict-badge {
+    font-size: 0.85rem !important;
+    padding: 0.12rem 0.55rem !important;
+    margin-top: 0.15rem !important;
+  }
+  .round-verdict-desc {
+    font-size: 0.72rem !important;
+    margin: 0 !important;
+  }
+  .round-score-strip {
+    padding: 0.35rem 0.85rem !important;
+    gap: 0.8rem !important;
+    margin-top: 0.1rem !important;
+  }
+  .score-user-val {
+    font-size: 1.5rem !important;
+  }
+  .score-user-label {
+    font-size: 0.68rem !important;
+  }
+  .round-quest-panel {
+    padding: 0.5rem 0.8rem !important;
+    max-width: 480px !important;
+    gap: 0.25rem !important;
+  }
+  .quest-panel-header {
+    font-size: 0.78rem !important;
+  }
+  .quest-objective-row {
+    font-size: 0.72rem !important;
+  }
+  .reward-badge-pill {
+    padding: 0.2rem 0.55rem !important;
+    font-size: 0.68rem !important;
+  }
+  .round-quest-failed {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.72rem !important;
+  }
+  .round-countdown-corner {
+    bottom: 0.6rem !important;
+    right: 1rem !important;
+  }
+  .countdown-subtext {
+    font-size: 0.6rem !important;
+  }
+  .countdown-large-num {
+    font-size: 2.2rem !important;
+  }
+
+  /* Prep Timer Corner */
+  .prep-timer-corner {
+    top: 0.45rem !important;
+    right: 0.75rem !important;
+  }
+  .prep-timer-val {
+    font-size: 1.5rem !important;
+  }
+  .prep-timer-label {
+    font-size: 0.55rem !important;
+  }
+
+  /* Top-Left Prep Tracker on Mobile */
+  .prep-header-tracker {
+    top: 0.45rem !important;
+    left: 0.75rem !important;
+    gap: 0.15rem !important;
+  }
+  .prep-header-brand {
+    font-size: 0.62rem !important;
+    gap: 0.3rem !important;
+  }
+  .prep-checkpoints-track {
+    min-height: 22px !important;
+    padding: 2px 0 !important;
+  }
+  .prep-step-checkpoint {
+    padding: 0 6px !important;
+  }
+  .checkpoint-dot {
+    width: 8px !important;
+    height: 8px !important;
+  }
+  .prep-step-checkpoint:hover .checkpoint-dot,
+  .prep-step-checkpoint:focus .checkpoint-dot {
+    width: 20px !important;
+    height: 20px !important;
+    margin: -6px !important;
+  }
+  .checkpoint-icon {
+    font-size: 8px !important;
+  }
+  .checkpoint-tooltip {
+    font-size: 0.58rem !important;
+    padding: 2px 5px !important;
+  }
+
+  /* Prep Inventory Button */
+  .prep-inventory-actuator {
+    bottom: 0.5rem !important;
+    right: 0.75rem !important;
+    padding: 0.3rem 0.7rem !important;
+    font-size: 0.68rem !important;
+  }
+  .prep-deck-badge {
+    font-size: 0.65rem !important;
+    padding: 0.05rem 0.3rem !important;
+  }
+
+  /* Prep Screens Density */
+  .prep-phase-screen .draft-container {
+    padding: 0.25rem 0.6rem !important;
+    gap: 0.3rem !important;
+    height: 100% !important;
+    max-height: 100dvh !important;
+    justify-content: space-evenly !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+  .prep-phase-screen .draft-header {
+    gap: 0 !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  .draft-eyebrow {
+    display: none !important;
+  }
+  .prep-phase-screen .draft-title {
+    font-size: 1.15rem !important;
+    margin: 0 !important;
+    letter-spacing: 0.04em !important;
+  }
+  .prep-phase-screen .draft-subtitle {
+    display: none !important;
+  }
+
+  /* Revealed Booster Pack Graphic (Uniform Card Scale, Strict 5/7 Ratio) */
+  #revealed-pack-card {
+    width: 140px !important;
+    height: 196px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+    min-height: 196px !important;
+    max-height: 196px !important;
+    aspect-ratio: 5 / 7 !important;
+    transform: scale(0.68) !important;
+    transform-origin: center center !important;
+    margin: -25px auto !important;
+    border-width: 1px !important;
+  }
+  #pack-graphic-wrapper {
+    margin: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #revealed-pack-card .pack-ribbon {
+    font-size: 0.6rem !important;
+    padding: 2px 6px !important;
+    top: 14px !important;
+    left: 8px !important;
+  }
+  #revealed-pack-card .pack-logo {
+    font-size: 1rem !important;
+    margin-top: 1.2rem !important;
+  }
+  #revealed-pack-card .pack-name-text {
+    font-size: 0.72rem !important;
+    bottom: 14px !important;
+  }
+
+  /* Waiting Screen Compact Card in Mobile Landscape */
+  #waiting-screen .lobby-card {
+    padding: 1rem 1.5rem !important;
+    max-width: 360px !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+
+  .pack-opening-area {
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Revealed cards 4-card fan */
+  #reveal-cards-fan {
+    min-height: 0 !important;
+    height: 115px !important;
+    max-height: 120px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: visible !important;
+  }
+  #reveal-cards-fan .card {
+    transform: scale(0.52) !important;
+    margin: 0 -26px !important;
+  }
+  #reveal-cards-fan .card:nth-child(1) { transform: rotate(-5deg) translateY(3px) scale(0.52) !important; }
+  #reveal-cards-fan .card:nth-child(2) { transform: rotate(-1.5deg) translateY(-2px) scale(0.52) !important; }
+  #reveal-cards-fan .card:nth-child(3) { transform: rotate(1.5deg) translateY(-2px) scale(0.52) !important; }
+  #reveal-cards-fan .card:nth-child(4) { transform: rotate(5deg) translateY(3px) scale(0.52) !important; }
+  #reveal-cards-fan .card:hover {
+    transform: scale(0.65) translateY(-8px) !important;
+    z-index: 50 !important;
+  }
+  #reveal-footer.hidden {
+    display: none !important;
+  }
+  #reveal-footer:not(.hidden) {
+    margin: 0.3rem auto 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-shrink: 0 !important;
+    z-index: 20 !important;
+  }
+  #reveal-footer .btn {
+    padding: 0.35rem 1.4rem !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  /* Bonus cards 3-card fan */
+  #bonus-cards-fan {
+    min-height: 0 !important;
+    height: 120px !important;
+    max-height: 125px !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #bonus-cards-fan .card {
+    transform: scale(0.54) !important;
+    margin: 0 -22px !important;
+  }
+  #bonus-cards-fan .card:hover {
+    transform: scale(0.66) translateY(-8px) !important;
+    z-index: 50 !important;
+  }
+
+  /* Pack Selection Grid (Card-sized object with uniform scale: 0.68, Fixed 5/7 Aspect Ratio) */
+  #packs-selection-grid {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    max-height: none !important;
+  }
+  .pack-item {
+    width: 140px !important;
+    height: 196px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+    min-height: 196px !important;
+    max-height: 196px !important;
+    flex: 0 0 140px !important;
+    aspect-ratio: 5 / 7 !important;
+    transform: scale(0.68) !important;
+    transform-origin: center center !important;
+    margin: -30px -18px !important;
+  }
+  #pack-selection-screen .draft-footer {
+    margin-top: 0.25rem !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+  }
+  .prep-reroll-info {
+    padding: 0.2rem 0.6rem !important;
+    font-size: 0.75rem !important;
+  }
+  .prep-reroll-info button {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* Relic Selection Grid (Game Library Compendium Slab Style) */
+  #relic-choices-grid,
+  .relic-choices-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+    margin: 0.15rem auto !important;
+    padding: 0 !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: 96% !important;
+    overflow: visible !important;
+  }
+  .relic-choice-item.compendium-relic-item {
+    padding: 0.45rem 0.65rem !important;
+    border-left-width: 4px !important;
+    gap: 0.25rem !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+  .relic-choice-item.compendium-relic-item:hover,
+  .relic-choice-item.compendium-relic-item.selected {
+    transform: translateY(-2px) !important;
+  }
+  .relic-choice-item .compendium-relic-name {
+    font-size: 0.85rem !important;
+    gap: 0.3rem !important;
+  }
+  .relic-choice-item .compendium-relic-name i {
+    font-size: 0.8rem !important;
+  }
+  .relic-choice-item .compendium-relic-quality {
+    font-size: 0.55rem !important;
+  }
+  .relic-choice-item .compendium-relic-desc {
+    font-size: 0.68rem !important;
+    line-height: 1.3 !important;
+    margin: 0.2rem 0 auto !important;
+  }
+  .relic-choice-action-badge {
+    font-size: 0.58rem !important;
+    padding: 0.2rem 0.4rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  /* Card Removal Grid */
+  #removal-cards-grid {
+    max-height: 42vh !important;
+    gap: 0.35rem !important;
+    padding: 0.2rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  #removal-cards-grid .card {
+    transform: scale(0.62) !important;
+    margin: -24px -16px !important;
+  }
+  .draft-meta-row {
+    gap: 0.5rem !important;
+    margin-top: 0.2rem !important;
+  }
+  .draft-meta-badge {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.68rem !important;
+  }
+
+  /* Inventory Modal: Nav at bottom, scaled down cards, full viewport stretch */
+  #deck-modal .inventory-shell {
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+  #deck-modal .inventory-main {
+    order: 1 !important;
+    flex: 1 1 auto !important;
+    max-height: calc(100vh - 44px) !important;
+    padding: 2.6rem 0.6rem 0.4rem !important;
+    overflow-y: auto !important;
+  }
+  #deck-modal .inventory-header,
+  #deck-modal .inventory-bottom-bar {
+    order: 2 !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 0.85rem !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-bottom: none !important;
+    background: var(--slab-1, #0d111a) !important;
+    z-index: 50 !important;
+  }
+  .inventory-floating-purify {
+    top: 0.5rem !important;
+    left: 0.75rem !important;
+    font-size: 0.88rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .inventory-brand-title {
+    display: none !important;
+  }
+  .inventory-tabs {
+    gap: 0.4rem !important;
+  }
+  .inventory-tab-btn {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.72rem !important;
+  }
+  .inventory-token-tag {
+    display: none !important;
+  }
+  .inventory-close-btn {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.72rem !important;
+  }
+  #deck-cards-list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+    justify-content: center !important;
+    padding: 0.25rem !important;
+  }
+  #deck-cards-list .card {
+    transform: scale(0.68) !important;
+    margin: -22px -16px !important;
+    transform-origin: center center !important;
+  }
+
+  /* Game Over Screen on Mobile Landscape (Matches Round Result Overlay) */
+  #game-over-screen.game-over-fullscreen {
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+  .game-over-content {
+    padding: 0.8rem 1.25rem !important;
+    gap: 0.4rem !important;
+    justify-content: flex-start !important;
+    max-width: 65% !important;
+  }
+  .game-over-watermark {
+    font-size: 7.5rem !important;
+    right: 4% !important;
+  }
+  .game-over-meta-strip {
+    font-size: 0.7rem !important;
+    gap: 0.4rem !important;
+    margin-top: 0.1rem !important;
+  }
+  .game-over-meta-item .meta-label {
+    font-size: 0.65rem !important;
+  }
+  .game-over-corner-actions {
+    bottom: 0.6rem !important;
+    right: 1rem !important;
+    gap: 0.5rem !important;
+    flex-direction: row !important;
+  }
+  .btn-game-over {
+    min-width: 0 !important;
+    padding: 0.35rem 0.85rem !important;
+    font-size: 0.72rem !important;
+  }
+}

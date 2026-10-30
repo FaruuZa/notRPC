@@ -904,72 +904,142 @@
     </button>
   </div>
 
-  <!-- Screen 3: Game Over / Match Result Overlay -->
-  <div id="game-over-screen" class="overlay">
-    <div class="game-over-card glass">
-      <h1 id="game-over-title">VICTORY</h1>
-      <p id="game-over-msg">You have won the match!</p>
-      
-      <div class="game-over-stats">
-        <div class="stat-item">
-          <span class="stat-lbl">Final Score</span>
-          <span class="stat-val" id="go-final-score">2 - 1</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-lbl">Match Rounds</span>
-          <span class="stat-val" id="go-rounds">3</span>
-        </div>  
+  <!-- Screen 3: Game Over / Match Result Overlay (Full-Screen Immersive Atlus Stage - Same Style as Round Result) -->
+  <div id="game-over-screen" class="overlay game-over-fullscreen">
+    <div class="game-over-watermark" id="game-over-watermark">VICTORY</div>
+    
+    <div class="game-over-content">
+      <!-- Top Micro-Kicker -->
+      <div class="round-kicker-row">
+        <span class="round-kicker-tag">ELEMENT CLASH</span>
+        <span class="round-kicker-divider">/</span>
+        <span class="round-kicker-phase">MATCH RESOLUTION</span>
       </div>
 
-      <div class="game-over-actions" style="display: flex; gap: 1rem; width: 100%; justify-content: center; margin-top: 0.5rem;">
-        <button id="rematch-btn" class="btn btn-primary">
-          REMATCH
-        </button>
-        <button id="go-lobby-btn" class="btn btn-secondary">
-          RETURN TO LOBBY
-        </button>
+      <!-- Main Match Title & Verdict Badge -->
+      <div class="round-title-group">
+        <h1 class="round-title-heading">MATCH <span class="accent-text">RESOLUTION</span></h1>
+        <div id="game-over-title" class="round-verdict-badge victory">VICTORY</div>
+        <p id="game-over-msg" class="round-verdict-desc">You have conquered the match!</p>
       </div>
+      
+      <!-- Match Final Score Progression (Free Floating Score Strip) -->
+      <div class="round-score-strip">
+        <div class="score-entry player">
+          <span class="score-user-label">YOU</span>
+          <span id="go-p1-val" class="score-user-val">0</span>
+        </div>
+        <div class="score-divider-line">
+          <span class="score-target-info">FINAL SCORE</span>
+        </div>
+        <div class="score-entry opponent">
+          <span class="score-user-label">OPPONENT</span>
+          <span id="go-p2-val" class="score-user-val">0</span>
+        </div>
+      </div>
+      <!-- Backward compatible hidden element -->
+      <span id="go-final-score" style="display: none;">0 - 0</span>
+
+      <!-- Match Metadata Badge -->
+      <div class="game-over-meta-strip">
+        <div class="game-over-meta-item">
+          <span class="meta-label">MATCH ROUNDS:</span>
+          <span id="go-rounds" class="meta-val">1</span>
+        </div>
+        <span class="meta-divider">•</span>
+        <div class="game-over-meta-item">
+          <span class="meta-label">FORMAT:</span>
+          <span class="meta-val">FIRST TO 3</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Right Match Actions (Anchored like Round Countdown) -->
+    <div class="game-over-corner-actions" id="game-over-corner-actions">
+      <button id="rematch-btn" class="btn btn-primary btn-game-over">
+        <i class="fa-solid fa-rotate-right"></i> REMATCH
+      </button>
+      <button id="go-lobby-btn" class="btn btn-secondary btn-game-over">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> RETURN TO LOBBY
+      </button>
     </div>
   </div>
 
-  <!-- Screen 4: Round Result Overlay -->
-  <div id="round-result-overlay" class="overlay">
-    <div class="round-result-card glass">
-      <h1 id="round-winner-title" class="logo-main" style="font-size: 2.2rem; margin: 0.5rem 0;">ROUND <span class="accent-text">1</span></h1>
-      <p id="round-winner-desc" class="result-desc" style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 600;">Opponent won this round!</p>
-      
-      <div class="round-scores-container" style="display: flex; align-items: center; justify-content: center; gap: 2rem; margin-bottom: 2rem; background: rgba(0,0,0,0.3); padding: 1rem 2rem; border-radius: 4px; border: 1.5px solid var(--border-mat);">
-        <div class="score-player-box" style="display: flex; flex-direction: column; align-items: center;">
-          <span id="score-p1-name" class="score-pname" style="font-family: var(--font-title); font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">You</span>
-          <span id="score-p1-val" class="score-pval" style="font-family: var(--font-title); font-size: 2.4rem; font-weight: 800; color: #fff;">0</span>
+  <!-- Screen 4: Full-Screen Round Result Stage (No Popup, Left Aligned, Bottom-Right Countdown) -->
+  <div id="round-result-overlay" class="round-result-fullscreen">
+    <div class="round-result-watermark" id="round-result-watermark">ROUND 1</div>
+
+    <div class="round-result-content">
+      <!-- Top Micro-Kicker -->
+      <div class="round-kicker-row">
+        <span class="round-kicker-tag">ELEMENT CLASH</span>
+        <span class="round-kicker-divider">/</span>
+        <span class="round-kicker-phase">ROUND OUTCOME</span>
+      </div>
+
+      <!-- Main Round Title & Verdict -->
+      <div class="round-title-group">
+        <h1 id="round-winner-title" class="round-title-heading">ROUND <span class="accent-text">1</span></h1>
+        <div id="round-verdict-badge" class="round-verdict-badge victory">VICTORY</div>
+        <p id="round-winner-desc" class="round-verdict-desc">You won this round!</p>
+      </div>
+
+      <!-- Match Score Progression (First to 3 Points) -->
+      <div class="round-score-strip">
+        <div class="score-entry player">
+          <span id="score-p1-name" class="score-user-label">YOU</span>
+          <span id="score-p1-val" class="score-user-val">0</span>
         </div>
-        <div class="score-vs" style="font-family: var(--font-title); font-weight: 800; font-size: 1.2rem; color: var(--color-fire);">VS</div>
-        <div class="score-player-box" style="display: flex; flex-direction: column; align-items: center;">
-          <span id="score-p2-name" class="score-pname" style="font-family: var(--font-title); font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Opponent</span>
-          <span id="score-p2-val" class="score-pval" style="font-family: var(--font-title); font-size: 2.4rem; font-weight: 800; color: #fff;">0</span>
+        <div class="score-divider-line">
+          <span class="score-target-info">FIRST TO 3</span>
+        </div>
+        <div class="score-entry opponent">
+          <span id="score-p2-name" class="score-user-label">OPPONENT</span>
+          <span id="score-p2-val" class="score-user-val">0</span>
         </div>
       </div>
 
-      <!-- Quest completion reward alert banner -->
-      <div id="round-quest-reward-banner" class="glass hidden" style="margin-bottom: 1.5rem; padding: 0.75rem 1.25rem; border-radius: 6px; border: 1.5px solid #ffd700; background: rgba(255, 215, 0, 0.08); text-align: center; width: 100%; box-sizing: border-box;">
-        <div style="font-family: var(--font-title); font-size: 0.8rem; font-weight: 800; color: #ffd700; letter-spacing: 1px; margin-bottom: 0.25rem; text-transform: uppercase;">
-          <i class="fa-solid fa-trophy" style="margin-right: 0.35rem;"></i> QUEST COMPLETED!
+      <!-- Quest Completion & Rewards Reveal Section -->
+      <div id="round-quest-reward-banner" class="round-quest-panel hidden">
+        <div class="quest-panel-header">
+          <span class="quest-panel-icon"><i class="fa-solid fa-trophy"></i></span>
+          <span class="quest-panel-title">QUEST ACCOMPLISHED</span>
         </div>
-        <div id="round-quest-reward-text" style="font-size: 0.9rem; color: #fff; font-weight: 600; line-height: 1.4;">-</div>
+        <div class="quest-objective-row">
+          <span class="quest-objective-label">OBJECTIVE:</span>
+          <span id="round-quest-text" class="quest-objective-text">-</span>
+        </div>
+        <div class="quest-rewards-showcase" id="round-quest-rewards-showcase">
+          <!-- Dynamic reward items will be rendered here -->
+        </div>
+        <!-- Keep hidden element for backwards compatibility -->
+        <div id="round-quest-reward-text" style="display: none;">-</div>
       </div>
-      
-      <p class="next-phase-tip">Draft Phase starting in a few seconds...</p>
+
+      <!-- Failed Quest Notice (if applicable) -->
+      <div id="round-quest-failed-banner" class="round-quest-failed hidden">
+        <i class="fa-solid fa-circle-xmark"></i>
+        <span id="round-quest-failed-text">Quest not completed this round.</span>
+      </div>
+    </div>
+
+    <!-- Bottom Right Countdown to Prep Phase -->
+    <div class="round-countdown-corner" id="round-countdown-corner">
+      <span class="countdown-subtext">ENTERING PREPARATION PHASE</span>
+      <div class="countdown-num-wrapper">
+        <span id="round-countdown-val" class="countdown-large-num">3</span>
+        <span class="countdown-unit">s</span>
+      </div>
     </div>
   </div>
 
   <!-- Screen 5: Loser Bonus Pick Screen -->
-  <div id="bonus-pick-screen" class="screen">
+  <div id="bonus-pick-screen" class="screen prep-phase-screen">
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub" id="bonus-pick-logo-sub">COMEBACK MECHANIC</span>
-        <h2 class="draft-title" id="bonus-pick-title">LOSER <span class="accent-text">BONUS PICK</span></h2>
-        <p class="draft-subtitle" id="bonus-pick-subtitle">Choose exactly <strong>1 card</strong> to add directly to your deck</p>
+        <h2 class="draft-title" id="bonus-pick-title">BONUS <span class="accent-text">PICK</span></h2>
+        <p class="draft-subtitle" id="bonus-pick-subtitle" style="display: none;"></p>
       </header>
       
       <div class="horizontal-fan-container" id="bonus-cards-fan">
@@ -985,40 +1055,38 @@
   </div>
 
   <!-- Screen 6: Winner Waiting Screen -->
-  <div id="waiting-screen" class="screen">
+  <div id="waiting-screen" class="screen prep-phase-screen">
     <div class="stars-bg"></div>
-    <div class="lobby-container">
-      <header class="logo-area animate-logo">
-        <span class="logo-sub">DRAFT PHASE</span>
+    <div class="draft-container">
+      <header class="draft-header animate-logo">
         <h2 class="draft-title">WAITING FOR <span class="accent-text">OPPONENT</span></h2>
       </header>
-      <div class="lobby-card glass" style="text-align: center; padding: 3rem 2rem;">
-        <span class="loader" style="width: 36px; height: 36px; border-width: 3px; display: inline-block; margin-bottom: 1.5rem;"></span>
-        <p style="color: var(--text-secondary); font-size: 1rem; font-weight: 600;">Your opponent is choosing their loser bonus card...</p>
+      <div class="lobby-card" style="text-align: center; padding: 2rem 2.5rem; background: #141824; border: 1px solid rgba(255,255,255,0.08); border-radius: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.6); max-width: 480px; width: 100%;">
+        <span class="loader" style="width: 28px; height: 28px; border-width: 3px; display: inline-block; margin-bottom: 1rem;"></span>
+        <p id="waiting-status-msg" style="color: var(--text-secondary); font-size: 0.95rem; font-weight: 600; margin: 0 0 0.5rem 0;">Waiting for opponent to complete preparation...</p>
         <div id="waiting-timer-container" class="waiting-timer-container hidden">
-          Opponent has <span id="waiting-timer-val">30</span>s remaining!
+          Opponent has <span id="waiting-timer-val">30</span>s remaining
         </div>
       </div>
     </div>
   </div>
 
   <!-- Screen 7: Pack Selection Screen -->
-  <div id="pack-selection-screen" class="screen">
+  <div id="pack-selection-screen" class="screen prep-phase-screen">
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub">ARCHETYPE DRAFT</span>
-        <h2 class="draft-title">PACK <span class="accent-text">SELECTION</span></h2>
-        <p class="draft-subtitle">Select <strong>1 Card Pack</strong> (you will receive all 4 cards in the pack)</p>
+        <h2 class="draft-title" id="pack-selection-title">ROUND <span class="accent-text">PACKS</span></h2>
+        <p class="draft-subtitle" id="pack-selection-subtitle" style="display: none;"></p>
       </header>
       
       <div class="packs-grid" id="packs-selection-grid">
         <!-- 3 packs with rich graphics will be rendered here -->
       </div>
 
-      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; width: 100%; margin-top: 2rem;">
-        <div class="prep-reroll-info" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-          <span style="font-size: 0.9rem; opacity: 0.8;">Rerolls: <strong id="pack-rerolls-val" style="color: #f5cf70;">1</strong></span>
+      <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; width: 100%;">
+        <div class="prep-reroll-info" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; background: rgba(255,255,255,0.05); border-radius: 0; border: 1px solid rgba(255,255,255,0.1);">
+          <span style="font-size: 0.85rem; opacity: 0.85;">Rerolls: <strong id="pack-rerolls-val" style="color: #f5cf70;">1</strong></span>
           <button id="pack-reroll-btn" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">REROLL PACKS</button>
         </div>
       </footer>
@@ -1026,13 +1094,12 @@
   </div>
 
   <!-- Screen 8: Pack Reveal Screen -->
-  <div id="pack-reveal-screen" class="screen">
+  <div id="pack-reveal-screen" class="screen prep-phase-screen">
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <span class="logo-sub">PACK REVEALED</span>
-        <h2 class="draft-title">NEW <span class="accent-text">ACQUISITIONS</span></h2>
-        <p class="draft-subtitle">All 4 cards have been added to your deck!</p>
+        <h2 class="draft-title" id="pack-reveal-title">NEW <span class="accent-text">ACQUISITIONS</span></h2>
+        <p class="draft-subtitle" id="pack-reveal-subtitle" style="display: none;"></p>
       </header>
       
       <div class="pack-opening-area">
@@ -1050,7 +1117,7 @@
       
       <footer class="draft-footer hidden" id="reveal-footer">
         <button id="pack-reveal-confirm-btn" class="btn btn-primary">
-          CONTINUE TO NEXT ROUND
+          CONTINUE
         </button>
       </footer>
     </div>
@@ -1073,35 +1140,16 @@
   </div>
 
   <!-- Screen 10: Inventory Modal (Full-Screen Geometric Interface) -->
+  <!-- Screen 10: Inventory Modal (Unified Bottom Navigation Interface) -->
   <div id="deck-modal" class="inventory-modal">
+    <!-- Floating Purify Token Indicator in Top-Left Corner -->
+    <div class="inventory-floating-purify" id="player-token-badge" title="Purify Tokens: Burn unwanted cards during Preparation Phase">
+      <i class="fa-solid fa-fire-flame-curved"></i>
+      <span>PURIFY: <strong id="player-tokens-val">0</strong></span>
+    </div>
+
     <div class="inventory-shell">
-      <!-- Fixed Minimal Header Bar -->
-      <header class="inventory-header">
-        <div class="inventory-nav-left">
-          <span class="inventory-brand-title">INVENTORY</span>
-          <div class="inventory-tabs">
-            <button class="inventory-tab-btn active" id="tab-cards-btn" aria-label="My Cards Tab">
-              <i class="fa-solid fa-layer-group"></i> CARDS <span class="tab-badge" id="tab-cards-count">0</span>
-            </button>
-            <button class="inventory-tab-btn" id="tab-relics-btn" aria-label="My Relics Tab">
-              <i class="fa-solid fa-circle-nodes"></i> RELICS <span class="tab-badge" id="tab-relics-count">0</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="inventory-nav-right">
-          <div class="inventory-token-tag" id="player-token-badge" title="Purify Tokens: Burn unwanted cards during Preparation Phase">
-            <i class="fa-solid fa-fire-flame-curved"></i>
-            <span>PURIFY <strong id="player-tokens-val">0</strong></span>
-          </div>
-          <button id="deck-close-btn" class="inventory-close-btn" aria-label="Close Inventory">
-            <i class="fa-solid fa-xmark"></i>
-            <span class="close-label">CLOSE</span>
-          </button>
-        </div>
-      </header>
-
-      <!-- Scrollable Main Viewport (Fixed full height, zero layout shift) -->
+      <!-- Scrollable Main Viewport (Expands fully down to the bottom nav bar) -->
       <main class="inventory-main">
         <div class="inventory-tab-panel active" id="tab-cards-content">
           <div id="deck-cards-list" class="inventory-grid-cards">
@@ -1115,6 +1163,23 @@
           </div>
         </div>
       </main>
+
+      <!-- Unified Bottom Navigation Bar (Both Desktop and Mobile) -->
+      <footer class="inventory-header inventory-bottom-bar">
+        <div class="inventory-tabs">
+          <button class="inventory-tab-btn active" id="tab-cards-btn" aria-label="My Cards Tab">
+            <i class="fa-solid fa-layer-group"></i> CARDS <span class="tab-badge" id="tab-cards-count">0</span>
+          </button>
+          <button class="inventory-tab-btn" id="tab-relics-btn" aria-label="My Relics Tab">
+            <i class="fa-solid fa-circle-nodes"></i> RELICS <span class="tab-badge" id="tab-relics-count">0</span>
+          </button>
+        </div>
+
+        <button id="deck-close-btn" class="inventory-close-btn" aria-label="Close Inventory">
+          <i class="fa-solid fa-xmark"></i>
+          <span class="close-label">CLOSE</span>
+        </button>
+      </footer>
     </div>
   </div>
 
@@ -1142,7 +1207,7 @@
       
       <footer class="draft-footer quest-footer" style="display: flex; gap: 1rem; justify-content: center; align-items: center; margin-top: 1rem;">
         <button id="quest-view-deck-btn" class="btn btn-secondary">
-          <i class="fa-solid fa-layer-group"></i> LIHAT DECK
+          <i class="fa-solid fa-layer-group"></i> VIEW DECK
         </button>
         <button id="quest-reroll-btn" class="btn btn-secondary hidden">
           <i class="fa-solid fa-rotate"></i> REROLL QUEST
@@ -1155,12 +1220,12 @@
   </div>
 
   <!-- Screen 12: Card Removal Screen -->
-  <div id="card-removal-screen" class="screen">
+  <div id="card-removal-screen" class="screen prep-phase-screen">
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
         <h2 class="draft-title">DECK <span class="accent-text">PURIFICATION</span></h2>
-        <p class="draft-subtitle">Select a card to permanently burn from your deck. Unused tokens remain in your inventory.</p>
+        <p class="draft-subtitle" style="display: none;"></p>
         
         <div class="draft-meta-row">
           <div class="draft-meta-badge glass" id="removal-tokens-box">
@@ -1190,16 +1255,16 @@
   </div>
 
   <!-- Screen 13: Relic Selection Screen -->
-  <div id="relic-selection-screen" class="screen">
+  <div id="relic-selection-screen" class="screen prep-phase-screen">
     <div class="stars-bg"></div>
     <div class="draft-container">
       <header class="draft-header animate-logo">
-        <h2 class="draft-title">RELIC <span class="accent-text">SELECTION</span></h2>
-        <p class="draft-subtitle">Choose exactly <strong>1 passive relic</strong> to add to your collection.</p>
+        <h2 class="draft-title" id="relic-selection-title">RELIC <span class="accent-text">REWARD</span></h2>
+        <p class="draft-subtitle" id="relic-selection-subtitle" style="display: none;"></p>
       </header>
       
-      <div class="relics-modal-grid" id="relic-choices-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; justify-content: center; margin-bottom: 2rem; max-height: 50vh; overflow-y: auto; padding: 1rem; width: 100%; max-width: 800px; box-sizing: border-box;">
-        <!-- 3 relics to choose from -->
+      <div class="relic-choices-grid" id="relic-choices-grid">
+        <!-- 3 relics to choose from rendered like Game Library -->
       </div>
       
       <footer class="draft-footer" style="display: flex; gap: 1.5rem; justify-content: center; align-items: center; width: 100%;">
@@ -1221,10 +1286,28 @@
     <div class="tooltip-sub" style="display: none;">Quality: COMMON Relic</div>
   </div>
 
-  <!-- Global Preparation Timer Banner -->
-  <div id="global-prep-timer" class="prep-timer-banner hidden">
-    <i class="fa-solid fa-clock"></i> TIME REMAINING: <span id="global-prep-timer-val">30</span>s
+  <!-- Unified Top-Left Preparation Phase Header & Checkpoint Tracker -->
+  <div id="prep-header-tracker" class="prep-header-tracker hidden">
+    <div class="prep-header-brand">
+      <i class="fa-solid fa-wrench"></i> PREPARATION PHASE
+    </div>
+    <div class="prep-checkpoints-track" id="prep-checkpoints-track">
+      <!-- Checkpoints rendered dynamically -->
+    </div>
   </div>
+
+  <!-- Global Preparation Timer (Corner Minimal Numeric Display) -->
+  <div id="global-prep-timer" class="prep-timer-corner hidden" title="Preparation Phase Time Remaining">
+    <span class="prep-timer-label">TIME</span>
+    <span id="global-prep-timer-val" class="prep-timer-val">30</span>
+  </div>
+
+  <!-- Persistent Prep Phase Deck Peek / Inventory Button -->
+  <button id="prep-inventory-btn" class="prep-inventory-actuator hidden" aria-label="Open Inventory to peek deck and relics" title="Inspect current deck and relics">
+    <i class="fa-solid fa-briefcase"></i>
+    <span class="prep-inv-text">INVENTORY</span>
+    <span id="prep-deck-count-badge" class="prep-deck-badge">0</span>
+  </button>
 
   <!-- Local Vendor Scripts (Bypasses Discord Activity CSP Restrictions) -->
   <script src="js/vendor/discord-sdk.js?v=2.0.18"></script>
