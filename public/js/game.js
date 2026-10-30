@@ -482,7 +482,8 @@ const GameManager = {
             UI.playerPlaySlot.appendChild(slotCard);
             UI.playerPlaySlot.classList.add('filled');
             const handCardEl = UI.playerHand.querySelector(`.card[data-instance-id="${data.yourSelectedCardId}"]`);
-            if (handCardEl) handCardEl.style.opacity = '0';
+            if (handCardEl) handCardEl.remove();
+            UI.realignHand();
           }
         }
       } else {

@@ -59,6 +59,9 @@ const HandGesture = (() => {
   // ---------- drag lifecycle ----------
 
   function beginDrag() {
+    // Purge any stale dragging clones from document.body immediately
+    document.querySelectorAll('.card-dragging').forEach(el => el.remove());
+
     const { cardEl } = st;
     st.dragging = true;
 
@@ -73,8 +76,8 @@ const HandGesture = (() => {
     st.slotCx = st.slotRect.left + st.slotRect.width / 2;
     st.slotCy = st.slotRect.top + st.slotRect.height / 2;
     st.slotScale = st.slotRect.width / w;
-    st.slotPad = st.isTouch ? SLOT_PAD_TOUCH : SLOT_PAD_MOUSE;
-    st.dragScale = st.isTouch ? Math.max(st.start.scale, 0.75) : Math.max(st.start.scale, 1) * 1.04;
+    st.slotPad = st.isTouch ? 4 : 2; // Precise entry into play slot: no premature snapping
+    st.dragScale = st.isTouch ? st.start.scale : Math.max(st.start.scale, 1) * 1.04;
 
     // Re-measure every card's resting position (hand order), so we can compute
     // an insertion index from the finger X without touching the live layout.
@@ -110,7 +113,9 @@ const HandGesture = (() => {
     // fan gap open and lets us reorder it).
     cardEl.classList.add('drag-placeholder');
     handEl.classList.add('is-dragging');
-    slotEl.classList.add('drop-target');
+    if (!ui.isLocked) {
+      slotEl.classList.add('drop-target');
+    }
 
     // Next frame: straighten + grow the floating card (CSS transition animates it)
     requestAnimationFrame(() => {
@@ -163,7 +168,8 @@ const HandGesture = (() => {
     st.cx = cx;
     st.cy = cy;
 
-    const overSlot = inRect(cx, cy, st.slotRect, st.slotPad);
+    // Snap ONLY when touch/pointer enters the play slot area and player is not locked
+    const overSlot = !ui.isLocked && inRect(st.px, st.py, st.slotRect, st.slotPad);
     st.inHand = !overSlot && cy >= st.handTop;
     setSnap(overSlot);
 
@@ -204,7 +210,14 @@ const HandGesture = (() => {
     try { handEl.releasePointerCapture(st.pointerId); } catch (e) { /* already released */ }
     handEl.classList.remove('is-dragging');
     if (ui.playerPlaySlot) ui.playerPlaySlot.classList.remove('snap-active', 'drop-target');
+    if (st.clone && st.clone.parentNode) st.clone.remove();
     if (st.cardEl) st.cardEl.classList.remove('drag-placeholder');
+    // Ensure all cards in hand have drag-placeholder removed so nothing ever gets stuck invisible
+    if (handEl) {
+      handEl.querySelectorAll('.drag-placeholder').forEach(c => c.classList.remove('drag-placeholder'));
+    }
+    // Purge any dragging clones on document.body
+    document.querySelectorAll('.card-dragging').forEach(el => el.remove());
     st = null;
     if (flush) ui.flushPendingHandRender();
   }
@@ -213,10 +226,10 @@ const HandGesture = (() => {
 
   function onPointerDown(e) {
     if (st) return;                                   // ignore 2nd finger
-    if (!ui || ui.isLocked) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const cardEl = e.target.closest && e.target.closest('.card');
     if (!cardEl || !handEl.contains(cardEl)) return;
+    if (cardEl.classList.contains('locked') || cardEl.classList.contains('drag-placeholder')) return;
     const id = cardEl.getAttribute('data-instance-id');
     if (!id) return;
 
@@ -245,12 +258,20 @@ const HandGesture = (() => {
 
   function settleInto(index, done) {
     const clone = st.clone;
-    const r = st.rest[index] || st.start;
-    clone.style.transition = 'translate .2s cubic-bezier(.2,.8,.2,1), rotate .2s ease-out, scale .2s ease-out';
-    clone.style.translate = `${r.cx - st.w / 2}px ${r.cy - st.h / 2}px`;
-    clone.style.rotate = `${r.angle}deg`;
-    clone.style.scale = r.scale;
-    setTimeout(() => { clone.remove(); done(); }, 220);
+    if (!clone || !clone.parentNode) {
+      done();
+      return;
+    }
+    // Measure cardEl's live target position in the DOM to avoid any hover mismatch
+    const target = (st.cardEl && st.cardEl.parentNode) ? measureCard(st.cardEl) : (st.rest[index] || st.start);
+    clone.style.transition = 'translate .12s cubic-bezier(.2,.8,.2,1), rotate .12s ease-out, scale .12s ease-out';
+    clone.style.translate = `${target.cx - st.w / 2}px ${target.cy - st.h / 2}px`;
+    clone.style.rotate = `${target.angle}deg`;
+    clone.style.scale = target.scale;
+    setTimeout(() => {
+      if (clone.parentNode) clone.remove();
+      done();
+    }, 130);
   }
 
   function onPointerUp(e) {
@@ -285,7 +306,7 @@ const HandGesture = (() => {
       // Play. Passing over other cards on the way must not rearrange the hand.
       reorderTo(s.origIndex);
       const from = { cx: s.slotCx, cy: s.slotCy, scale: s.slotScale };
-      s.clone.remove();
+      if (s.clone && s.clone.parentNode) s.clone.remove();
       teardown(false);
       ui.selectCard(s.id, true);
       ui.lockSelection(from);
@@ -293,15 +314,20 @@ const HandGesture = (() => {
       return;
     }
 
-    // Not on the slot: fly back into the hand. Only a release INSIDE the hand keeps a new arrangement.
+    // Released INSIDE the hand: instant drop with ZERO clone delay or lingering duplicates!
     if (s.inHand) {
       ui.handOrder = s.order.map(el => el.getAttribute('data-instance-id'));
-    } else {
-      reorderTo(s.origIndex);
+      if (s.clone && s.clone.parentNode) s.clone.remove();
+      teardown();
+      ui.realignHand();
+      return;
     }
+
+    // Released OUTSIDE the hand (not on slot): fly smoothly back into original resting hand position
+    reorderTo(s.origIndex);
     s.dragging = false;
     s.settling = true;
-    settleInto(s.index, () => {
+    settleInto(s.origIndex, () => {
       if (st === s) teardown();
     });
   }

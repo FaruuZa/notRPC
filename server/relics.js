@@ -191,7 +191,7 @@ const RELIC_POOL = {
   relic_reactive_cleanse_legendary: {
     id: 'relic_reactive_cleanse_legendary',
     name: 'Purifying Amulet',
-    description: 'When you take HP damage from a card clash: instantly cleanse all your Poison, Burn, and Weakness stacks. (Unique - max 1)',
+    description: "When you take HP damage from an opponent's card clash: instantly cleanse all your Poison, Burn, and Weakness stacks. (Unique - max 1)",
     quality: 'LEGENDARY',
     icon: 'fa-hand-sparkles',
     unique: true,
@@ -203,10 +203,10 @@ const RELIC_POOL = {
   relic_spite_thorns_epic: {
     id: 'relic_spite_thorns_epic',
     name: 'Briar Armor',
-    description: 'When you take HP damage (clash or status tick): deal 3 true damage to your opponent per stack.',
+    description: "When hit by an opponent's card clash: deal 5 damage to opponent per stack (damages Shield first).",
     quality: 'EPIC',
     icon: 'fa-shield-virus',
-    effect: { type: 'spite_thorns', value: 3 }
+    effect: { type: 'spite_thorns', value: 5 }
   },
 
   // Desperation (Scaling damage as HP drops)

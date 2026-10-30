@@ -302,6 +302,10 @@ function resolveRound(roomId, io) {
     return;
   }
 
+  // Capture shields before clash for card-specific damage calculation
+  const initialShieldA = p1.shield;
+  const initialShieldB = p2.shield;
+
   // Evaluate clash considering active statuses, relics, and HP
   const result = evaluateClash(card1, card2, p1.shield, p2.shield, p1.statuses, p2.statuses, p1.relics, p2.relics, p1.hp, p1.maxHp, p2.hp, p2.maxHp);
 
@@ -323,7 +327,7 @@ function resolveRound(roomId, io) {
   p1.hp = Math.max(0, p1.hp - result.hpDamageA);
   p2.hp = Math.max(0, p2.hp - result.hpDamageB);
 
-  // Purifying Amulet, Briar Armor & Thorn Keyword (Clash HP Damage)
+  // Purifying Amulet, Briar Armor & Thorn Keyword
   const p1Briar = (p1.relics.relic_spite_thorns_epic || p1.relics.relic_spite_thorns_rare || 0);
   const p2Briar = (p2.relics.relic_spite_thorns_epic || p2.relics.relic_spite_thorns_rare || 0);
   const p1HasVenomheart = (p1.relics.relic_venomheart_briar_legendary || 0) > 0;
@@ -333,13 +337,33 @@ function resolveRound(roomId, io) {
   let p2ThornsDmg = 0;
   let p1VenomheartPoison = 0;
   let p2VenomheartPoison = 0;
+  let p1CleanseSuccess = false;
+  let p1DispelSuccess = false;
+  let p2CleanseSuccess = false;
+  let p2DispelSuccess = false;
 
-  if (result.hpDamageA > 0) {
-    if ((p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
-      p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
-      io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
-    }
-    const briarDmg = p1Briar > 0 ? (3 * p1Briar) : 0;
+  // Calculate unblocked HP damage strictly from opponent's card clash (never from self-damage or DoT)
+  const cardHpDamageToB = result.damageDealtByA > 0 ? Math.min(result.hpDamageB, Math.max(0, result.damageDealtByA - (initialShieldB + result.shieldGainB))) : 0;
+  const cardHpDamageToA = result.damageDealtByB > 0 ? Math.min(result.hpDamageA, Math.max(0, result.damageDealtByB - (initialShieldA + result.shieldGainA))) : 0;
+
+  // Purifying Amulet triggers ONLY when unblocked HP damage is taken from opponent's card clash (never from self-damage or DoT)
+  if (cardHpDamageToA > 0 && (p1.relics.relic_reactive_cleanse_legendary || 0) > 0) {
+    const debuffsA = (p1.statuses.poison || 0) + (p1.statuses.burn || 0) + (p1.statuses.weakness || 0);
+    if (debuffsA > 0) p1CleanseSuccess = true;
+    p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
+    io.to(roomId).emit('relicTriggered', { playerId: p1.id, relicName: 'Purifying Amulet', message: `${p1.username}'s Purifying Amulet cleansed all debuffs!` });
+  }
+  if (cardHpDamageToB > 0 && (p2.relics.relic_reactive_cleanse_legendary || 0) > 0) {
+    const debuffsB = (p2.statuses.poison || 0) + (p2.statuses.burn || 0) + (p2.statuses.weakness || 0);
+    if (debuffsB > 0) p2CleanseSuccess = true;
+    p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
+    io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
+  }
+
+  // Briar Armor & Thorn Keyword: triggers when player receives clash damage from enemy card (even if absorbed by shield!)
+  // Does NOT pierce shield: damages shield first, then HP.
+  if (result.damageDealtByB > 0) {
+    const briarDmg = p1Briar > 0 ? (5 * p1Briar) : 0;
     let thornVal = 0;
     if ((p1.statuses.thorn || 0) > 0) {
       thornVal = p1.statuses.thorn;
@@ -359,7 +383,13 @@ function resolveRound(roomId, io) {
           message: `${p1.username}'s Venomheart Briar converted Thorns into ${poisonGain} Poison on ${p2.username}!`
         });
       } else {
-        p2.hp = Math.max(0, p2.hp - totalThorns);
+        if (p2.shield >= totalThorns) {
+          p2.shield -= totalThorns;
+        } else {
+          const rem = totalThorns - p2.shield;
+          p2.shield = 0;
+          p2.hp = Math.max(0, p2.hp - rem);
+        }
         p2ThornsDmg += totalThorns;
         if (briarDmg > 0) {
           io.to(roomId).emit('relicTriggered', {
@@ -384,12 +414,9 @@ function resolveRound(roomId, io) {
       }
     }
   }
-  if (result.hpDamageB > 0) {
-    if ((p2.relics.relic_reactive_cleanse_legendary || 0) > 0) {
-      p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
-      io.to(roomId).emit('relicTriggered', { playerId: p2.id, relicName: 'Purifying Amulet', message: `${p2.username}'s Purifying Amulet cleansed all debuffs!` });
-    }
-    const briarDmg = p2Briar > 0 ? (3 * p2Briar) : 0;
+
+  if (result.damageDealtByA > 0) {
+    const briarDmg = p2Briar > 0 ? (5 * p2Briar) : 0;
     let thornVal = 0;
     if ((p2.statuses.thorn || 0) > 0) {
       thornVal = p2.statuses.thorn;
@@ -409,7 +436,13 @@ function resolveRound(roomId, io) {
           message: `${p2.username}'s Venomheart Briar converted Thorns into ${poisonGain} Poison on ${p1.username}!`
         });
       } else {
-        p1.hp = Math.max(0, p1.hp - totalThorns);
+        if (p1.shield >= totalThorns) {
+          p1.shield -= totalThorns;
+        } else {
+          const rem = totalThorns - p1.shield;
+          p1.shield = 0;
+          p1.hp = Math.max(0, p1.hp - rem);
+        }
         p1ThornsDmg += totalThorns;
         if (briarDmg > 0) {
           io.to(roomId).emit('relicTriggered', {
@@ -435,12 +468,15 @@ function resolveRound(roomId, io) {
     }
   }
 
-  // Leech keyword: Heals 20% x stack of direct unblocked HP damage, capped at 10 HP per trigger, consumes 1 stack
+  // Leech keyword: Triggers ONLY on unblocked HP damage dealt by our card to opponent
+  // Does NOT trigger on DoT, Thorns, or opponent's self-damage.
+  // Consumes 1 stack ONLY when Leech actually triggers. Max heal cap removed.
   let p1LeechHeal = 0;
   let p2LeechHeal = 0;
-  if (result.hpDamageB > 0 && (p1.statuses.leech || 0) > 0) {
+
+  if (cardHpDamageToB > 0 && (p1.statuses.leech || 0) > 0) {
     const leechRatio = (p1.statuses.leech || 0) * 0.20;
-    const leechHeal = Math.min(10, Math.round(result.hpDamageB * leechRatio));
+    const leechHeal = Math.round(cardHpDamageToB * leechRatio);
     const actualHeal = Math.min(leechHeal, p1.maxHp - p1.hp);
     p1.hp = Math.min(p1.maxHp, p1.hp + actualHeal);
     p1.statuses.leech = Math.max(0, p1.statuses.leech - 1);
@@ -453,9 +489,9 @@ function resolveRound(roomId, io) {
       message: `${p1.username}'s Leech restored ${actualHeal} HP!`
     });
   }
-  if (result.hpDamageA > 0 && (p2.statuses.leech || 0) > 0) {
+  if (cardHpDamageToA > 0 && (p2.statuses.leech || 0) > 0) {
     const leechRatio = (p2.statuses.leech || 0) * 0.20;
-    const leechHeal = Math.min(10, Math.round(result.hpDamageA * leechRatio));
+    const leechHeal = Math.round(cardHpDamageToA * leechRatio);
     const actualHeal = Math.min(leechHeal, p2.maxHp - p2.hp);
     p2.hp = Math.min(p2.maxHp, p2.hp + actualHeal);
     p2.statuses.leech = Math.max(0, p2.statuses.leech - 1);
@@ -489,13 +525,7 @@ function resolveRound(roomId, io) {
       console.log(`[RoomManager] Player ${player.username} was dispelled.`);
     }
 
-    // Outbreak: doubles current poison stacks (amplifier only: 0 remains 0)
-    if (statusObj.outbreak) {
-      player.statuses.poison = (player.statuses.poison || 0) * 2;
-      console.log(`[RoomManager] Player ${player.username} Outbreak! Poison doubled to ${player.statuses.poison}`);
-    }
-
-    // Now process other statuses (capping removed)
+    // Now process other statuses (capping removed; outbreak handled pre-tick)
     Object.keys(statusObj).forEach(stat => {
       if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
       if (stat === 'thorns') {
@@ -513,17 +543,23 @@ function resolveRound(roomId, io) {
   // 1. Pre-tick Cleanse & Dispel check: Wipe debuffs (Cleanse) and opponent buffs (Dispel) BEFORE ticks run!
   if (effect1.applyStatus) {
     if (effect1.applyStatus.self && effect1.applyStatus.self.cleanse > 0) {
+      const debuffsA = (p1.statuses.poison || 0) + (p1.statuses.burn || 0) + (p1.statuses.weakness || 0);
+      if (debuffsA > 0) p1CleanseSuccess = true;
       p1.statuses.poison = 0;
       p1.statuses.burn = 0;
       p1.statuses.weakness = 0;
       console.log(`[RoomManager] Player ${p1.username} cleansed all debuffs (pre-tick).`);
     }
     if (effect1.applyStatus.opponent && effect1.applyStatus.opponent.cleanse > 0) {
+      const debuffsB = (p2.statuses.poison || 0) + (p2.statuses.burn || 0) + (p2.statuses.weakness || 0);
+      if (debuffsB > 0) p2CleanseSuccess = true;
       p2.statuses.poison = 0;
       p2.statuses.burn = 0;
       p2.statuses.weakness = 0;
     }
     if (effect1.applyStatus.opponent && effect1.applyStatus.opponent.dispel > 0) {
+      const buffsB = (p2.statuses.attackBuff || 0) + (p2.statuses.leech || 0) + (p2.statuses.thorn || 0);
+      if (buffsB > 0) p1DispelSuccess = true;
       p2.statuses.attackBuff = 0;
       p2.statuses.leech = 0;
       p2.statuses.thorn = 0;
@@ -535,10 +571,16 @@ function resolveRound(roomId, io) {
       p1.statuses.thorn = 0;
     }
     if (effect1.applyStatus.both && effect1.applyStatus.both.cleanse > 0) {
+      const debuffsA = (p1.statuses.poison || 0) + (p1.statuses.burn || 0) + (p1.statuses.weakness || 0);
+      if (debuffsA > 0) p1CleanseSuccess = true;
+      const debuffsB = (p2.statuses.poison || 0) + (p2.statuses.burn || 0) + (p2.statuses.weakness || 0);
+      if (debuffsB > 0) p2CleanseSuccess = true;
       p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
       p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
     }
     if (effect1.applyStatus.both && effect1.applyStatus.both.dispel > 0) {
+      const buffsB = (p2.statuses.attackBuff || 0) + (p2.statuses.leech || 0) + (p2.statuses.thorn || 0);
+      if (buffsB > 0) p1DispelSuccess = true;
       p1.statuses.attackBuff = 0; p1.statuses.leech = 0; p1.statuses.thorn = 0;
       p2.statuses.attackBuff = 0; p2.statuses.leech = 0; p2.statuses.thorn = 0;
     }
@@ -546,17 +588,23 @@ function resolveRound(roomId, io) {
 
   if (effect2.applyStatus) {
     if (effect2.applyStatus.self && effect2.applyStatus.self.cleanse > 0) {
+      const debuffsB = (p2.statuses.poison || 0) + (p2.statuses.burn || 0) + (p2.statuses.weakness || 0);
+      if (debuffsB > 0) p2CleanseSuccess = true;
       p2.statuses.poison = 0;
       p2.statuses.burn = 0;
       p2.statuses.weakness = 0;
       console.log(`[RoomManager] Player ${p2.username} cleansed all debuffs (pre-tick).`);
     }
     if (effect2.applyStatus.opponent && effect2.applyStatus.opponent.cleanse > 0) {
+      const debuffsA = (p1.statuses.poison || 0) + (p1.statuses.burn || 0) + (p1.statuses.weakness || 0);
+      if (debuffsA > 0) p1CleanseSuccess = true;
       p1.statuses.poison = 0;
       p1.statuses.burn = 0;
       p1.statuses.weakness = 0;
     }
     if (effect2.applyStatus.opponent && effect2.applyStatus.opponent.dispel > 0) {
+      const buffsA = (p1.statuses.attackBuff || 0) + (p1.statuses.leech || 0) + (p1.statuses.thorn || 0);
+      if (buffsA > 0) p2DispelSuccess = true;
       p1.statuses.attackBuff = 0;
       p1.statuses.leech = 0;
       p1.statuses.thorn = 0;
@@ -568,13 +616,59 @@ function resolveRound(roomId, io) {
       p2.statuses.thorn = 0;
     }
     if (effect2.applyStatus.both && effect2.applyStatus.both.cleanse > 0) {
+      const debuffsA = (p1.statuses.poison || 0) + (p1.statuses.burn || 0) + (p1.statuses.weakness || 0);
+      if (debuffsA > 0) p1CleanseSuccess = true;
+      const debuffsB = (p2.statuses.poison || 0) + (p2.statuses.burn || 0) + (p2.statuses.weakness || 0);
+      if (debuffsB > 0) p2CleanseSuccess = true;
       p1.statuses.poison = 0; p1.statuses.burn = 0; p1.statuses.weakness = 0;
       p2.statuses.poison = 0; p2.statuses.burn = 0; p2.statuses.weakness = 0;
     }
     if (effect2.applyStatus.both && effect2.applyStatus.both.dispel > 0) {
+      const buffsA = (p1.statuses.attackBuff || 0) + (p1.statuses.leech || 0) + (p1.statuses.thorn || 0);
+      if (buffsA > 0) p2DispelSuccess = true;
       p1.statuses.attackBuff = 0; p1.statuses.leech = 0; p1.statuses.thorn = 0;
       p2.statuses.attackBuff = 0; p2.statuses.leech = 0; p2.statuses.thorn = 0;
     }
+  }
+
+  // 1.5 Pre-tick Outbreak check:
+  // Outbreak doubles current poison BEFORE ticks run, but extra poison ticks next turn ("sama halnya dengan menambah DoT biasa").
+  const p1PreOutbreakPoison = p1.statuses.poison || 0;
+  const p2PreOutbreakPoison = p2.statuses.poison || 0;
+
+  let p1HasOutbreak = false;
+  let p2HasOutbreak = false;
+
+  if (effect1.applyStatus) {
+    if (effect1.applyStatus.opponent?.outbreak) p2HasOutbreak = true;
+    if (effect1.applyStatus.self?.outbreak) p1HasOutbreak = true;
+    if (effect1.applyStatus.both?.outbreak) { p1HasOutbreak = true; p2HasOutbreak = true; }
+  }
+  if (effect2.applyStatus) {
+    if (effect2.applyStatus.opponent?.outbreak) p1HasOutbreak = true;
+    if (effect2.applyStatus.self?.outbreak) p2HasOutbreak = true;
+    if (effect2.applyStatus.both?.outbreak) { p1HasOutbreak = true; p2HasOutbreak = true; }
+  }
+
+  if (p1HasOutbreak && p1PreOutbreakPoison > 0) {
+    p1.statuses.poison = p1PreOutbreakPoison * 2;
+    console.log(`[RoomManager] Player ${p1.username} Outbreak pre-tick! Poison doubled from ${p1PreOutbreakPoison} to ${p1.statuses.poison}`);
+    io.to(roomId).emit('relicTriggered', {
+      playerId: p1.id,
+      relicName: 'Outbreak',
+      relicType: 'outbreak',
+      message: `${p1.username}'s Poison doubled to ${p1.statuses.poison} via Outbreak!`
+    });
+  }
+  if (p2HasOutbreak && p2PreOutbreakPoison > 0) {
+    p2.statuses.poison = p2PreOutbreakPoison * 2;
+    console.log(`[RoomManager] Player ${p2.username} Outbreak pre-tick! Poison doubled from ${p2PreOutbreakPoison} to ${p2.statuses.poison}`);
+    io.to(roomId).emit('relicTriggered', {
+      playerId: p2.id,
+      relicName: 'Outbreak',
+      relicType: 'outbreak',
+      message: `${p2.username}'s Poison doubled to ${p2.statuses.poison} via Outbreak!`
+    });
   }
 
   // 2. Process end-of-round status damage ticks
@@ -603,9 +697,9 @@ function resolveRound(roomId, io) {
     p1.hp = Math.max(0, p1.hp - p1BurnHpDmg);
     p1.statuses.burn = 0; // Burn immediately resets to 0
   }
-  if (p1.statuses.poison > 0) {
+  if (p1PreOutbreakPoison > 0) {
     const toxicVal = p2.relics.toxic_catalyst || 0;
-    p1PoisonTick = p1.statuses.poison * (1 + toxicVal);
+    p1PoisonTick = p1PreOutbreakPoison * (1 + toxicVal);
     p1.hp = Math.max(0, p1.hp - p1PoisonTick);
     p1.statuses.poison = Math.max(0, p1.statuses.poison - 1); // Poison decreases by 1
   }
@@ -627,68 +721,11 @@ function resolveRound(roomId, io) {
     p2.hp = Math.max(0, p2.hp - p2BurnHpDmg);
     p2.statuses.burn = 0; // Burn immediately resets to 0
   }
-  if (p2.statuses.poison > 0) {
+  if (p2PreOutbreakPoison > 0) {
     const toxicVal = p1.relics.toxic_catalyst || 0;
-    p2PoisonTick = p2.statuses.poison * (1 + toxicVal);
+    p2PoisonTick = p2PreOutbreakPoison * (1 + toxicVal);
     p2.hp = Math.max(0, p2.hp - p2PoisonTick);
     p2.statuses.poison = Math.max(0, p2.statuses.poison - 1);
-  }
-
-  // Briar Armor (Status Tick HP Damage - Purifying Amulet is clash-only)
-  const p1StatusHpDmg = p1BurnHpDmg + p1PoisonTick;
-  if (p1StatusHpDmg > 0 && p1Briar > 0) {
-    const thorns = 3 * p1Briar;
-    if (p1HasVenomheart) {
-      const poisonGain = Math.min(3, thorns);
-      p2.statuses.poison = (p2.statuses.poison || 0) + poisonGain;
-      io.to(roomId).emit('relicTriggered', {
-        playerId: p1.id,
-        targetPlayerId: p2.id,
-        relicName: 'Venomheart Briar',
-        relicType: 'poison',
-        poison: poisonGain,
-        message: `${p1.username}'s Venomheart Briar converted Briar Armor into ${poisonGain} Poison on ${p2.username}!`
-      });
-    } else {
-      p2.hp = Math.max(0, p2.hp - thorns);
-      p2ThornsDmg += thorns;
-      io.to(roomId).emit('relicTriggered', {
-        playerId: p1.id,
-        targetPlayerId: p2.id,
-        relicName: 'Briar Armor',
-        relicType: 'thorns',
-        damage: thorns,
-        message: `${p1.username}'s Briar Armor dealt ${thorns} thorns damage to ${p2.username}!`
-      });
-    }
-  }
-
-  const p2StatusHpDmg = p2BurnHpDmg + p2PoisonTick;
-  if (p2StatusHpDmg > 0 && p2Briar > 0) {
-    const thorns = 3 * p2Briar;
-    if (p2HasVenomheart) {
-      const poisonGain = Math.min(3, thorns);
-      p1.statuses.poison = (p1.statuses.poison || 0) + poisonGain;
-      io.to(roomId).emit('relicTriggered', {
-        playerId: p2.id,
-        targetPlayerId: p1.id,
-        relicName: 'Venomheart Briar',
-        relicType: 'poison',
-        poison: poisonGain,
-        message: `${p2.username}'s Venomheart Briar converted Briar Armor into ${poisonGain} Poison on ${p1.username}!`
-      });
-    } else {
-      p1.hp = Math.max(0, p1.hp - thorns);
-      p1ThornsDmg += thorns;
-      io.to(roomId).emit('relicTriggered', {
-        playerId: p2.id,
-        targetPlayerId: p1.id,
-        relicName: 'Briar Armor',
-        relicType: 'thorns',
-        damage: thorns,
-        message: `${p2.username}'s Briar Armor dealt ${thorns} thorns damage to ${p1.username}!`
-      });
-    }
   }
 
   // Apply Venomheart Briar poison converted from clash thorns (ticks starting next clash)
@@ -744,15 +781,19 @@ function resolveRound(roomId, io) {
   }
 
   // Helper variables for quest progress tracking
-  const p1BurnOpponent = effect1.applyStatus?.opponent?.burn || 0;
-  const p1PoisonOpponent = effect1.applyStatus?.opponent?.poison || 0;
-  const p1BuffSelf = effect1.applyStatus?.self?.attackBuff || 0;
-  const p1WeakOpponent = effect1.applyStatus?.opponent?.weakness || 0;
+  const p1BurnOpponent = (effect1.applyStatus?.opponent?.burn || 0) + (effect1.applyStatus?.both?.burn || 0);
+  const p1PoisonOpponent = (effect1.applyStatus?.opponent?.poison || 0) + (effect1.applyStatus?.both?.poison || 0);
+  const p1Defiant = (p1.relics.defiant_heart || p1.relics.last_stand || 0);
+  const p1DefiantBuff = (result.outcomeA === 'INFERIOR' && p1Defiant > 0) ? (p1Defiant * 2) : 0;
+  const p1TotalBuffSelf = (effect1.applyStatus?.self?.attackBuff || 0) + (effect1.applyStatus?.both?.attackBuff || 0) + p1DefiantBuff;
+  const p1TotalWeakOpponent = (effect1.applyStatus?.opponent?.weakness || 0) + (effect1.applyStatus?.both?.weakness || 0);
 
-  const p2BurnOpponent = effect2.applyStatus?.opponent?.burn || 0;
-  const p2PoisonOpponent = effect2.applyStatus?.opponent?.poison || 0;
-  const p2BuffSelf = effect2.applyStatus?.self?.attackBuff || 0;
-  const p2WeakOpponent = effect2.applyStatus?.opponent?.weakness || 0;
+  const p2BurnOpponent = (effect2.applyStatus?.opponent?.burn || 0) + (effect2.applyStatus?.both?.burn || 0);
+  const p2PoisonOpponent = (effect2.applyStatus?.opponent?.poison || 0) + (effect2.applyStatus?.both?.poison || 0);
+  const p2Defiant = (p2.relics.defiant_heart || p2.relics.last_stand || 0);
+  const p2DefiantBuff = (result.outcomeB === 'INFERIOR' && p2Defiant > 0) ? (p2Defiant * 2) : 0;
+  const p2TotalBuffSelf = (effect2.applyStatus?.self?.attackBuff || 0) + (effect2.applyStatus?.both?.attackBuff || 0) + p2DefiantBuff;
+  const p2TotalWeakOpponent = (effect2.applyStatus?.opponent?.weakness || 0) + (effect2.applyStatus?.both?.weakness || 0);
 
   // Add Ember Spark / Venomous Brambles extra status applications
   let p1BurnExtra = 0, p1PoisonExtra = 0;
@@ -780,13 +821,6 @@ function resolveRound(roomId, io) {
       applyStatusToPlayer(p1, effect1.applyStatus.self);
     }
     if (effect1.applyStatus.both) {
-      const snapP1 = p1.statuses.poison || 0;
-      const snapP2 = p2.statuses.poison || 0;
-      if (effect1.applyStatus.both.outbreak) {
-        p1.statuses.poison = snapP1 * 2;
-        p2.statuses.poison = snapP2 * 2;
-        console.log(`[RoomManager] Outbreak Both (from ${p1.username})! P1 poison: ${p1.statuses.poison}, P2 poison: ${p2.statuses.poison}`);
-      }
       Object.keys(effect1.applyStatus.both).forEach(stat => {
         if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
         applyStatusToPlayer(p1, { [stat]: effect1.applyStatus.both[stat] });
@@ -803,13 +837,6 @@ function resolveRound(roomId, io) {
       applyStatusToPlayer(p2, effect2.applyStatus.self);
     }
     if (effect2.applyStatus.both) {
-      const snapP1 = p1.statuses.poison || 0;
-      const snapP2 = p2.statuses.poison || 0;
-      if (effect2.applyStatus.both.outbreak) {
-        p1.statuses.poison = snapP1 * 2;
-        p2.statuses.poison = snapP2 * 2;
-        console.log(`[RoomManager] Outbreak Both (from ${p2.username})! P1 poison: ${p1.statuses.poison}, P2 poison: ${p2.statuses.poison}`);
-      }
       Object.keys(effect2.applyStatus.both).forEach(stat => {
         if (['cleanse', 'dispel', 'outbreak'].includes(stat)) return;
         applyStatusToPlayer(p1, { [stat]: effect2.applyStatus.both[stat] });
@@ -837,18 +864,24 @@ function resolveRound(roomId, io) {
   }
 
   // Apply outcome Buffs from relics: Defiant Heart / Last Stand (Inferior outcome gives Buff(2))
-  const p1Defiant = (p1.relics.defiant_heart || p1.relics.last_stand || 0);
   if (result.outcomeA === 'INFERIOR' && p1Defiant > 0) {
     p1.statuses.attackBuff = (p1.statuses.attackBuff || 0) + p1Defiant * 2;
   }
-  const p2Defiant = (p2.relics.defiant_heart || p2.relics.last_stand || 0);
   if (result.outcomeB === 'INFERIOR' && p2Defiant > 0) {
     p2.statuses.attackBuff = (p2.statuses.attackBuff || 0) + p2Defiant * 2;
   }
 
+  // Calculate total damage taken by each player this round (clash from enemy, status shield/hp, thorns - excluding self-damage!)
+  const p1DamageTaken = (result.damageDealtByB || 0) + (p1BurnShieldDmg || 0) + (p1BurnHpDmg || 0) + (p1PoisonTick || 0) + (p1ThornsDmg || 0);
+  const p2DamageTaken = (result.damageDealtByA || 0) + (p2BurnShieldDmg || 0) + (p2BurnHpDmg || 0) + (p2PoisonTick || 0) + (p2ThornsDmg || 0);
+
+  // Calculate total damage dealt by each player this round (clash against enemy + DoT damage to enemy + thorns dealt to enemy - excluding self-damage!)
+  const p1TotalDamageDealt = (result.damageDealtByA || 0) + (p2BurnShieldDmg || 0) + (p2BurnHpDmg || 0) + (p2PoisonTick || 0) + (p2ThornsDmg || 0);
+  const p2TotalDamageDealt = (result.damageDealtByB || 0) + (p1BurnShieldDmg || 0) + (p1BurnHpDmg || 0) + (p1PoisonTick || 0) + (p1ThornsDmg || 0);
+
   // Update Quest Progress for both players
-  updateQuestProgress(p1, result.outcomeA, result.damageDealtByA, result.shieldGainA, result.healGainA, card1, p1TotalBurnApplied, p1TotalPoisonApplied, p1BuffSelf, p1WeakOpponent, p2BurnTick);
-  updateQuestProgress(p2, result.outcomeB, result.damageDealtByB, result.shieldGainB, result.healGainB, card2, p2TotalBurnApplied, p2TotalPoisonApplied, p2BuffSelf, p2WeakOpponent, p1BurnTick);
+  updateQuestProgress(p1, result.outcomeA, p1TotalDamageDealt, result.shieldGainA, result.healGainA, card1, p1TotalBurnApplied, p1TotalPoisonApplied, p1TotalBuffSelf, p1TotalWeakOpponent, p2BurnTick, p1DamageTaken, p1CleanseSuccess, p1DispelSuccess);
+  updateQuestProgress(p2, result.outcomeB, p2TotalDamageDealt, result.shieldGainB, result.healGainB, card2, p2TotalBurnApplied, p2TotalPoisonApplied, p2TotalBuffSelf, p2TotalWeakOpponent, p1BurnTick, p2DamageTaken, p2CleanseSuccess, p2DispelSuccess);
 
   // Record clash log history
   if (!room.clashHistory) room.clashHistory = [];

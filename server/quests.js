@@ -25,6 +25,18 @@ const QUEST_TEMPLATES = [
     }
   },
 
+  // Damage Taken Quests (Endure / Survival)
+  {
+    id: 'take_damage',
+    category: 'damage_taken',
+    tags: ['damage_taken'],
+    tiers: {
+      EASY:   { target: 20, text: 'Take 20 damage in battle' },
+      MEDIUM: { target: 40, text: 'Take 40 damage in battle' },
+      HARD:   { target: 60, text: 'Take 60 damage in battle' }
+    }
+  },
+
   // Superior Outcomes
   {
     id: 'superior_outcome',
@@ -32,7 +44,7 @@ const QUEST_TEMPLATES = [
     tags: ['outcome', 'superior'],
     tiers: {
       EASY:   { target: 2, text: 'Superior outcome 2 times' },
-      MEDIUM: { target: 4, text: 'Superior outcome 4 times' },
+      MEDIUM: { target: 3, text: 'Superior outcome 3 times' },
     }
   },
 
@@ -71,15 +83,37 @@ const QUEST_TEMPLATES = [
     }
   },
 
-  // Shield Quests
+  // Shield Quests (Lowered targets: 10, 20, 35)
   {
     id: 'gain_shield',
     category: 'shield',
     tags: ['shield'],
     tiers: {
       EASY:   { target: 10, text: 'Gain 10 Shield in battle' },
-      MEDIUM: { target: 30, text: 'Gain 30 Shield in battle' },
-      HARD:   { target: 60, text: 'Gain 60 Shield in battle' }
+      MEDIUM: { target: 20, text: 'Gain 20 Shield in battle' },
+      HARD:   { target: 35, text: 'Gain 35 Shield in battle' }
+    }
+  },
+
+  // Cleanse Debuffs Quests (MEDIUM: 1, HARD: 3)
+  {
+    id: 'cleanse_debuff',
+    category: 'cleanse',
+    tags: ['cleanse'],
+    tiers: {
+      MEDIUM: { target: 1, text: 'Cleanse debuffs 1 time' },
+      HARD:   { target: 3, text: 'Cleanse debuffs 3 times' }
+    }
+  },
+
+  // Dispel Enemy Buffs Quests (MEDIUM: 1, HARD: 3)
+  {
+    id: 'dispel_buff',
+    category: 'dispel',
+    tags: ['dispel'],
+    tiers: {
+      MEDIUM: { target: 1, text: 'Dispel enemy buffs 1 time' },
+      HARD:   { target: 3, text: 'Dispel enemy buffs 3 times' }
     }
   },
 
@@ -154,11 +188,11 @@ const QUEST_TEMPLATES = [
 
   // Streak Outcomes (HARD only)
   {
-    id: 'superior_4_row',
+    id: 'superior_3_row',
     category: 'streak',
     tags: ['outcome', 'superior', 'row'],
     tiers: {
-      HARD: { target: 4, text: 'Superior 4 times in a row' }
+      HARD: { target: 3, text: 'Superior 3 times in a row' }
     }
   },
   {
@@ -170,13 +204,13 @@ const QUEST_TEMPLATES = [
     }
   },
 
-  // Inferior Survival (MEDIUM only)
+  // Inferior Streak (HARD only)
   {
-    id: 'inferior_4',
-    category: 'outcome',
-    tags: ['outcome', 'inferior'],
+    id: 'inferior_3_row',
+    category: 'streak',
+    tags: ['outcome', 'inferior', 'row'],
     tiers: {
-      HARD: { target: 4, text: 'Inferior 4 times in a row' }
+      HARD: { target: 3, text: 'Inferior 3 times in a row' }
     }
   },
 
@@ -326,7 +360,7 @@ function questCapacity(quest, deck, relics = {}) {
   const tags = quest.tags || [];
 
   // Outcome, damage, and streak quests are not constrained by card status capacity
-  if (tags.some(t => ['outcome', 'damage', 'row', 'streak', 'superior', 'neutral', 'inferior'].includes(t))) {
+  if (tags.some(t => ['outcome', 'damage', 'damage_taken', 'row', 'streak', 'superior', 'neutral', 'inferior'].includes(t))) {
     return null;
   }
 
@@ -377,6 +411,17 @@ function questCapacity(quest, deck, relics = {}) {
   if (tags.includes('heal')) {
     const healSum = profiles.reduce((sum, p) => sum + (p.healSum || 0), 0);
     return 2 * healSum;
+  }
+
+  if (tags.includes('cleanse')) {
+    const hasPurifyingAmulet = (relics?.relic_reactive_cleanse_legendary || 0) > 0;
+    const cleanseCount = profiles.filter(p => p.hasSelfCleanse).length + (hasPurifyingAmulet ? 2 : 0);
+    return cleanseCount * 2;
+  }
+
+  if (tags.includes('dispel')) {
+    const dispelCount = profiles.filter(p => p.hasOppDispel).length;
+    return dispelCount * 2;
   }
 
   // Element Quests
@@ -527,7 +572,7 @@ function getEffectiveDifficulty(quest, deck, relics = {}) {
  * Updates a player's quest progress after a round clash.
  * Robust matching supports both new template IDs and legacy IDs.
  */
-function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg) {
+function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain, cardPlayed, appliedBurnToOpponent, appliedPoisonToOpponent, appliedBuffToSelf, appliedWeakToOpponent, opponentBurnTickDmg, damageTaken = 0, cleanseSuccess = false, dispelSuccess = false) {
   if (!player.activeQuest) return;
 
   const q = player.activeQuest;
@@ -536,93 +581,150 @@ function updateQuestProgress(player, outcome, damageDealt, shieldGain, healGain,
   const templateId = q.templateId || q.id;
   let progressDelta = 0;
 
-  // 1. Damage Quests
-  if (templateId === 'deal_damage' || q.tags?.includes('damage') || q.id === 'deal_30' || q.id === 'deal_50' || q.id === 'deal_70') {
+  // 1. Damage Dealt Quests
+  if (templateId === 'deal_damage' || q.tags?.includes('damage') || q.id?.startsWith('deal_damage') || q.id === 'deal_30' || q.id === 'deal_50' || q.id === 'deal_70') {
     progressDelta = damageDealt;
   }
-  // 2. Superior Outcomes (Count)
-  else if (templateId === 'superior_outcome' || q.id === 'superior_3' || q.id === 'superior_4' || q.id === 'superior_5') {
-    if (outcome === 'SUPERIOR') progressDelta = 1;
+  // 1b. Damage Taken Quests
+  else if (templateId === 'take_damage' || q.tags?.includes('damage_taken') || q.id?.startsWith('take_damage')) {
+    progressDelta = damageTaken;
   }
-  // 3. Neutral Outcomes (Count)
-  else if (templateId === 'neutral_outcome' || q.id === 'neutral_3' || q.id === 'neutral_4' || q.id === 'neutral_5') {
-    if (outcome === 'NEUTRAL') progressDelta = 1;
-  }
-  // 4. Inferior Outcomes (Count)
-  else if (templateId === 'inferior_3' || templateId === 'inferior_outcome') {
-    if (outcome === 'INFERIOR') progressDelta = 1;
-  }
-  // 5. Streaks (Superior 2 in a row)
-  else if (templateId === 'superior_2_row') {
+  // 2. Streaks: Superior X in a row
+  else if (
+    templateId === 'superior_3_row' ||
+    templateId === 'superior_4_row' ||
+    templateId === 'superior_2_row' ||
+    q.id?.startsWith('superior_3_row') ||
+    q.id?.startsWith('superior_4_row') ||
+    q.id?.startsWith('superior_2_row') ||
+    (q.tags?.includes('superior') && (q.tags?.includes('row') || q.category === 'streak' || q.text?.toLowerCase().includes('in a row')))
+  ) {
     if (outcome === 'SUPERIOR') {
       progressDelta = 1;
     } else {
       player.questProgress = 0;
     }
   }
-  // 6. Streaks (Neutral 3 in a row)
-  else if (templateId === 'neutral_3_row') {
+  // 3. Streaks: Neutral X in a row
+  else if (
+    templateId === 'neutral_4_row' ||
+    templateId === 'neutral_3_row' ||
+    q.id?.startsWith('neutral_4_row') ||
+    q.id?.startsWith('neutral_3_row') ||
+    (q.tags?.includes('neutral') && (q.tags?.includes('row') || q.category === 'streak' || q.text?.toLowerCase().includes('in a row')))
+  ) {
     if (outcome === 'NEUTRAL') {
       progressDelta = 1;
     } else {
       player.questProgress = 0;
     }
   }
-  // 7. Burn Stacks Applied
-  else if (templateId === 'apply_burn' || q.id === 'apply_burn_3' || q.id === 'apply_burn_5' || q.id === 'apply_burn_7') {
+  // 4. Streaks: Inferior X in a row
+  else if (
+    templateId === 'inferior_3_row' ||
+    templateId === 'inferior_4' ||
+    templateId === 'inferior_4_row' ||
+    q.id?.startsWith('inferior_3_row') ||
+    q.id?.startsWith('inferior_4') ||
+    (q.tags?.includes('inferior') && (q.tags?.includes('row') || q.category === 'streak' || q.text?.toLowerCase().includes('in a row')))
+  ) {
+    if (outcome === 'INFERIOR') {
+      progressDelta = 1;
+    } else {
+      player.questProgress = 0;
+    }
+  }
+  // 5. Cumulative Superior Outcomes (Count)
+  else if (
+    templateId === 'superior_outcome' ||
+    q.id?.startsWith('superior_outcome') ||
+    (q.tags?.includes('superior') && q.tags?.includes('outcome')) ||
+    q.id === 'superior_3' || q.id === 'superior_4' || q.id === 'superior_5'
+  ) {
+    if (outcome === 'SUPERIOR') progressDelta = 1;
+  }
+  // 6. Cumulative Neutral Outcomes (Count)
+  else if (
+    templateId === 'neutral_outcome' ||
+    q.id?.startsWith('neutral_outcome') ||
+    (q.tags?.includes('neutral') && q.tags?.includes('outcome') && q.category !== 'element') ||
+    q.id === 'neutral_3' || q.id === 'neutral_4' || q.id === 'neutral_5'
+  ) {
+    if (outcome === 'NEUTRAL') progressDelta = 1;
+  }
+  // 7. Cumulative Inferior Outcomes (Count)
+  else if (
+    templateId === 'inferior_outcome' ||
+    templateId === 'inferior_3' ||
+    q.id?.startsWith('inferior_outcome') ||
+    (q.tags?.includes('inferior') && q.tags?.includes('outcome'))
+  ) {
+    if (outcome === 'INFERIOR') progressDelta = 1;
+  }
+  // 8. Burn Stacks Applied
+  else if (templateId === 'apply_burn' || q.id?.startsWith('apply_burn') || (q.tags?.includes('burn') && !q.tags?.includes('burn_dmg') && templateId !== 'deal_15_burn')) {
     progressDelta = appliedBurnToOpponent;
   }
-  // 8. Burn Damage Ticks
-  else if (templateId === 'deal_15_burn') {
+  // 9. Burn Damage Ticks
+  else if (templateId === 'deal_15_burn' || q.id?.startsWith('deal_15_burn') || q.category === 'burn_dmg') {
     progressDelta = opponentBurnTickDmg;
   }
-  // 9. Poison Stacks Applied
-  else if (templateId === 'apply_poison' || q.id === 'apply_poison_3' || q.id === 'apply_poison_5' || q.id === 'apply_poison_7') {
+  // 10. Poison Stacks Applied
+  else if (templateId === 'apply_poison' || q.id?.startsWith('apply_poison') || q.tags?.includes('poison')) {
     progressDelta = appliedPoisonToOpponent;
   }
-  // 10. Shield Gained
-  else if (templateId === 'gain_shield' || q.id === 'gain_20_shield' || q.id === 'gain_40_shield' || q.id === 'gain_60_shield') {
+  // 11. Shield Gained
+  else if (templateId === 'gain_shield' || q.id?.startsWith('gain_shield') || q.tags?.includes('shield')) {
     progressDelta = shieldGain;
   }
-  // 11. Health Healed
-  else if (templateId === 'heal_hp' || q.id === 'heal_10' || q.id === 'heal_20' || q.id === 'heal_30') {
+  // 12. Health Healed
+  else if (templateId === 'heal_hp' || q.id?.startsWith('heal_hp') || q.tags?.includes('heal')) {
     progressDelta = healGain;
   }
-  // 12. Element: Fire
-  else if (templateId === 'play_fire' || q.id === 'play_3_fire') {
+  // 13. Element: Fire
+  else if (templateId === 'play_fire' || q.id?.startsWith('play_fire') || (q.tags?.includes('fire') && q.category === 'element')) {
     if (cardPlayed?.element === 'FIRE') progressDelta = 1;
   }
-  // 13. Element: Water
-  else if (templateId === 'play_water' || q.id === 'play_3_water') {
+  // 14. Element: Water
+  else if (templateId === 'play_water' || q.id?.startsWith('play_water') || (q.tags?.includes('water') && q.category === 'element')) {
     if (cardPlayed?.element === 'WATER') progressDelta = 1;
   }
-  // 14. Element: Nature
-  else if (templateId === 'play_nature' || q.id === 'play_3_nature') {
+  // 15. Element: Nature
+  else if (templateId === 'play_nature' || q.id?.startsWith('play_nature') || (q.tags?.includes('nature') && q.category === 'element')) {
     if (cardPlayed?.element === 'NATURE') progressDelta = 1;
   }
-  // 15. Element: Chaos
-  else if (templateId === 'play_chaos' || q.id === 'play_2_chaos') {
+  // 16. Element: Chaos
+  else if (templateId === 'play_chaos' || q.id?.startsWith('play_chaos') || (q.tags?.includes('chaos') && q.category === 'element')) {
     if (cardPlayed?.element === 'CHAOS') progressDelta = 1;
   }
-  // 16. Element: Neutral
-  else if (templateId === 'play_neutral' || q.id === 'play_2_neutral') {
+  // 17. Element: Neutral
+  else if (templateId === 'play_neutral' || q.id?.startsWith('play_neutral') || (q.tags?.includes('neutral') && q.category === 'element')) {
     if (cardPlayed?.element === 'NEUTRAL') progressDelta = 1;
   }
-  // 17. Buff Stacks Gained
-  else if (templateId === 'gain_buff' || q.id === 'gain_buff_5') {
+  // 18. Buff Stacks Gained
+  else if (templateId === 'gain_buff' || q.id?.startsWith('gain_buff') || (q.tags?.includes('buff') && q.category === 'buff')) {
     progressDelta = appliedBuffToSelf;
   }
-  // 18. Reach Buff Threshold
-  else if (templateId === 'reach_buff_5') {
-    player.questProgress = player.statuses?.attackBuff || 0;
+  // 19. Reach Buff Threshold
+  else if (templateId === 'reach_buff_5' || q.id?.startsWith('reach_buff_5') || q.category === 'buff_threshold') {
+    const currentBuff = player.statuses?.attackBuff || player.statuses?.buff || 0;
+    player.questProgress = Math.min(q.target, Math.max(player.questProgress || 0, currentBuff));
     return;
   }
-  // 19. Weakness Applied
-  else if (templateId === 'apply_weak' || q.id === 'apply_weak_3' || q.id === 'apply_weak_5' || q.id === 'apply_weak_6' || q.id === 'apply_weak_7') {
+  // 20. Weakness Applied
+  else if (templateId === 'apply_weak' || q.id?.startsWith('apply_weak') || q.tags?.includes('weak')) {
     progressDelta = appliedWeakToOpponent;
   }
+  // 21. Cleanse Debuffs (counted when successfully cleansing at least 1 debuff)
+  else if (templateId === 'cleanse_debuff' || q.id?.startsWith('cleanse_debuff') || q.tags?.includes('cleanse')) {
+    if (cleanseSuccess) progressDelta = 1;
+  }
+  // 22. Dispel Enemy Buffs (counted when successfully dispelling at least 1 enemy buff)
+  else if (templateId === 'dispel_buff' || q.id?.startsWith('dispel_buff') || q.tags?.includes('dispel')) {
+    if (dispelSuccess) progressDelta = 1;
+  }
 
-  player.questProgress = Math.min(q.target, player.questProgress + progressDelta);
+  player.questProgress = Math.min(q.target, (player.questProgress || 0) + progressDelta);
 }
 
 module.exports = {

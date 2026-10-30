@@ -15,11 +15,11 @@
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="css/base.css?v=2.0.42">
   <link rel="stylesheet" href="css/lobby.css?v=2.0.42">
-  <link rel="stylesheet" href="css/battle.css?v=2.0.43">
+  <link rel="stylesheet" href="css/battle.css?v=2.0.45">
   <link rel="stylesheet" href="css/prep.css?v=2.0.42">
   <link rel="stylesheet" href="css/overlays.css?v=2.0.42">
   <link rel="stylesheet" href="css/effects.css?v=2.0.42">
-  <link rel="stylesheet" href="css/mobile.css?v=2.0.43">
+  <link rel="stylesheet" href="css/mobile.css?v=2.0.45">
   
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -623,7 +623,7 @@
                   <span class="status-name">POISON</span>
                   <span class="status-tag nature">NATURE DEBUFF</span>
                 </div>
-                <p class="status-desc">Deals direct damage equal to <strong>1x stack size</strong> at round start, <strong>bypassing shields completely</strong>. Decreases by 1 stack per round.</p>
+                <p class="status-desc">Deals direct damage equal to <strong>1x stack size</strong> at round end, <strong>bypassing shields completely</strong>. Decreases by 1 stack per round.</p>
               </div>
 
               <div class="status-card buff">
@@ -659,7 +659,7 @@
                   <span class="status-name">OUTBREAK</span>
                   <span class="status-tag chaos">CATALYST</span>
                 </div>
-                <p class="status-desc">Instantly <strong>doubles</strong> all active Poison stacks on target (minimum 1 stack if unpoisoned).</p>
+                <p class="status-desc">Activates before round ticks, instantly <strong>doubling</strong> current Poison stacks on target (doubled stacks take effect starting next turn).</p>
               </div>
 
               <div class="status-card leech">
@@ -668,7 +668,7 @@
                   <span class="status-name">LEECH</span>
                   <span class="status-tag water">DRAIN</span>
                 </div>
-                <p class="status-desc">When dealing direct unblocked HP damage, restores <strong>3 HP per stack</strong> and consumes 1 stack.</p>
+                <p class="status-desc">When your card clash deals unblocked HP damage to an enemy, restores <strong>20% of that damage per stack</strong> (uncapped). Stack consumed only on trigger.</p>
               </div>
 
               <div class="status-card thorns">
@@ -677,7 +677,7 @@
                   <span class="status-name">THORNS</span>
                   <span class="status-tag brass">RETALIATION</span>
                 </div>
-                <p class="status-desc">Reflects true retaliation damage back to the attacker whenever taking direct unblocked HP damage.</p>
+                <p class="status-desc">Deals retaliation damage back to attacker whenever hit by enemy card clash (even if blocked by Shield). Damages Shield first before HP. Consumes 1 stack per trigger.</p>
               </div>
 
               <div class="status-card cleanse">
@@ -1236,10 +1236,10 @@
   <script src="js/audio.js?v=2.0.42"></script>
   <script src="js/animations.js?v=2.0.42"></script>
   <script src="js/card-desc.js?v=2.0.42"></script>
-  <script src="js/hand-gesture.js?v=2.0.43"></script>
-  <script src="js/ui.js?v=2.0.43"></script>
+  <script src="js/hand-gesture.js?v=2.0.45"></script>
+  <script src="js/ui.js?v=2.0.44"></script>
   <script src="js/socket.js?v=2.0.42"></script>
-  <script src="js/clash-pipeline.js?v=2.0.42"></script>
-  <script src="js/game.js?v=2.0.42"></script>
+  <script src="js/clash-pipeline.js?v=2.0.44"></script>
+  <script src="js/game.js?v=2.0.44"></script>
 </body>
 </html>

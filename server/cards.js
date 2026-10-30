@@ -278,10 +278,10 @@ const CARD_POOL = [
     id: 'leech_seed',
     name: 'Leech Seed',
     element: ELEMENTS.NATURE,
-    description: 'Superior: 8 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 3 dmg & <span class="kw-leech">LEECH [1]</span>.',
+    description: 'Superior: 6 dmg, 4 <span class="kw-shield">SHIELD</span> & <span class="kw-leech">LEECH [2]</span>. Neutral: 4 <span class="kw-shield">SHIELD</span> & <span class="kw-leech">LEECH [1]</span>.',
     outcomes: {
-      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
-      NEUTRAL:  { damage: 3, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 1 } } },
+      SUPERIOR: { damage: 6, shield: 4, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0, applyStatus: { self: { leech: 1 } } },
       INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
     }
   },
@@ -664,11 +664,11 @@ const CARD_POOL = [
     id: 'bloodvine_lash',
     name: 'Bloodvine Lash',
     element: ELEMENTS.NATURE,
-    description: 'Superior: 8 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 3 dmg & <span class="kw-leech">LEECH [1]</span>.',
+    description: 'Superior: 12 dmg & <span class="kw-leech">LEECH [2]</span>. Neutral: 5 dmg & <span class="kw-leech">LEECH [1]</span>. Inferior: 3 self dmg & <span class="kw-leech">LEECH [1]</span>.',
     outcomes: {
-      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
-      NEUTRAL:  { damage: 3, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 1 } } },
-      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 2 } } },
+      NEUTRAL:  { damage: 5, shield: 0, selfDamage: 0, applyStatus: { self: { leech: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 3, applyStatus: { self: { leech: 1 } } }
     }
   },
   {
@@ -746,6 +746,50 @@ const CARD_POOL = [
       SUPERIOR: { damage: 11, shield: 0, selfDamage: 0, applyStatus: { opponent: { outbreak: true } } },
       NEUTRAL:  { damage: 5, shield: 0, selfDamage: 0 },
       INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { both: { outbreak: true } } }
+    }
+  },
+  {
+    id: 'barbed_carapace',
+    name: 'Barbed Carapace',
+    element: ELEMENTS.NATURE,
+    description: 'Superior: 8 <span class="kw-shield">SHIELD</span> & <span class="kw-thorn">THORN [5]</span>. Neutral: 4 <span class="kw-shield">SHIELD</span> & <span class="kw-thorn">THORN [3]</span>. Inferior: <span class="kw-thorn">THORN [2]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 0, shield: 8, selfDamage: 0, applyStatus: { self: { thorn: 5 } } },
+      NEUTRAL:  { damage: 0, shield: 4, selfDamage: 0, applyStatus: { self: { thorn: 3 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0, applyStatus: { self: { thorn: 2 } } }
+    }
+  },
+  {
+    id: 'noxious_surge',
+    name: 'Noxious Surge',
+    element: ELEMENTS.WATER,
+    description: 'Superior: 8 dmg & <span class="kw-poison">POISON [2]</span>. Neutral: 5 <span class="kw-shield">SHIELD</span> & <span class="kw-poison">POISON [1]</span>. Inferior: 3 <span class="kw-shield">SHIELD</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 2 } } },
+      NEUTRAL:  { damage: 0, shield: 5, selfDamage: 0, applyStatus: { opponent: { poison: 1 } } },
+      INFERIOR: { damage: 0, shield: 3, selfDamage: 0 }
+    }
+  },
+  {
+    id: 'miasma_strike',
+    name: 'Miasma Strike',
+    element: ELEMENTS.CHAOS,
+    description: 'Superior: 12 dmg & <span class="kw-poison">POISON [2]</span>. Neutral: 4 dmg & <span class="kw-poison">POISON [2]</span> to Both. Inferior: 4 self dmg & <span class="kw-poison">POISON [2]</span> to self.',
+    outcomes: {
+      SUPERIOR: { damage: 12, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 2 } } },
+      NEUTRAL:  { damage: 4, shield: 0, selfDamage: 0, applyStatus: { both: { poison: 2 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 4, applyStatus: { self: { poison: 2 } } }
+    }
+  },
+  {
+    id: 'toxic_dart',
+    name: 'Toxic Dart',
+    element: ELEMENTS.NEUTRAL,
+    description: 'Superior: 8 dmg & <span class="kw-poison">POISON [2]</span>. Neutral: 2 dmg & <span class="kw-poison">POISON [1]</span>.',
+    outcomes: {
+      SUPERIOR: { damage: 8, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 2 } } },
+      NEUTRAL:  { damage: 2, shield: 0, selfDamage: 0, applyStatus: { opponent: { poison: 1 } } },
+      INFERIOR: { damage: 0, shield: 0, selfDamage: 0 }
     }
   }
 ];

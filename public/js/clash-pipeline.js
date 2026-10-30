@@ -79,8 +79,8 @@ try {
 
     if (alreadyInSlot) {
       if (playerCardEl) {
-        playerCardEl.style.opacity = '0';
-        playerCardEl.style.pointerEvents = 'none';
+        playerCardEl.remove();
+        UI.realignHand();
       }
     } else {
       await new Promise(resolve => {
@@ -121,6 +121,10 @@ try {
               easing: 'easeOutQuint',
               complete: () => {
                 clone.remove();
+                if (playerCardEl && playerCardEl.parentNode) {
+                  playerCardEl.remove();
+                  UI.realignHand();
+                }
                 const slotCard = UI.createCardElement(reveal.yourCard);
                 slotCard.removeAttribute('id');
                 slotCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
@@ -130,6 +134,10 @@ try {
               }
             });
           } else {
+            if (playerCardEl && playerCardEl.parentNode) {
+              playerCardEl.remove();
+              UI.realignHand();
+            }
             const fallbackCard = UI.createCardElement(reveal.yourCard);
             fallbackCard.removeAttribute('id');
             fallbackCard.style.cssText = 'position: relative; transform: none; width: 100%; height: 100%; cursor: default;';
@@ -422,7 +430,7 @@ try {
               }
             }
 
-            // Thorns damage (reflected true damage from Briar Armor)
+            // Thorns damage (retaliation damage from Briar Armor / Thorn keyword)
             if (result.thornsDamage > 0) {
               Animations.animateDamagePopup(UI.playerPlaySlot, result.thornsDamage, 'thorns', delayP1);
               delayP1 += 70;

@@ -674,7 +674,7 @@ const UI = {
       this.bindTooltip(
         badge, 
         'POISONED', 
-        `Takes <strong>${statuses.poison}</strong> damage bypassing shields at start of turn. (Ticks down by 1 stack per round).`,
+        `Takes <strong>${statuses.poison}</strong> damage bypassing shields at end of round. (Ticks down by 1 stack per round).`,
         `Stacks: ${statuses.poison}`
       );
     }
@@ -716,7 +716,7 @@ const UI = {
       this.bindTooltip(
         badge,
         'LEECH',
-        `Heals <strong>${statuses.leech * 20}%</strong> of unblocked HP damage dealt (max 10 HP). (Consumes 1 stack per trigger).`,
+        `Heals <strong>${statuses.leech * 20}%</strong> of card clash HP damage dealt to enemy. (Consumes 1 stack on trigger).`,
         `Stacks: ${statuses.leech}`
       );
     }
@@ -730,7 +730,7 @@ const UI = {
       this.bindTooltip(
         badge,
         'THORN',
-        `Reflects <strong>${statuses.thorn} damage</strong> back to attacker on clash HP damage. (Consumes 1 stack per trigger).`,
+        `Deals <strong>${statuses.thorn} damage</strong> to attacker when hit by card clash (damages Shield first). (Consumes 1 stack per trigger).`,
         `Stacks: ${statuses.thorn}`
       );
     }
@@ -756,19 +756,25 @@ const UI = {
       }
     }
 
-    if (hand.length === 0) {
+    if (!hand || hand.length === 0) {
       this.playerHand.innerHTML = '';
+      this.handOrder = [];
       return;
     }
 
-    hand = this.applyHandOrder(hand);
-    this.handOrder = hand.map(c => c.instanceId);
+    // If a card is currently locked in the arena slot, exclude it from the hand DOM
+    const activeHand = (this.isLocked && this.selectedCardInstanceId)
+      ? hand.filter(c => c.instanceId !== this.selectedCardInstanceId)
+      : hand;
+
+    const orderedHand = this.applyHandOrder(activeHand);
+    this.handOrder = orderedHand.map(c => c.instanceId);
 
     // If it's a new round, clear hand completely and animate drawing
     if (isNewRound) {
       this.playerHand.innerHTML = '';
-      const total = hand.length;
-      hand.forEach((card, index) => {
+      const total = orderedHand.length;
+      orderedHand.forEach((card, index) => {
         const cardEl = this.createCardElement(card);
         this.playerHand.appendChild(cardEl);
         cardEl.style.setProperty('--index', index);
@@ -783,9 +789,9 @@ const UI = {
     }
 
     // Incremental turn progression (non-disruptive update)
-    // 1. Remove cards that are not in the new hand
+    // 1. Remove cards that are not in the new active hand
     const existingCardEls = Array.from(this.playerHand.querySelectorAll('.card'));
-    const newHandIds = hand.map(c => c.instanceId);
+    const newHandIds = orderedHand.map(c => c.instanceId);
     
     existingCardEls.forEach(cardEl => {
       const instId = cardEl.getAttribute('data-instance-id');
@@ -795,32 +801,44 @@ const UI = {
     });
 
     // 2. Add cards that are in the new hand but not in the DOM
-    const currentDomIds = Array.from(this.playerHand.querySelectorAll('.card')).map(el => el.getAttribute('data-instance-id'));
+    const currentDomMap = new Map();
+    Array.from(this.playerHand.querySelectorAll('.card')).forEach(el => {
+      currentDomMap.set(el.getAttribute('data-instance-id'), el);
+    });
     
-    hand.forEach(card => {
-      if (!currentDomIds.includes(card.instanceId)) {
+    orderedHand.forEach(card => {
+      if (!currentDomMap.has(card.instanceId)) {
         const cardEl = this.createCardElement(card);
         this.playerHand.appendChild(cardEl);
+        currentDomMap.set(card.instanceId, cardEl);
       }
     });
 
-    // 3. Sort DOM elements to match the hand array order
+    // 3. Re-order DOM elements to match the client orderedHand ONLY if order changed
+    let domMatchesOrder = true;
+    const currentDomCards = Array.from(this.playerHand.querySelectorAll('.card'));
+    for (let i = 0; i < orderedHand.length; i++) {
+      if (currentDomCards[i]?.getAttribute('data-instance-id') !== orderedHand[i].instanceId) {
+        domMatchesOrder = false;
+        break;
+      }
+    }
+
+    if (!domMatchesOrder) {
+      orderedHand.forEach(card => {
+        const el = currentDomMap.get(card.instanceId);
+        if (el) this.playerHand.appendChild(el);
+      });
+    }
+
     const finalCardEls = Array.from(this.playerHand.querySelectorAll('.card'));
-    finalCardEls.sort((a, b) => {
-      const idA = a.getAttribute('data-instance-id');
-      const idB = b.getAttribute('data-instance-id');
-      return newHandIds.indexOf(idA) - newHandIds.indexOf(idB);
-    });
-
-    // Re-append in sorted order to maintain proper DOM stacking and index variables
-    finalCardEls.forEach(el => this.playerHand.appendChild(el));
-
     const total = finalCardEls.length;
     finalCardEls.forEach((cardEl, index) => {
       cardEl.style.setProperty('--index', index);
       cardEl.style.setProperty('--total', total);
       cardEl.style.zIndex = index + 1;
       cardEl.style.opacity = '1';
+      cardEl.style.display = '';
       cardEl.style.pointerEvents = 'auto';
     });
   },
@@ -850,6 +868,7 @@ const UI = {
       cardEl.style.setProperty('--total', total);
       cardEl.style.zIndex = index + 1;
     });
+    this.handOrder = cards.map(c => c.getAttribute('data-instance-id')).filter(Boolean);
   },
 
   /** Runs a hand render that arrived while the player was mid-drag. */
@@ -1033,6 +1052,8 @@ const UI = {
               this.playerPlaySlot.classList.add('filled');
               
               window.cardFlightPromise = null;
+              selectedCard.remove();
+              this.realignHand();
               resolve();
             }
           });
@@ -1046,16 +1067,12 @@ const UI = {
         this.playerPlaySlot.innerHTML = '';
         this.playerPlaySlot.appendChild(slotCard);
         this.playerPlaySlot.classList.add('filled');
-        selectedCard.style.opacity = '0';
-        selectedCard.style.pointerEvents = 'none';
-        selectedCard.style.display = 'none';
-        this.realignRemainingHand(selectedCard);
+        selectedCard.remove();
+        this.realignHand();
       }
     }
 
-    // Disable clicks on all hand cards
-    const cards = this.playerHand.querySelectorAll('.card');
-    cards.forEach(c => c.style.pointerEvents = 'none');
+    // Remaining hand cards remain interactive (pointer-events: auto) so player can rearrange cards while waiting
 
     // Hide keyword panel when locked
     this.updateKeywordExplanations(this.battleKeywordInfo, '');
@@ -1201,8 +1218,10 @@ const UI = {
   clearArenaSlots() {
     this.playerPlaySlot.innerHTML = '';
     this.enemyPlaySlot.innerHTML = '';
-    this.playerPlaySlot.classList.remove('filled');
+    this.playerPlaySlot.classList.remove('filled', 'snap-active', 'drop-target');
     this.enemyPlaySlot.classList.remove('filled');
+    this.isLocked = false;
+    this.selectedCardInstanceId = null;
     this.setCombatStatus('CHOOSE CARD');
     if (this.vsBadge) this.vsBadge.style.opacity = '1';
     
@@ -1535,30 +1554,50 @@ const UI = {
     const fillEl = document.getElementById('tracker-progress-fill');
     const progressTextEl = document.getElementById('tracker-progress-text');
     const rewardEl = document.getElementById('tracker-reward-text');
+    const progressContainer = fillEl ? fillEl.parentElement : null;
     
     if (textEl) textEl.innerText = activeQuest.text;
     
     const progress = activeQuest.progress || 0;
     const target = activeQuest.target || 1;
+    const isCompleted = progress >= target;
     const percent = Math.min(100, Math.floor((progress / target) * 100));
     
-    if (fillEl) fillEl.style.width = `${percent}%`;
+    if (fillEl) {
+      fillEl.style.width = `${percent}%`;
+      if (isCompleted) {
+        fillEl.classList.add('completed');
+      } else {
+        fillEl.classList.remove('completed');
+      }
+    }
+    
+    if (progressContainer) {
+      if (isCompleted) {
+        progressContainer.classList.add('completed');
+      } else {
+        progressContainer.classList.remove('completed');
+      }
+    }
     
     if (progressTextEl) {
-      if (progress >= target) {
+      if (isCompleted) {
         progressTextEl.innerText = 'COMPLETED';
-        progressTextEl.style.color = 'var(--color-primary)';
-        progressTextEl.style.fontWeight = 'bold';
+        progressTextEl.classList.add('completed');
       } else {
         progressTextEl.innerText = `${progress} / ${target}`;
-        progressTextEl.style.color = '';
-        progressTextEl.style.fontWeight = '';
+        progressTextEl.classList.remove('completed');
       }
     }
 
     const miniProgressEl = document.getElementById('tracker-mini-progress');
     if (miniProgressEl) {
-      miniProgressEl.innerText = `${progress}/${target}`;
+      miniProgressEl.innerText = isCompleted ? 'DONE' : `${progress}/${target}`;
+      if (isCompleted) {
+        miniProgressEl.classList.add('completed');
+      } else {
+        miniProgressEl.classList.remove('completed');
+      }
     }
     
     if (rewardEl) {

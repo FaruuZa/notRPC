@@ -308,13 +308,17 @@
   }
 
   .tracker-progress-container {
-    height: 10px !important;
-    margin-top: 0.3rem !important;
-    border-radius: 0 !important;
+    height: 12px !important;
+    margin-top: 0.25rem !important;
+    border-radius: 2px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .tracker-progress-text {
-    font-size: 0.52rem !important;
+    font-size: 0.54rem !important;
+    display: flex !important;
   }
 
   .tracker-reward {
@@ -325,15 +329,20 @@
   /* Central Clash Zone */
   .arena-zone {
     top: 34% !important;
-    gap: clamp(3.2rem, 11vw, 5.8rem) !important;
+    gap: clamp(3.2rem, 10vw, 5.5rem) !important;
+  }
+
+  .play-slot-container {
+    gap: 0.25rem !important;
   }
 
   .card-play-slot,
   .play-slot {
     width: 140px !important;
     height: 196px !important;
-    transform: scale(0.55);
+    transform: scale(0.6) !important; /* Exactly matches hand card scale 0.6 */
     transform-origin: center center;
+    margin: -24px -14px !important;
     border-width: 1.5px !important;
     border-radius: 0 !important;
     background: transparent !important;
@@ -343,6 +352,7 @@
 
   .slot-label {
     font-size: 0.65rem !important;
+    letter-spacing: 0.05em !important;
   }
 
   .clash-effects-zone {

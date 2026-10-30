@@ -631,24 +631,66 @@
 
 .tracker-progress-container {
   width: 100%;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 0;
+  height: 15px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 2px;
   overflow: hidden;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.tracker-progress-container.completed {
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.25);
 }
 
 .tracker-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
   height: 100%;
-  background: var(--brass-light, #f5cf70);
-  border-radius: 0;
+  background: linear-gradient(90deg, #d97706, #f5cf70);
+  border-radius: 1px;
   width: 0%;
-  transition: width 0.3s ease;
+  transition: width 0.35s ease, background 0.3s ease;
+  z-index: 1;
+}
+
+.tracker-progress-fill.completed {
+  background: linear-gradient(90deg, #059669, #34d399);
 }
 
 .tracker-progress-text {
-  display: none; /* Clean line instead of bulky inner text */
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display, var(--font-headline, sans-serif));
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 3px #000;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tracker-progress-text.completed {
+  color: #ecfdf5;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.6), 0 1px 2px #000;
+}
+
+.tracker-mini-progress.completed {
+  color: #34d399 !important;
+  font-weight: 700;
 }
 
 .tracker-reward, #tracker-reward-text {
@@ -839,11 +881,12 @@
   }
   
   .tracker-progress-container {
-    height: 7px;
+    height: 12px;
   }
   
   .tracker-progress-text {
-    font-size: 0.48rem;
+    font-size: 0.52rem;
+    display: flex;
   }
   
   .tracker-reward {

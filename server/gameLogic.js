@@ -294,7 +294,7 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   }
 
   if (['FIRE', 'WATER', 'NATURE'].includes(cardA.element)) {
-    damageDealtByA += 1 * (relicsA.elemental_harmony || 0);
+    damageDealtByA += 2 * (relicsA.elemental_harmony || 0);
   }
 
   if (cardB.element === 'FIRE') {
@@ -319,12 +319,12 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   }
 
   if (['FIRE', 'WATER', 'NATURE'].includes(cardB.element)) {
-    damageDealtByB += 1 * (relicsB.elemental_harmony || 0);
+    damageDealtByB += 2 * (relicsB.elemental_harmony || 0);
   }
 
   // 2. Outcome based modifications (Superior, Neutral)
   if (outcomeA === 'SUPERIOR') {
-    damageDealtByA += 2 * (relicsA.aggressive_momentum || 0);
+    damageDealtByA += 4 * (relicsA.aggressive_momentum || 0);
   } else if (outcomeA === 'NEUTRAL') {
     shieldGainA += 3 * (relicsA.steady_resolve || 0);
   }
@@ -337,7 +337,7 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   }
 
   if (outcomeB === 'SUPERIOR') {
-    damageDealtByB += 2 * (relicsB.aggressive_momentum || 0);
+    damageDealtByB += 4 * (relicsB.aggressive_momentum || 0);
   } else if (outcomeB === 'NEUTRAL') {
     shieldGainB += 3 * (relicsB.steady_resolve || 0);
   }
@@ -369,13 +369,13 @@ function evaluateClash(cardA, cardB, shieldA = 0, shieldB = 0, statusesA = {}, s
   // Only triggers if attacker has base damage > 0 and opponent had shield (or gains shield)
   if (damageDealtByA > 0 && (shieldB > 0 || shieldGainB > 0)) {
     damageDealtByA += 4 * (relicsA.relic_shield_piercer_rare || 0);
-    damageDealtByA += 8 * (relicsA.relic_shield_piercer_epic || 0);
-    damageDealtByA += 15 * (relicsA.relic_shield_piercer_legendary || 0);
+    damageDealtByA += 5 * (relicsA.relic_shield_piercer_epic || 0);
+    damageDealtByA += 10 * (relicsA.relic_shield_piercer_legendary || 0);
   }
   if (damageDealtByB > 0 && (shieldA > 0 || shieldGainA > 0)) {
     damageDealtByB += 4 * (relicsB.relic_shield_piercer_rare || 0);
-    damageDealtByB += 8 * (relicsB.relic_shield_piercer_epic || 0);
-    damageDealtByB += 15 * (relicsB.relic_shield_piercer_legendary || 0);
+    damageDealtByB += 5 * (relicsB.relic_shield_piercer_epic || 0);
+    damageDealtByB += 10 * (relicsB.relic_shield_piercer_legendary || 0);
   }
 
   // Apply active attack-modifying statuses (Attack Buff / Weakness)

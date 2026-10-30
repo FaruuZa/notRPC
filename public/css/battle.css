@@ -896,26 +896,32 @@
   left: 50%;
   transform-origin: bottom center;
   --offset: calc(var(--index) - (var(--total) - 1) / 2);
+  --step: clamp(40px, calc((min(100vw, 750px) - 140px) / max(var(--total, 4), 4)), 72px);
+  --step-hover: clamp(65px, calc((min(100vw, 750px) - 140px) / max(var(--total, 4), 4)), 115px);
+  --rot-deg: clamp(1.8deg, calc(16deg / max(var(--total, 4), 4)), 4deg);
+  --curve-y: clamp(0.8px, calc(8px / max(var(--total, 4), 4)), 1.8px);
   
-  /* Non-hovered state: cards overlap in fan */
-  transform: translate(calc(-50% + var(--offset) * 32px), calc(var(--offset) * var(--offset) * 2px)) rotate(calc(var(--offset) * 5deg));
+  /* Non-hovered state: cards overlap in an elegant, readable fan */
+  transform: translate(calc(-50% + var(--offset) * var(--step)), calc(var(--offset) * var(--offset) * var(--curve-y))) rotate(calc(var(--offset) * var(--rot-deg)));
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), outline 0.15s ease, border-color 0.15s ease;
 }
 
-/* Hovering container: spread flatly to avoid bunching and make clicking stable */
-.hand-container:hover .card:not(.locked) {
-  transform: translate(calc(-50% + var(--offset) * 130px), -15px) rotate(calc(var(--offset) * 0.5deg));
+/* Hovering container or while dragging: spread smoothly without clumping */
+.hand-container:hover .card:not(.locked),
+.hand-container.is-dragging .card:not(.locked) {
+  transform: translate(calc(-50% + var(--offset) * var(--step-hover)), -15px) rotate(calc(var(--offset) * 0.5deg));
 }
 
 @media (min-width: 769px) and (min-height: 551px) {
   /* Selected lift offset: applied cleanly on desktop */
   .hand-container .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 32px), -45px) rotate(0deg);
+    transform: translate(calc(-50% + var(--offset) * var(--step)), -45px) rotate(0deg);
     z-index: 90 !important;
   }
 
-  .hand-container:hover .card.selected {
-    transform: translate(calc(-50% + var(--offset) * 130px), -55px) rotate(0deg);
+  .hand-container:hover .card.selected,
+  .hand-container.is-dragging .card.selected {
+    transform: translate(calc(-50% + var(--offset) * var(--step-hover)), -55px) rotate(0deg);
     z-index: 90 !important;
   }
 }
@@ -996,26 +1002,35 @@
   /* Compact Mobile Slots & Margins (Completely solves overlapping) */
   .arena-zone {
     position: absolute;
-    top: 46%;
+    top: 34%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 100%;
     justify-content: center;
-    gap: clamp(4.5rem, 14vw, 8rem);
+    gap: clamp(3.2rem, 10vw, 5.5rem);
     margin-top: 0;
     z-index: 5;
   }
 
+  .play-slot-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+  }
+
   .slot-label {
-    font-size: 0.55rem;
-    letter-spacing: 0.5px;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
   }
 
   .card-play-slot {
     width: 140px;
     height: 196px;
-    transform: scale(0.72);
+    transform: scale(0.6); /* Exactly matched to hand card scale 0.6 on mobile */
     transform-origin: center center;
+    margin: -24px -14px;
     border-width: 1.5px;
     border-radius: 0;
     background: transparent !important;
